@@ -145,17 +145,24 @@
 
                 renderQuestionnaire(config.answers);
 
-                // Zufällige Antworten automatisch auswählen
-                questions.forEach(q => {
-                    const radios = document.querySelectorAll(`input[name="question-${q.id}"]`);
-                    const randomIndex = Math.floor(Math.random() * radios.length);
-                    if (radios[randomIndex]) radios[randomIndex].checked = true;
-                });
-                updateHighlighting();
-
+                // Prüfe, ob Antworten im Hash stehen (User kommt von Auswertung zurück)
                 const initialScores = parseHash();
                 if (initialScores) {
+                    // Antworten aus dem Hash setzen
+                    Object.entries(new URLSearchParams(window.location.hash.substring(1))).forEach(([qid, idx]) => {
+                        const radio = document.querySelector(`input[name="question-${qid}"][value="${idx}"]`);
+                        if (radio) radio.checked = true;
+                    });
+                    updateHighlighting();
                     renderEvaluation(initialScores, config.categories);
+                } else {
+                    // Nur beim ersten Laden: Zufällige Antworten auswählen
+                    questions.forEach(q => {
+                        const radios = document.querySelectorAll(`input[name="question-${q.id}"]`);
+                        const randomIndex = Math.floor(Math.random() * radios.length);
+                        if (radios[randomIndex]) radios[randomIndex].checked = true;
+                    });
+                    updateHighlighting();
                 }
             });
         }
@@ -470,9 +477,21 @@
             }
         });
 
+
         // Event-Listener für Radiobox-Änderungen zur Aktualisierung der Hervorhebung
         formElement.addEventListener('change', (event) => {
             if (event.target.type === 'radio') {
+                updateHighlighting();
+            }
+        });
+
+        // Klick auf Tabellenzelle wählt Radio aus
+        tableBody.addEventListener('click', (event) => {
+            const cell = event.target.closest('td');
+            if (!cell) return;
+            const radio = cell.querySelector('input[type="radio"]');
+            if (radio) {
+                radio.checked = true;
                 updateHighlighting();
             }
         });
@@ -481,7 +500,18 @@
         backButton.addEventListener('click', () => {
             evaluationPage.classList.add('hidden');
             questionnaireForm.classList.remove('hidden');
-            window.location.hash = '';
+            // Tabelle neu rendern
+            renderQuestionnaire(config.answers);
+            // Antworten aus dem Hash setzen
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            questions.forEach(q => {
+                const idx = hashParams.get(q.id);
+                if (idx !== null) {
+                    const radio = document.querySelector(`input[name="question-${q.id}"][value="${idx}"]`);
+                    if (radio) radio.checked = true;
+                }
+            });
+            updateHighlighting();
         });
 
         // Event-Listener für den "Kopieren"-Button
@@ -506,6 +536,12 @@
             } else {
                 questionnaireForm.classList.remove('hidden');
                 evaluationPage.classList.add('hidden');
+                // Antworten aus dem Hash setzen, falls vorhanden
+                Object.entries(new URLSearchParams(window.location.hash.substring(1))).forEach(([qid, idx]) => {
+                    const radio = document.querySelector(`input[name="question-${qid}"][value="${idx}"]`);
+                    if (radio) radio.checked = true;
+                });
+                updateHighlighting();
             }
         });
     </script>
