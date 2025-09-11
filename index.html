@@ -326,70 +326,123 @@
             const data = Object.keys(categories).map(key => scores[key] || 0);
 
             // Chart-Typ aus config
-            const chartType = config.chartType === 'bar' ? 'bar' : 'radar';
+            let chartType = 'radar';
+            if (config.chartType === 'bar') chartType = 'bar';
+            if (config.chartType === 'gauge') chartType = 'gauge';
 
-            const chartOptions = chartType === 'radar' ? {
-                responsive: true,
-                scales: {
-                    r: {
-                        min: 0,
-                        max: maxScore,
-                        pointLabels: {
-                            font: {
-                                size: 14
+            if (chartType === 'gauge') {
+                // Gauge: Zeige nur die erste Kategorie als Wert an
+                const firstKey = Object.keys(categories)[0];
+                const value = scores[firstKey] || 0;
+                const categoryLabel = categories[firstKey];
+                // Plugin für zentrale Wertanzeige und Kategoriename
+                const gaugeValuePlugin = {
+                    id: 'gaugeValuePlugin',
+                    afterDraw: chart => {
+                        const { ctx, chartArea } = chart;
+                        ctx.save();
+                        ctx.font = 'bold 2.2rem Inter, Arial, sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillStyle = '#3b82f6';
+                        const centerX = (chartArea.left + chartArea.right) / 2;
+                        // Y-Position etwas niedriger (optisch mittig im Halbkreis)
+                        const centerY = chartArea.top + (chartArea.bottom - chartArea.top) * 0.65;
+                        ctx.fillText(value + ' / ' + maxScore, centerX, centerY);
+                        // Kategoriename darunter kleiner anzeigen
+                        ctx.font = '1.1rem Inter, Arial, sans-serif';
+                        ctx.fillStyle = '#64748b';
+                        ctx.fillText(categoryLabel, centerX, centerY + 32);
+                        ctx.restore();
+                    }
+                };
+                myChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [categories[firstKey], ''],
+                        datasets: [{
+                            data: [value, Math.max(maxScore - value, 0)],
+                            backgroundColor: [
+                                'rgba(59, 130, 246, 0.8)',
+                                'rgba(203, 213, 225, 0.5)'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        rotation: -90,
+                        circumference: 180,
+                        cutout: '70%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false }
+                        }
+                    },
+                    plugins: [gaugeValuePlugin]
+                });
+            } else {
+                const chartOptions = chartType === 'radar' ? {
+                    responsive: true,
+                    scales: {
+                        r: {
+                            min: 0,
+                            max: maxScore,
+                            pointLabels: {
+                                font: {
+                                    size: 14
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            angleLines: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                display: false,
                             }
-                        },
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.1)'
-                        },
-                        angleLines: {
-                            color: 'rgba(0, 0, 0, 0.1)'
-                        },
-                        ticks: {
-                            display: false,
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
                         }
                     }
-                },
-                plugins: {
-                    legend: {
-                        display: false
+                } : {
+                    responsive: true,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            min: 0,
+                            max: maxScore,
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
                     }
-                }
-            } : {
-                responsive: true,
-                indexAxis: 'y',
-                scales: {
-                    x: {
-                        min: 0,
-                        max: maxScore,
-                        beginAtZero: true
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            };
-
-            myChart = new Chart(ctx, {
-                type: chartType,
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Ergebnis',
-                        data: data,
-                        backgroundColor: chartType === 'radar' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.5)',
-                        borderColor: 'rgb(59, 130, 246)',
-                        pointBackgroundColor: chartType === 'radar' ? 'rgb(59, 130, 246)' : undefined,
-                        pointBorderColor: chartType === 'radar' ? '#fff' : undefined,
-                        pointHoverBackgroundColor: chartType === 'radar' ? '#fff' : undefined,
-                        pointHoverBorderColor: chartType === 'radar' ? 'rgb(59, 130, 246)' : undefined,
-                        borderWidth: 2
-                    }]
-                },
-                options: chartOptions
-            });
+                };
+                myChart = new Chart(ctx, {
+                    type: chartType,
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Ergebnis',
+                            data: data,
+                            backgroundColor: chartType === 'radar' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.5)',
+                            borderColor: 'rgb(59, 130, 246)',
+                            pointBackgroundColor: chartType === 'radar' ? 'rgb(59, 130, 246)' : undefined,
+                            pointBorderColor: chartType === 'radar' ? '#fff' : undefined,
+                            pointHoverBackgroundColor: chartType === 'radar' ? '#fff' : undefined,
+                            pointHoverBorderColor: chartType === 'radar' ? 'rgb(59, 130, 246)' : undefined,
+                            borderWidth: 2
+                        }]
+                    },
+                    options: chartOptions
+                });
+            }
             shareLinkInput.value = window.location.href;
             shareLinkInput.select();
         }

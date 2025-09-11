@@ -4,6 +4,6 @@ answers:
   - Nein: 0
   - Ja: 1
 categories:
-  - A: Gesamtwert
+  - A: ACE-Gesamtwert
 chart:
-  - type: bar
+  - type: gauge
