@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamischer Fragebogen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .container {
+            max-width: 900px;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        th {
+            background-color: #f1f5f9;
+            font-weight: 500;
+        }
+        input[type="radio"] {
+            accent-color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div id="app" class="container bg-white rounded-lg shadow-xl p-8 space-y-8">
+        <!-- Top-Menü für Fragebogen-Auswahl -->
+        <nav class="mb-6">
+            <ul class="flex justify-center gap-4" id="questionnaire-menu">
+                <!-- Links werden per JS eingefügt -->
+            </ul>
+        </nav>
+        <h1 class="text-3xl font-bold text-center text-gray-800">Fragebogen</h1>
+        <div id="questionnaire-form">
+            <p id="error-message" class="text-red-600 text-sm mb-4 hidden"></p>
+            <form id="quiz-form">
+                <div class="overflow-x-auto rounded-lg border border-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead id="table-header" class="bg-gray-50"></thead>
+                        <tbody id="table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+                <div class="mt-8 flex justify-center">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                        Fragebogen auswerten
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div id="evaluation-page" class="hidden">
+            <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Auswertung</h2>
+            <div class="flex justify-center">
+                <div class="w-full max-w-lg">
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </div>
+            <div class="mt-8 flex flex-col items-center space-y-4">
+                <h3 class="text-xl font-semibold text-gray-700">Link teilen</h3>
+                <div class="flex w-full max-w-xl space-x-2">
+                    <input type="text" id="share-link" readonly class="flex-grow rounded-lg border border-gray-300 px-4 py-2 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="copy-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
+                        Kopieren
+                    </button>
+                </div>
+                <button id="back-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                    Zurück zum Fragebogen
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+
+        // Fragen dynamisch aus Datei laden
+
+
+        let questionDataString = '';
+        let configYamlString = '';
+        let questions = [];
+        let config;
+
+
+        // Hilfsfunktion: Hole alle Fragebogen-Ordner
+        function getQuestionnaireFolders() {
+            // Dynamisch: alle Unterordner von /quests mit questions.txt und config.yml
+            return [
+                { name: 'Autonomie', folder: 'autonomie' },
+                { name: 'ACE', folder: 'ace' }
+            ];
+        }
+
+        // Menü dynamisch erzeugen
+        function renderQuestionnaireMenu(activeFolder) {
+            const menu = document.getElementById('questionnaire-menu');
+            menu.innerHTML = '';
+            getQuestionnaireFolders().forEach(qb => {
+                const li = document.createElement('li');
+                li.innerHTML = `<a href="?q=${qb.folder}" class="px-4 py-2 rounded-lg ${activeFolder === qb.folder ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-blue-100'}">${qb.name}</a>`;
+                menu.appendChild(li);
+            });
+        }
+
+        // Hole aktiven Fragebogen aus Query-Parameter
+        function getActiveQuestionnaire() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('q') || 'autonomie';
+        }
+
+        // Initialisierung
+        function loadQuestionnaire() {
+            const activeFolder = getActiveQuestionnaire();
+            renderQuestionnaireMenu(activeFolder);
+            Promise.all([
+                fetch(`/quests/${activeFolder}/questions.txt`).then(r => r.text()),
+                fetch(`/quests/${activeFolder}/config.yml`).then(r => r.text())
+            ]).then(([questionsText, configText]) => {
+                questionDataString = questionsText;
+                configYamlString = configText;
+                questions = questionDataString.split('\n').map(line => {
+                    const [id, text] = line.split('|');
+                    return { id, text, category: id.charAt(0) };
+                });
+                config = parseYaml(configYamlString);
+
+                renderQuestionnaire(config.answers);
+
+                // Zufällige Antworten automatisch auswählen
+                questions.forEach(q => {
+                    const radios = document.querySelectorAll(`input[name="question-${q.id}"]`);
+                    const randomIndex = Math.floor(Math.random() * radios.length);
+                    if (radios[randomIndex]) radios[randomIndex].checked = true;
+                });
+                updateHighlighting();
+
+                const initialScores = parseHash();
+                if (initialScores) {
+                    renderEvaluation(initialScores, config.categories);
+                }
+            });
+        }
+
+        // Starte Initialisierung
+        document.addEventListener('DOMContentLoaded', loadQuestionnaire);
+
+        // Bei Navigation im Menü neu laden
+        window.addEventListener('popstate', loadQuestionnaire);
+
+
+    // configYamlString wird jetzt dynamisch geladen
+
+        // Einfacher YAML-Parser für die spezifische Struktur
+        function parseYaml(yamlString) {
+            const lines = yamlString.split('\n').filter(line => line.trim() !== '');
+            const result = { answers: [], categories: {} };
+            let currentSection = '';
+
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (trimmedLine === 'answers:') {
+                    currentSection = 'answers';
+                    continue;
+                }
+                if (trimmedLine === 'categories:') {
+                    currentSection = 'categories';
+                    continue;
+                }
+
+                if (currentSection === 'answers') {
+                    if (trimmedLine.startsWith('- ')) {
+                        result.answers.push(trimmedLine.substring(2));
+                    }
+                } else if (currentSection === 'categories') {
+                    if (trimmedLine.startsWith('- ')) {
+                        const parts = trimmedLine.substring(2).split(':');
+                        if (parts.length === 2) {
+                            const key = parts[0].trim();
+                            const value = parts[1].trim();
+                            result.categories[key] = value;
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
+
+    // Die Variablen questions und config werden jetzt nach dem Laden gesetzt
+
+        const formElement = document.getElementById('quiz-form');
+        const tableHeader = document.getElementById('table-header');
+        const tableBody = document.getElementById('table-body');
+        const errorMessage = document.getElementById('error-message');
+        const questionnaireForm = document.getElementById('questionnaire-form');
+        const evaluationPage = document.getElementById('evaluation-page');
+        const backButton = document.getElementById('back-button');
+        const shareLinkInput = document.getElementById('share-link');
+        const copyButton = document.getElementById('copy-button');
+
+        let myChart = null; // Variable für das Chart.js-Instanz
+
+        // Tabelle rendern
+        function renderQuestionnaire(answers) {
+            // Header rendern
+            const headerRow = document.createElement('tr');
+            headerRow.innerHTML = `<th class="w-1/2">Frage</th>`;
+            answers.forEach(answer => {
+                headerRow.innerHTML += `<th class="text-center">${answer}</th>`;
+            });
+            tableHeader.appendChild(headerRow);
+
+            // Body rendern
+            tableBody.innerHTML = '';
+            questions.forEach(q => {
+                const row = document.createElement('tr');
+                row.id = `row-${q.id}`;
+                let rowContent = `<td class="font-medium">${q.text}</td>`;
+                answers.forEach((_, index) => {
+                    rowContent += `<td class="text-center cursor-pointer">
+                        <label for="question-${q.id}-${index}" class="block h-full w-full">
+                            <input type="radio" id="question-${q.id}-${index}" name="question-${q.id}" value="${index}" class="h-4 w-4">
+                        </label>
+                    </td>`;
+                });
+                row.innerHTML = rowContent;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Funktion zum Aktualisieren der Hervorhebung
+        function updateHighlighting() {
+            const radioButtons = document.querySelectorAll('input[type="radio"]');
+            radioButtons.forEach(radio => {
+                const cell = radio.closest('td');
+                if (cell) {
+                    if (radio.checked) {
+                        cell.classList.add('bg-blue-100');
+                    } else {
+                        cell.classList.remove('bg-blue-100');
+                    }
+                }
+            });
+        }
+
+        // Auswertung rendern und Chart erstellen
+        function renderEvaluation(scores, categories) {
+            // Formular ausblenden, Auswertung anzeigen
+            questionnaireForm.classList.add('hidden');
+            evaluationPage.classList.remove('hidden');
+
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            
+            // Alten Chart zerstören, falls vorhanden
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            // Dynamischen Maximalwert für die Achse berechnen
+            const maxScores = {};
+            questions.forEach(q => {
+                maxScores[q.category] = (maxScores[q.category] || 0) + (config.answers.length - 1);
+            });
+            const maxScore = Math.max(...Object.values(maxScores));
+
+            const labels = Object.values(categories);
+            const data = Object.keys(categories).map(key => scores[key] || 0);
+
+            myChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ergebnis',
+                        data: data,
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        borderColor: 'rgb(59, 130, 246)',
+                        pointBackgroundColor: 'rgb(59, 130, 246)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(59, 130, 246)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        r: {
+                            min: 0,
+                            max: maxScore,
+                            pointLabels: {
+                                font: {
+                                    size: 14
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            angleLines: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                display: false,
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+            shareLinkInput.value = window.location.href;
+            shareLinkInput.select();
+        }
+
+        // Antworten aus dem URL-Hash parsen
+        function parseHash() {
+            const hash = window.location.hash.substring(1);
+            if (!hash) return null;
+
+            const scores = {};
+            const params = new URLSearchParams(hash);
+            let hasIncompleteData = false;
+            
+            for (const [key, value] of params.entries()) {
+                const question = questions.find(q => q.id === key);
+                if (question) {
+                    const score = parseInt(value, 10);
+                    if (!isNaN(score)) {
+                        const category = question.category;
+                        scores[category] = (scores[category] || 0) + score;
+                    } else {
+                        hasIncompleteData = true;
+                    }
+                }
+            }
+
+            if (hasIncompleteData) {
+                return null;
+            }
+
+            return scores;
+        }
+
+        // Hauptlogik beim Laden der Seite
+
+
+        // Die Initialisierung erfolgt jetzt ausschließlich im Promise.all oben
+
+        // Formular-Einreichung verarbeiten
+        formElement.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const scores = {};
+            let isComplete = true;
+            const unansweredQuestions = [];
+            const hashParams = new URLSearchParams();
+
+            questions.forEach(q => {
+                const radios = document.querySelectorAll(`input[name="question-${q.id}"]`);
+                let selectedRadio = null;
+                radios.forEach(radio => {
+                    if (radio.checked) {
+                        selectedRadio = radio;
+                    }
+                });
+
+                const row = document.getElementById(`row-${q.id}`);
+                row.classList.remove('bg-red-100'); // Vorherige Hervorhebung entfernen
+
+                if (selectedRadio) {
+                    const value = parseInt(selectedRadio.value, 10);
+                    const category = q.category;
+                    scores[category] = (scores[category] || 0) + value;
+                    hashParams.set(q.id, value);
+                } else {
+                    isComplete = false;
+                    unansweredQuestions.push(q.id);
+                    row.classList.add('bg-red-100'); // Zeile hervorheben
+                }
+            });
+
+            if (isComplete) {
+                errorMessage.classList.add('hidden');
+                renderEvaluation(scores, config.categories);
+                window.location.hash = hashParams.toString();
+            } else {
+                errorMessage.textContent = 'Bitte beantworten Sie alle Fragen.';
+                errorMessage.classList.remove('hidden');
+                // Zum ersten unbeantworteten Frage scrollen
+                const firstUnansweredRow = document.getElementById(`row-${unansweredQuestions[0]}`);
+                if (firstUnansweredRow) {
+                     firstUnansweredRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        });
+
+        // Event-Listener für Radiobox-Änderungen zur Aktualisierung der Hervorhebung
+        formElement.addEventListener('change', (event) => {
+            if (event.target.type === 'radio') {
+                updateHighlighting();
+            }
+        });
+
+        // Event-Listener für den "Zurück"-Button
+        backButton.addEventListener('click', () => {
+            evaluationPage.classList.add('hidden');
+            questionnaireForm.classList.remove('hidden');
+            window.location.hash = '';
+        });
+
+        // Event-Listener für den "Kopieren"-Button
+        copyButton.addEventListener('click', () => {
+            shareLinkInput.select();
+            shareLinkInput.setSelectionRange(0, 99999); // Für mobile Geräte
+            navigator.clipboard.writeText(shareLinkInput.value).then(() => {
+                copyButton.textContent = 'Kopiert!';
+                setTimeout(() => {
+                    copyButton.textContent = 'Kopieren';
+                }, 2000);
+            }).catch(err => {
+                console.error('Fehler beim Kopieren des Textes: ', err);
+            });
+        });
+
+        // Beim Navigieren im Browser (z.B. zurück/vor)
+        window.addEventListener('hashchange', () => {
+            const scores = parseHash();
+            if (scores) {
+                renderEvaluation(scores, config.categories);
+            } else {
+                questionnaireForm.classList.remove('hidden');
+                evaluationPage.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+A1|Frage 1
+A2|Frage 2
+B1|Frage 3
+B2|Frage 4
+S1|Frage 5
+S2|Frage 6
