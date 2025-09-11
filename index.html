@@ -335,7 +335,7 @@
                 const firstKey = Object.keys(categories)[0];
                 const value = scores[firstKey] || 0;
                 const categoryLabel = categories[firstKey];
-                // Plugin für zentrale Wertanzeige und Kategoriename
+                // Plugin für zentrale Wertanzeige und Kategoriename (ohne Ticks)
                 const gaugeValuePlugin = {
                     id: 'gaugeValuePlugin',
                     afterDraw: chart => {
@@ -346,10 +346,8 @@
                         ctx.textBaseline = 'middle';
                         ctx.fillStyle = '#3b82f6';
                         const centerX = (chartArea.left + chartArea.right) / 2;
-                        // Y-Position etwas niedriger (optisch mittig im Halbkreis)
                         const centerY = chartArea.top + (chartArea.bottom - chartArea.top) * 0.65;
                         ctx.fillText(value + ' / ' + maxScore, centerX, centerY);
-                        // Kategoriename darunter kleiner anzeigen
                         ctx.font = '1.1rem Inter, Arial, sans-serif';
                         ctx.fillStyle = '#64748b';
                         ctx.fillText(categoryLabel, centerX, centerY + 32);
