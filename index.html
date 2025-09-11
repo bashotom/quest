@@ -193,6 +193,10 @@
                     currentSection = 'categories';
                     continue;
                 }
+                if (trimmedLine === 'chart:') {
+                    currentSection = 'chart';
+                    continue;
+                }
 
                 if (currentSection === 'answers') {
                     if (trimmedLine.startsWith('- ')) {
@@ -205,6 +209,13 @@
                             const key = parts[0].trim();
                             const value = parts[1].trim();
                             result.categories[key] = value;
+                        }
+                    }
+                } else if (currentSection === 'chart') {
+                    if (trimmedLine.startsWith('- ')) {
+                        const parts = trimmedLine.substring(2).split(':');
+                        if (parts.length === 2 && parts[0].trim() === 'type') {
+                            result.chartType = parts[1].trim();
                         }
                     }
                 }
@@ -277,7 +288,7 @@
             evaluationPage.classList.remove('hidden');
 
             const ctx = document.getElementById('radarChart').getContext('2d');
-            
+
             // Alten Chart zerstören, falls vorhanden
             if (myChart) {
                 myChart.destroy();
@@ -293,50 +304,70 @@
             const labels = Object.values(categories);
             const data = Object.keys(categories).map(key => scores[key] || 0);
 
+            // Chart-Typ aus config
+            const chartType = config.chartType === 'bar' ? 'bar' : 'radar';
+
+            const chartOptions = chartType === 'radar' ? {
+                responsive: true,
+                scales: {
+                    r: {
+                        min: 0,
+                        max: maxScore,
+                        pointLabels: {
+                            font: {
+                                size: 14
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        angleLines: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            display: false,
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            } : {
+                responsive: true,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        min: 0,
+                        max: maxScore,
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            };
+
             myChart = new Chart(ctx, {
-                type: 'radar',
+                type: chartType,
                 data: {
                     labels: labels,
                     datasets: [{
                         label: 'Ergebnis',
                         data: data,
-                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        backgroundColor: chartType === 'radar' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.5)',
                         borderColor: 'rgb(59, 130, 246)',
-                        pointBackgroundColor: 'rgb(59, 130, 246)',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: 'rgb(59, 130, 246)',
+                        pointBackgroundColor: chartType === 'radar' ? 'rgb(59, 130, 246)' : undefined,
+                        pointBorderColor: chartType === 'radar' ? '#fff' : undefined,
+                        pointHoverBackgroundColor: chartType === 'radar' ? '#fff' : undefined,
+                        pointHoverBorderColor: chartType === 'radar' ? 'rgb(59, 130, 246)' : undefined,
                         borderWidth: 2
                     }]
                 },
-                options: {
-                    responsive: true,
-                    scales: {
-                        r: {
-                            min: 0,
-                            max: maxScore,
-                            pointLabels: {
-                                font: {
-                                    size: 14
-                                }
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            },
-                            angleLines: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            },
-                            ticks: {
-                                display: false,
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
-                }
+                options: chartOptions
             });
             shareLinkInput.value = window.location.href;
             shareLinkInput.select();
