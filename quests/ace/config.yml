@@ -1,9 +1,9 @@
 title: ACE-Fragebogen
 description: Adverse Childhood Experiences (ACE) Fragebogen
 answers:
-- Ja
-- Nein
+  - Nein: 0
+  - Ja: 1
 categories:
-- A: Gesamtwert
+  - A: Gesamtwert
 chart:
-- type: bar
+  - type: bar

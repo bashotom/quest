@@ -1,12 +1,12 @@
 title: Autonomie
 description: Diese Fragen helfen dir, deine Autonomie besser einzuschätzen.
 answers:
-- option 1
-- option 2
-- option 3
+  - option 1: 1
+  - option 2: 2
+  - option 3: 3
 categories:
-- A: Autonomie
-- B: Bezogenheit
-- S: Sicherheit
+  - A: Autonomie
+  - B: Bezogenheit
+  - S: Sicherheit
 chart:
-- type: radar
+  - type: radar
