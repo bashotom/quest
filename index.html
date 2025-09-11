@@ -127,9 +127,13 @@
         function loadQuestionnaire() {
             const activeFolder = getActiveQuestionnaire();
             renderQuestionnaireMenu(activeFolder);
+            // Baue absolute URLs für fetch, damit es überall funktioniert
+            const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+            const questionsUrl = new URL(`quests/${activeFolder}/questions.txt`, base).toString();
+            const configUrl = new URL(`quests/${activeFolder}/config.yml`, base).toString();
             Promise.all([
-                fetch(`/quests/${activeFolder}/questions.txt`).then(r => r.text()),
-                fetch(`/quests/${activeFolder}/config.yml`).then(r => r.text())
+                fetch(questionsUrl).then(r => r.text()),
+                fetch(configUrl).then(r => r.text())
             ]).then(([questionsText, configText]) => {
                 questionDataString = questionsText;
                 configYamlString = configText;
@@ -182,6 +186,7 @@
             const result = { answers: [], categories: {} };
             let currentSection = '';
 
+            let topCategory = null;
             for (const line of lines) {
                 const trimmedLine = line.trim();
                 if (trimmedLine.startsWith('title:')) {
@@ -234,7 +239,21 @@
                         if (parts.length === 2 && parts[0].trim() === 'type') {
                             result.chartType = parts[1].trim();
                         }
+                        if (parts.length === 2 && parts[0].trim() === 'top') {
+                            topCategory = parts[1].trim();
+                        }
                     }
+                }
+            }
+            // Sortiere categories, falls topCategory gesetzt
+            if (topCategory && Object.keys(result.categories).length > 1) {
+                const keys = Object.keys(result.categories);
+                const idx = keys.indexOf(topCategory);
+                if (idx > 0) {
+                    const rotated = keys.slice(idx).concat(keys.slice(0, idx));
+                    const newCategories = {};
+                    rotated.forEach(k => { newCategories[k] = result.categories[k]; });
+                    result.categories = newCategories;
                 }
             }
             return result;

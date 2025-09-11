@@ -1,10 +1,10 @@
-A1|Körperlicher Missbrauch: Wurde ein Erwachsener oder ein älteres Kind in deinem Haushalt jemals so hart angefasst, dass du blaue Flecken oder Verletzungen davongetragen hast?
-A2|Emotionaler Missbrauch: Wurde deine Familie in deinen Gefühlen oder Gedanken je heruntergemacht?
-A3|Sexueller Missbrauch: Wurdest du jemals von einem älteren Kind oder einem Erwachsenen sexuell belästigt?
-A4|Körperliche Vernachlässigung: Wurde je auf deine Grundbedürfnisse, wie Essen, saubere Kleidung oder medizinische Versorgung, verzichtet?
-A5|Emotionale Vernachlässigung: Wurde je auf deine emotionalen Bedürfnisse, wie Trost oder Zuneigung, verzichtet?
-A6|Häusliche Gewalt miterleben: Hast du als Kind miterlebt, wie ein Mitglied deines Haushalts von einem anderen misshandelt oder erniedrigt wurde?
-A7|Substanzmissbrauch im Haushalt: Lebte jemand in deinem Haushalt mit Drogen- oder Alkoholproblemen?
-A8|Psychische Erkrankung im Haushalt: Lebte jemand in deinem Haushalt mit psychischen Problemen oder wurde er je deswegen behandelt?
-A9|Inhaftiertes Haushaltsmitglied: Wurde ein Haushaltsmitglied inhaftiert oder ins Gefängnis geschickt?
-A10|Trennung der Eltern: Haben sich deine leiblichen Eltern getrennt oder scheiden lassen?
+A1|Hat ein Elternteil oder ein anderer Erwachsener in Ihrem Haushalt Sie oft oder sehr oft <br>...beschimpft, beleidigt, erniedrigt oder gedemütigt<br> ODER<br>... so gehandelt, dass Sie Angst hatten, Sie könnten körperlich verletzt werden?
+A2|Hat ein Elternteil oder ein anderer Erwachsener in Ihrem Haushalt Sie oft oder sehr oft <br>...gestoßen, gepackt, geschlagen oder etwas nach Ihnen geworfen? <br>ODER<br>...Sie jemals so stark geschlagen, dass Sie Spuren davon aufwiesen oder verletzt wurden? 
+A3|Hat ein Erwachsener oder eine Person, die mindestens 5 Jahre älter war Sie jemals…<br>...auf sexuelle Art und Weise angefasst oder gestreichelt oder Sie veranlasst deren Körper in sexueller Art und Weise zu berühren? <br> ODER<br>...oralen, analen oder vaginalen Geschlechtsverkehr versucht mit Ihnen zu haben oder tatsächlich gehabt?
+A4|Haben Sie oft oder sehr oft empfunden, dass …<br>...niemand in Ihrer Familie Sie liebte oder dachte, Sie seien wichtig oder etwas Besonderes?<br> ODER<br> ...Ihre Familienangehörigen nicht aufeinander aufpassten, sich einander nicht nahe fühlten oder sich gegenseitig nicht unterstützt
+A5|Haben Sie oft oder sehr oft empfunden, dass …<br>...Sie nicht genug zu essen hatten, Sie schmutzige Kleidung tragen mussten und niemanden hatten, der Sie beschützte?<br>ODER<br>...Ihre Eltern zu betrunken oder “high” waren, um sich um Sie zu kümmern oder Sie zum Arzt zu bringen, wenn Sie es benötigten? 
+A6|Verloren Sie jemals ein biologisches Elternteil durch Scheidung, dadurch, dass es Sie verlassen hat, oder aus anderen Gründen? 
+A7|Wurde Ihre Mutter oder Stiefmutter...<br>...oft oder sehr oft gestoßen, gepackt, geschlagen oder wurde etwas nach ihr geworfen?<br>oder<br> ...manchmal, oft oder sehr oft getreten, gebissen, mit der Faust oder mit einem harten Gegenstand geschlagen?<br>oder<br>...jemals über mindestens einige Minuten wiederholt geschlagen oder mit einer Pistole oder einem Messer bedroht? 
+A8|Haben Sie mit jemandem zusammengelebt, der Alkoholprobleme hatte, alkoholabhängig war oder Drogen konsumierte?
+A9|War ein Mitglied Ihres Haushalts depressiv oder psychisch krank oder hat ein Mitglied Ihres Haushalts einen Selbstmordversuch unternommen? 
+A10|War ein Mitglied Ihres Haushalts im Gefängnis? 

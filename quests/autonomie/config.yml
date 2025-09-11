@@ -1,12 +1,18 @@
 title: Autonomie
 description: Autonomie-Fragebogen von Dr. Langlotz
 answers:
-  - option 1: 1
-  - option 2: 2
-  - option 3: 3
+  - trifft nicht zu: 1
+  - stimmt selten: 2
+  - manchmal: 3
+  - stimmt häufig: 4
+  - stimmt fast immer: 5
 categories:
-  - A: Autonomie
-  - B: Bezogenheit
-  - S: Sicherheit
+  - A: gesunde Abgrenzung
+  - B: gesunder Egoismus
+  - C: gesunde Aggression
+  - D: Überabgrenzung
+  - E: Übergriffigkeit
+  - F: Destruktive Aggression
 chart:
   - type: radar
+  - top: B
