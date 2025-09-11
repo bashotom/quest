@@ -8,3 +8,5 @@ categories:
 - A: Autonomie
 - B: Bezogenheit
 - S: Sicherheit
+chart:
+- type: radar

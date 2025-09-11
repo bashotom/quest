@@ -42,7 +42,10 @@
                 <!-- Links werden per JS eingefügt -->
             </ul>
         </nav>
-        <h1 class="text-3xl font-bold text-center text-gray-800">Fragebogen</h1>
+        <div id="questionnaire-meta" class="mb-4 text-center">
+            <h1 id="questionnaire-title" class="text-3xl font-bold text-gray-800"></h1>
+            <p id="questionnaire-description" class="text-gray-600 mt-2"></p>
+        </div>
         <div id="questionnaire-form">
             <p id="error-message" class="text-red-600 text-sm mb-4 hidden"></p>
             <form id="quiz-form">
@@ -136,6 +139,10 @@
                 });
                 config = parseYaml(configYamlString);
 
+                // Titel und Beschreibung anzeigen
+                document.getElementById('questionnaire-title').textContent = config.title || 'Fragebogen';
+                document.getElementById('questionnaire-description').textContent = config.description || '';
+
                 renderQuestionnaire(config.answers);
 
                 // Zufällige Antworten automatisch auswählen
@@ -170,6 +177,14 @@
 
             for (const line of lines) {
                 const trimmedLine = line.trim();
+                if (trimmedLine.startsWith('title:')) {
+                    result.title = trimmedLine.replace('title:', '').trim();
+                    continue;
+                }
+                if (trimmedLine.startsWith('description:')) {
+                    result.description = trimmedLine.replace('description:', '').trim();
+                    continue;
+                }
                 if (trimmedLine === 'answers:') {
                     currentSection = 'answers';
                     continue;
