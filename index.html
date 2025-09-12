@@ -228,7 +228,7 @@
                     inInputObject = true;
                     continue;
                 }
-                if (inInputObject && (trimmedLine.startsWith('element:') || trimmedLine.startsWith('size:'))) {
+                if (inInputObject && (trimmedLine.startsWith('element:') || trimmedLine.startsWith('size:') || trimmedLine.startsWith('display:'))) {
                     const [key, value] = trimmedLine.split(':');
                     result.input[key.trim()] = value.trim();
                     continue;
@@ -300,13 +300,24 @@
             const fewAnswers = answers.length === 2;
             const frageThClass = fewAnswers ? 'w-3/4' : 'w-1/2';
             const answerThClass = fewAnswers ? 'w-1/8' : 'text-center';
-            // Header rendern
-            const headerRow = document.createElement('tr');
-            headerRow.innerHTML = `<th class="${frageThClass}">Frage</th>`;
-            answers.forEach(answer => {
-                headerRow.innerHTML += `<th class="${answerThClass}">${answer.label}</th>`;
-            });
-            tableHeader.appendChild(headerRow);
+
+            // Prüfe auf input.display
+            const displayMode = (config.input && config.input.display === 'inline') ? 'inline' : 'column';
+
+            if (displayMode === 'column') {
+                // Header rendern (Standard)
+                const headerRow = document.createElement('tr');
+                headerRow.innerHTML = `<th class="${frageThClass}">Frage</th>`;
+                answers.forEach(answer => {
+                    headerRow.innerHTML += `<th class="${answerThClass}">${answer.label}</th>`;
+                });
+                tableHeader.appendChild(headerRow);
+            } else {
+                // Inline: Nur eine Spalte für Frage+Antworten
+                const headerRow = document.createElement('tr');
+                headerRow.innerHTML = `<th class="${frageThClass}">Frage</th>`;
+                tableHeader.appendChild(headerRow);
+            }
 
             // Größe der Radioboxen bestimmen
             let radioSize = 4;
@@ -322,23 +333,44 @@
             questions.forEach(q => {
                 const row = document.createElement('tr');
                 row.id = `row-${q.id}`;
-                let rowContent = `<td class="font-medium">${q.text}</td>`;
-                answers.forEach((answer, index) => {
-                    rowContent += `<td class="${answerThClass} cursor-pointer">
-                        <div class="flex items-center justify-center h-full w-full">
-                            <label for="question-${q.id}-${index}">
-                                <input type="radio" id="question-${q.id}-${index}" name="question-${q.id}" value="${index}" class="h-${radioSize} w-${radioSize}">
-                            </label>
+                let rowContent = '';
+                if (displayMode === 'column') {
+                    rowContent = `<td class="font-medium">${q.text}</td>`;
+                    answers.forEach((answer, index) => {
+                        rowContent += `<td class="${answerThClass} cursor-pointer">
+                            <div class="flex items-center justify-center h-full w-full">
+                                <label for="question-${q.id}-${index}">
+                                    <input type="radio" id="question-${q.id}-${index}" name="question-${q.id}" value="${index}" class="h-${radioSize} w-${radioSize}">
+                                </label>
+                            </div>
+                        </td>`;
+                    });
+                } else {
+                    // Inline: Frage, darunter Radioboxen
+                    rowContent = `<td class="font-medium align-top">
+                        <div>${q.text}</div>
+                        <div class="flex flex-wrap gap-4 mt-2">
+                            ${answers.map((answer, index) => `
+                                <span class=\"flex items-center gap-2\">
+                                    <input type=\"radio\" id=\"question-${q.id}-${index}\" name=\"question-${q.id}\" value=\"${index}\" class=\"h-${radioSize} w-${radioSize}\">
+                                    <label for=\"question-${q.id}-${index}\" class=\"cursor-pointer\">${answer.label}</label>
+                                </span>
+                            `).join('')}
                         </div>
                     </td>`;
-                });
+                }
                 row.innerHTML = rowContent;
                 tableBody.appendChild(row);
             });
+
+            // Kein zusätzlicher Event-Handler für Inline nötig, da das native Label-Input-Verhalten genutzt wird
         }
 
         // Funktion zum Aktualisieren der Hervorhebung
         function updateHighlighting() {
+            // Highlighting nur im column-Modus
+            const displayMode = (config.input && config.input.display === 'inline') ? 'inline' : 'column';
+            if (displayMode === 'inline') return;
             const radioButtons = document.querySelectorAll('input[type="radio"]');
             radioButtons.forEach(radio => {
                 const cell = radio.closest('td');
@@ -590,8 +622,11 @@
             }
         });
 
-        // Klick auf Tabellenzelle wählt Radio aus
+        // Klick auf Tabellenzelle wählt Radio aus (nur im column-Modus)
         tableBody.addEventListener('click', (event) => {
+            // Prüfe, ob wir im column-Modus sind
+            const displayMode = (config.input && config.input.display === 'inline') ? 'inline' : 'column';
+            if (displayMode !== 'column') return;
             const cell = event.target.closest('td');
             if (!cell) return;
             const radio = cell.querySelector('input[type="radio"]');

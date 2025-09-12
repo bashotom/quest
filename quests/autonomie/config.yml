@@ -16,3 +16,6 @@ categories:
 chart:
   type: radar
   top: B
+input:
+  element: radiobox
+  display: column 

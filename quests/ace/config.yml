@@ -10,3 +10,4 @@ chart:
 input:
   element: radiobox
   size: 5
+  display: inline
