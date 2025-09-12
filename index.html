@@ -38,9 +38,12 @@
     <div id="app" class="container bg-white rounded-lg shadow-xl p-8 space-y-8">
         <!-- Top-Menü für Fragebogen-Auswahl -->
         <nav class="mb-6">
-            <ul class="flex justify-center gap-4" id="questionnaire-menu">
-                <!-- Links werden per JS eingefügt -->
-            </ul>
+            <div class="flex justify-center gap-4 items-center">
+                <ul class="flex gap-4" id="questionnaire-menu">
+                    <!-- Links werden per JS eingefügt -->
+                </ul>
+                <button id="max-answers-btn" type="button" class="ml-6 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">Alle Maximalwerte</button>
+            </div>
         </nav>
         <div id="questionnaire-meta" class="mb-4 text-center">
             <h1 id="questionnaire-title" class="text-3xl font-bold text-gray-800"></h1>
@@ -173,6 +176,23 @@
 
         // Starte Initialisierung
         document.addEventListener('DOMContentLoaded', loadQuestionnaire);
+
+        // Button: Alle Antworten auf Maximalwert setzen
+        document.addEventListener('DOMContentLoaded', () => {
+            const maxBtn = document.getElementById('max-answers-btn');
+            if (maxBtn) {
+                maxBtn.addEventListener('click', () => {
+                    // Für jede Frage das Radio mit höchstem Index aktivieren
+                    questions.forEach(q => {
+                        const radios = document.querySelectorAll(`input[name="question-${q.id}"]`);
+                        if (radios.length > 0) {
+                            radios[radios.length - 1].checked = true;
+                        }
+                    });
+                    updateHighlighting();
+                });
+            }
+        });
 
         // Bei Navigation im Menü neu laden
         window.addEventListener('popstate', loadQuestionnaire);
@@ -419,6 +439,9 @@
 
         // Auswertung rendern und Chart erstellen
         function renderEvaluation(scores, categories) {
+            // Maximalwerte-Button ausblenden
+            const maxBtn = document.getElementById('max-answers-btn');
+            if (maxBtn) maxBtn.style.display = 'none';
             // Formular ausblenden, Auswertung anzeigen
             questionnaireForm.classList.add('hidden');
             evaluationPage.classList.remove('hidden');
@@ -671,6 +694,9 @@
 
         // Event-Listener für den "Zurück"-Button
         backButton.addEventListener('click', () => {
+            // Maximalwerte-Button wieder einblenden
+            const maxBtn = document.getElementById('max-answers-btn');
+            if (maxBtn) maxBtn.style.display = '';
             evaluationPage.classList.add('hidden');
             questionnaireForm.classList.remove('hidden');
             // Tabelle neu rendern
