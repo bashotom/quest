@@ -1,11 +1,11 @@
 title: Autonomie
 description: Autonomie-Fragebogen von Dr. Langlotz
 answers:
-  - trifft nicht zu: 1
-  - stimmt selten: 2
-  - manchmal: 3
-  - stimmt häufig: 4
-  - stimmt fast immer: 5
+  - trifft nicht zu: 0
+  - stimmt selten: 1
+  - manchmal: 2
+  - stimmt häufig: 3
+  - stimmt fast immer: 4
 categories:
   - A: gesunde Abgrenzung
   - B: gesunder Egoismus

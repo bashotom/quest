@@ -439,6 +439,7 @@
 
         // Auswertung rendern und Chart erstellen
         function renderEvaluation(scores, categories) {
+
             // Maximalwerte-Button ausblenden
             const maxBtn = document.getElementById('max-answers-btn');
             if (maxBtn) maxBtn.style.display = 'none';
@@ -446,12 +447,27 @@
             questionnaireForm.classList.add('hidden');
             evaluationPage.classList.remove('hidden');
 
+            // Debug: Maximalwert anzeigen
+            let maxDebug = document.getElementById('max-debug');
+            if (!maxDebug) {
+                maxDebug = document.createElement('div');
+                maxDebug.id = 'max-debug';
+                maxDebug.className = 'text-sm text-gray-500 text-center mb-2';
+                const evalHeader = evaluationPage.querySelector('h2');
+                if (evalHeader) {
+                    evalHeader.insertAdjacentElement('afterend', maxDebug);
+                } else {
+                    evaluationPage.prepend(maxDebug);
+                }
+            }
+
             const ctx = document.getElementById('radarChart').getContext('2d');
 
             // Alten Chart zerstören, falls vorhanden
             if (myChart) {
                 myChart.destroy();
             }
+
 
             // Dynamischen Maximalwert für die Achse berechnen
             const maxScores = {};
@@ -461,6 +477,11 @@
                 maxScores[q.category] = (maxScores[q.category] || 0) + maxAnswer;
             });
             const maxScore = Math.max(...Object.values(maxScores));
+
+            // Debug: Maximalwert anzeigen
+            if (maxDebug) {
+                maxDebug.textContent = 'Maximalwert (debug): ' + maxScore;
+            }
 
             const labels = Object.values(categories);
             const data = Object.keys(categories).map(key => scores[key] || 0);
@@ -521,6 +542,21 @@
                     plugins: [gaugeValuePlugin]
                 });
             } else {
+                // Dynamische Schrittweite für 4-6 Skalenwerte
+                let tickStep = 1;
+                if (maxScore > 0) {
+                    for (let s = 1; s <= maxScore; s++) {
+                        const n = Math.floor(maxScore / s);
+                        if (n >= 4 && n <= 6 && maxScore % s === 0) {
+                            tickStep = s;
+                            break;
+                        }
+                    }
+                    // Fallback: nächstgrößere Schrittweite
+                    if (tickStep === 1 && maxScore > 6) {
+                        tickStep = Math.ceil(maxScore / 5);
+                    }
+                }
                 const chartOptions = chartType === 'radar' ? {
                     responsive: true,
                     scales: {
@@ -539,7 +575,15 @@
                                 color: 'rgba(0, 0, 0, 0.1)'
                             },
                             ticks: {
-                                display: false,
+                                display: true,
+                                color: '#64748b',
+                                font: { size: 13 },
+                                stepSize: tickStep,
+                                callback: function(value, index, values) {
+                                    // Zeige nur Werte bis maxScore an
+                                    if (value > maxScore) return '';
+                                    return value;
+                                }
                             }
                         }
                     },
