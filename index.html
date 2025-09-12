@@ -18,11 +18,13 @@
         }
         table {
             border-collapse: collapse;
+            width: 100%;
         }
         th, td {
             border: 1px solid #e2e8f0;
             padding: 0.75rem;
             text-align: left;
+            min-width: 90px;
         }
         th {
             background-color: #f1f5f9;
@@ -31,6 +33,7 @@
         input[type="radio"] {
             accent-color: #3b82f6;
         }
+    /* Kein horizontales Scrollen mehr auf kleinen Screens */
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
@@ -52,7 +55,7 @@
         <div id="questionnaire-form">
             <p id="error-message" class="text-red-600 text-sm mb-4 hidden"></p>
             <form id="quiz-form">
-                <div class="overflow-x-auto rounded-lg border border-gray-200">
+                <div class="questionnaire-table-scroll overflow-x-auto rounded-lg border border-gray-200">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead id="table-header" class="bg-gray-50"></thead>
                         <tbody id="table-body" class="bg-white divide-y divide-gray-200"></tbody>
@@ -321,8 +324,11 @@
             const frageThClass = fewAnswers ? 'w-3/4' : 'w-1/2';
             const answerThClass = fewAnswers ? 'w-1/8' : 'text-center';
 
-            // Prüfe auf input.display
-            const displayMode = (config.input && config.input.display === 'inline') ? 'inline' : 'column';
+            // Dynamisch: Bei kleinen Screens im column-Modus auf Inline-Darstellung umschalten
+            let displayMode = (config.input && config.input.display === 'inline') ? 'inline' : 'column';
+            if (displayMode === 'column' && window.innerWidth <= 700) {
+                displayMode = 'inline';
+            }
 
             if (displayMode === 'column') {
                 // Header rendern (Standard)
@@ -366,43 +372,36 @@
                         </td>`;
                     });
                 } else {
-                    // Inline: Frage, darunter Radioboxen
+                    // Inline/Responsive: Frage, darunter Radioboxen untereinander
                     rowContent = `<td class="font-medium align-top">
                         <div>${q.text}</div>
-                        <div class="flex flex-row gap-4 mt-2 w-full">
+                        <div class="flex flex-col gap-2 mt-2 w-full">
                             ${answers.map((answer, index) => `
-                                <div class=\"flex-1 min-w-0 flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 transition-colors answer-block cursor-pointer\" data-radio-id=\"question-${q.id}-${index}\">
+                                <div class=\"flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 transition-colors answer-block cursor-pointer\" data-radio-id=\"question-${q.id}-${index}\">
                                     <input type=\"radio\" id=\"question-${q.id}-${index}\" name=\"question-${q.id}\" value=\"${index}\" class=\"h-${radioSize} w-${radioSize}\">
                                     <label for=\"question-${q.id}-${index}\" class=\"cursor-pointer w-full\">${answer.label}</label>
                                 </div>
                             `).join('')}
                         </div>
                     </td>`;
-            // Klick auf Antwortblock im Inline-Modus wählt Radio
-            if (displayMode === 'inline') {
-                setTimeout(() => {
-                    const blocks = tableBody.querySelectorAll('.answer-block');
-                    blocks.forEach(block => {
-                        block.addEventListener('click', function(e) {
-                            // Nicht doppelt feuern, wenn auf das Radio selbst geklickt wird
-                            if (e.target.tagName.toLowerCase() === 'input') return;
-                            const radioId = block.getAttribute('data-radio-id');
-                            const radio = block.querySelector('input[type="radio"]');
-                            if (radio && !radio.checked) {
-                                radio.checked = true;
-                                // Change-Event für Highlighting
-                                radio.dispatchEvent(new Event('change', {bubbles:true}));
-                            }
-                        });
-                    });
-                }, 0);
-            }
                 }
                 row.innerHTML = rowContent;
                 tableBody.appendChild(row);
             });
-
-            // Kein zusätzlicher Event-Handler für Inline nötig, da das native Label-Input-Verhalten genutzt wird
+            // Nach dem Rendern: Event-Listener für alle answer-blocks im Inline-Modus setzen
+            if (displayMode === 'inline') {
+                const blocks = tableBody.querySelectorAll('.answer-block');
+                blocks.forEach(block => {
+                    block.addEventListener('click', function(e) {
+                        if (e.target.tagName.toLowerCase() === 'input') return;
+                        const radio = block.querySelector('input[type="radio"]');
+                        if (radio && !radio.checked) {
+                            radio.checked = true;
+                            radio.dispatchEvent(new Event('change', {bubbles:true}));
+                        }
+                    });
+                });
+            }
         }
 
         // Funktion zum Aktualisieren der Hervorhebung
@@ -423,18 +422,8 @@
                 });
                 return;
             }
-            // Column-Modus wie gehabt
-            const radioButtons = document.querySelectorAll('input[type="radio"]');
-            radioButtons.forEach(radio => {
-                const cell = radio.closest('td');
-                if (cell) {
-                    if (radio.checked) {
-                        cell.classList.add('bg-blue-100');
-                    } else {
-                        cell.classList.remove('bg-blue-100');
-                    }
-                }
-            });
+            // Im Column-Modus keine Hervorhebung der Tabellenzelle mehr
+            // (früher: cell.classList.add('bg-blue-100'))
         }
 
         // Auswertung rendern und Chart erstellen
@@ -722,19 +711,7 @@
             }
         });
 
-        // Klick auf Tabellenzelle wählt Radio aus (nur im column-Modus)
-        tableBody.addEventListener('click', (event) => {
-            // Prüfe, ob wir im column-Modus sind
-            const displayMode = (config.input && config.input.display === 'inline') ? 'inline' : 'column';
-            if (displayMode !== 'column') return;
-            const cell = event.target.closest('td');
-            if (!cell) return;
-            const radio = cell.querySelector('input[type="radio"]');
-            if (radio) {
-                radio.checked = true;
-                updateHighlighting();
-            }
-        });
+    // Entfernt: Klick auf Tabellenzelle im column-Modus (verursachte Konflikte im Inline-Fallback auf kleinen Screens)
 
         // Event-Listener für den "Zurück"-Button
         backButton.addEventListener('click', () => {
