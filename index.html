@@ -349,12 +349,12 @@
                     // Inline: Frage, darunter Radioboxen
                     rowContent = `<td class="font-medium align-top">
                         <div>${q.text}</div>
-                        <div class="flex flex-wrap gap-4 mt-2">
+                        <div class="flex flex-row gap-4 mt-2 w-full">
                             ${answers.map((answer, index) => `
-                                <span class=\"flex items-center gap-2\">
+                                <div class=\"flex-1 min-w-0 flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 transition-colors\">
                                     <input type=\"radio\" id=\"question-${q.id}-${index}\" name=\"question-${q.id}\" value=\"${index}\" class=\"h-${radioSize} w-${radioSize}\">
-                                    <label for=\"question-${q.id}-${index}\" class=\"cursor-pointer\">${answer.label}</label>
-                                </span>
+                                    <label for=\"question-${q.id}-${index}\" class=\"cursor-pointer w-full\">${answer.label}</label>
+                                </div>
                             `).join('')}
                         </div>
                     </td>`;
