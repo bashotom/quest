@@ -187,8 +187,10 @@
             let currentSection = '';
 
             let topCategory = null;
-            for (const line of lines) {
-                const trimmedLine = line.trim();
+            let chartType = null;
+            let inChartObject = false;
+            for (let i = 0; i < lines.length; i++) {
+                const trimmedLine = lines[i].trim();
                 if (trimmedLine.startsWith('title:')) {
                     result.title = trimmedLine.replace('title:', '').trim();
                     continue;
@@ -207,7 +209,17 @@
                 }
                 if (trimmedLine === 'chart:') {
                     currentSection = 'chart';
+                    inChartObject = true;
                     continue;
+                }
+                if (inChartObject && (trimmedLine.startsWith('type:') || trimmedLine.startsWith('top:'))) {
+                    const [key, value] = trimmedLine.split(':');
+                    if (key.trim() === 'type') chartType = value.trim();
+                    if (key.trim() === 'top') topCategory = value.trim();
+                    continue;
+                }
+                if (inChartObject && !trimmedLine.startsWith(' ')) {
+                    inChartObject = false;
                 }
 
                 if (currentSection === 'answers') {
@@ -233,18 +245,9 @@
                             result.categories[key] = value;
                         }
                     }
-                } else if (currentSection === 'chart') {
-                    if (trimmedLine.startsWith('- ')) {
-                        const parts = trimmedLine.substring(2).split(':');
-                        if (parts.length === 2 && parts[0].trim() === 'type') {
-                            result.chartType = parts[1].trim();
-                        }
-                        if (parts.length === 2 && parts[0].trim() === 'top') {
-                            topCategory = parts[1].trim();
-                        }
-                    }
                 }
             }
+            if (chartType) result.chartType = chartType;
             // Sortiere categories, falls topCategory gesetzt
             if (topCategory && Object.keys(result.categories).length > 1) {
                 const keys = Object.keys(result.categories);

@@ -14,5 +14,5 @@ categories:
   - E: Übergriffigkeit
   - F: Destruktive Aggression
 chart:
-  - type: radar
-  - top: B
+  type: radar
+  top: B
