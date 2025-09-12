@@ -92,7 +92,18 @@
     </div>
 
 
-    <script>
+
+        <script>
+
+        // Make radio selection on td click (column mode) — muss ganz oben stehen, damit es im onclick verfügbar ist
+        window.selectRadio = function(qid, aval) {
+            const radio = document.querySelector(`input[name='question-${qid}'][value='${aval}']`);
+            if (radio) {
+                radio.checked = true;
+                // Trigger change event for listeners
+                radio.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        };
 
         // Fragen dynamisch aus Datei laden
 
@@ -360,18 +371,20 @@
                 const row = document.createElement('tr');
                 row.id = `row-${q.id}`;
                 let rowContent = '';
-                if (displayMode === 'column') {
-                    rowContent = `<td class="font-medium">${q.text}</td>`;
-                    answers.forEach((answer, index) => {
-                        rowContent += `<td class="${answerThClass} cursor-pointer">
-                            <div class="flex items-center justify-center h-full w-full">
-                                <label for="question-${q.id}-${index}">
-                                    <input type="radio" id="question-${q.id}-${index}" name="question-${q.id}" value="${index}" class="h-${radioSize} w-${radioSize}">
-                                </label>
-                            </div>
-                        </td>`;
-                    });
+                    if (displayMode === 'column') {
+                        rowContent = `<td class="font-medium">${q.text}</td>`;
+                        answers.forEach((answer, index) => {
+                            rowContent += `<td class="${answerThClass} cursor-pointer group" data-qid="${q.id}" data-aval="${index}" onclick="selectRadio('${q.id}', ${index})">
+                                <div class="flex items-center justify-center h-full w-full">
+                                    <label for="question-${q.id}-${index}" class="cursor-pointer w-full">
+                                        <input type="radio" id="question-${q.id}-${index}" name="question-${q.id}" value="${index}" class="h-${radioSize} w-${radioSize}">
+                                    </label>
+                                </div>
+                            </td>`;
+                        });
                 } else {
+
+
                     // Inline/Responsive: Frage, darunter Radioboxen untereinander
                     rowContent = `<td class="font-medium align-top">
                         <div>${q.text}</div>
