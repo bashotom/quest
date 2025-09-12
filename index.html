@@ -351,13 +351,32 @@
                         <div>${q.text}</div>
                         <div class="flex flex-row gap-4 mt-2 w-full">
                             ${answers.map((answer, index) => `
-                                <div class=\"flex-1 min-w-0 flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 transition-colors\">
+                                <div class=\"flex-1 min-w-0 flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 transition-colors answer-block cursor-pointer\" data-radio-id=\"question-${q.id}-${index}\">
                                     <input type=\"radio\" id=\"question-${q.id}-${index}\" name=\"question-${q.id}\" value=\"${index}\" class=\"h-${radioSize} w-${radioSize}\">
                                     <label for=\"question-${q.id}-${index}\" class=\"cursor-pointer w-full\">${answer.label}</label>
                                 </div>
                             `).join('')}
                         </div>
                     </td>`;
+            // Klick auf Antwortblock im Inline-Modus wählt Radio
+            if (displayMode === 'inline') {
+                setTimeout(() => {
+                    const blocks = tableBody.querySelectorAll('.answer-block');
+                    blocks.forEach(block => {
+                        block.addEventListener('click', function(e) {
+                            // Nicht doppelt feuern, wenn auf das Radio selbst geklickt wird
+                            if (e.target.tagName.toLowerCase() === 'input') return;
+                            const radioId = block.getAttribute('data-radio-id');
+                            const radio = block.querySelector('input[type="radio"]');
+                            if (radio && !radio.checked) {
+                                radio.checked = true;
+                                // Change-Event für Highlighting
+                                radio.dispatchEvent(new Event('change', {bubbles:true}));
+                            }
+                        });
+                    });
+                }, 0);
+            }
                 }
                 row.innerHTML = rowContent;
                 tableBody.appendChild(row);
@@ -368,9 +387,23 @@
 
         // Funktion zum Aktualisieren der Hervorhebung
         function updateHighlighting() {
-            // Highlighting nur im column-Modus
             const displayMode = (config.input && config.input.display === 'inline') ? 'inline' : 'column';
-            if (displayMode === 'inline') return;
+            if (displayMode === 'inline') {
+                // Inline: Highlight aktiven Antwortblock
+                const allBlocks = document.querySelectorAll('td .flex.flex-row > .answer-block');
+                allBlocks.forEach(block => {
+                    const radio = block.querySelector('input[type="radio"]');
+                    if (radio && radio.checked) {
+                        block.classList.add('bg-blue-400','text-white');
+                        block.classList.remove('bg-blue-50','text-gray-900','bg-blue-500');
+                    } else {
+                        block.classList.remove('bg-blue-400','text-white','bg-blue-500');
+                        block.classList.add('bg-blue-50','text-gray-900');
+                    }
+                });
+                return;
+            }
+            // Column-Modus wie gehabt
             const radioButtons = document.querySelectorAll('input[type="radio"]');
             radioButtons.forEach(radio => {
                 const cell = radio.closest('td');
