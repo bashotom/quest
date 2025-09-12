@@ -7,3 +7,6 @@ categories:
   - A: ACE-Gesamtwert
 chart:
   type: gauge
+input:
+  element: radiobox
+  size: 5

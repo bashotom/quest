@@ -189,6 +189,8 @@
             let topCategory = null;
             let chartType = null;
             let inChartObject = false;
+            let inInputObject = false;
+            result.input = {};
             for (let i = 0; i < lines.length; i++) {
                 const trimmedLine = lines[i].trim();
                 if (trimmedLine.startsWith('title:')) {
@@ -220,6 +222,19 @@
                 }
                 if (inChartObject && !trimmedLine.startsWith(' ')) {
                     inChartObject = false;
+                }
+                if (trimmedLine === 'input:') {
+                    currentSection = 'input';
+                    inInputObject = true;
+                    continue;
+                }
+                if (inInputObject && (trimmedLine.startsWith('element:') || trimmedLine.startsWith('size:'))) {
+                    const [key, value] = trimmedLine.split(':');
+                    result.input[key.trim()] = value.trim();
+                    continue;
+                }
+                if (inInputObject && !trimmedLine.startsWith(' ')) {
+                    inInputObject = false;
                 }
 
                 if (currentSection === 'answers') {
@@ -281,13 +296,26 @@
         function renderQuestionnaire(answers) {
             // Header leeren, damit kein doppelter Header entsteht
             tableHeader.innerHTML = '';
+            // Dynamische Spaltenbreiten
+            const fewAnswers = answers.length === 2;
+            const frageThClass = fewAnswers ? 'w-3/4' : 'w-1/2';
+            const answerThClass = fewAnswers ? 'w-1/8' : 'text-center';
             // Header rendern
             const headerRow = document.createElement('tr');
-            headerRow.innerHTML = `<th class="w-1/2">Frage</th>`;
+            headerRow.innerHTML = `<th class="${frageThClass}">Frage</th>`;
             answers.forEach(answer => {
-                headerRow.innerHTML += `<th class="text-center">${answer.label}</th>`;
+                headerRow.innerHTML += `<th class="${answerThClass}">${answer.label}</th>`;
             });
             tableHeader.appendChild(headerRow);
+
+            // Größe der Radioboxen bestimmen
+            let radioSize = 4;
+            if (config.input && config.input.size) {
+                const match = config.input.size.match(/([+-]?\d+)/);
+                if (match) {
+                    radioSize = Math.max(1, Math.min(5, 4 + parseInt(match[1], 10)));
+                }
+            }
 
             // Body rendern
             tableBody.innerHTML = '';
@@ -296,10 +324,12 @@
                 row.id = `row-${q.id}`;
                 let rowContent = `<td class="font-medium">${q.text}</td>`;
                 answers.forEach((answer, index) => {
-                    rowContent += `<td class="text-center cursor-pointer">
-                        <label for="question-${q.id}-${index}" class="block h-full w-full">
-                            <input type="radio" id="question-${q.id}-${index}" name="question-${q.id}" value="${index}" class="h-4 w-4">
-                        </label>
+                    rowContent += `<td class="${answerThClass} cursor-pointer">
+                        <div class="flex items-center justify-center h-full w-full">
+                            <label for="question-${q.id}-${index}">
+                                <input type="radio" id="question-${q.id}-${index}" name="question-${q.id}" value="${index}" class="h-${radioSize} w-${radioSize}">
+                            </label>
+                        </div>
                     </td>`;
                 });
                 row.innerHTML = rowContent;
