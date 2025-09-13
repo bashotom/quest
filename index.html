@@ -53,6 +53,10 @@
             <p id="questionnaire-description" class="text-gray-600 mt-2"></p>
         </div>
         <div id="questionnaire-form">
+            <div class="mb-4 flex justify-center gap-4">
+                <button type="button" id="btn-column" class="bg-gray-200 hover:bg-blue-100 text-gray-700 font-bold py-2 px-4 rounded-lg transition duration-200">Tabellen-Modus</button>
+                <button type="button" id="btn-inline" class="bg-gray-200 hover:bg-blue-100 text-gray-700 font-bold py-2 px-4 rounded-lg transition duration-200">Karten-Modus</button>
+            </div>
             <p id="error-message" class="text-red-600 text-sm mb-4 hidden"></p>
             <form id="quiz-form">
                 <!-- Oberer Auswerten-Button -->
@@ -125,7 +129,8 @@
             // Dynamisch: alle Unterordner von /quests mit questions.txt und config.yml
             return [
                 { name: 'Autonomie', folder: 'autonomie' },
-                { name: 'ACE', folder: 'ace' }
+                { name: 'ACE', folder: 'ace' },
+                { name: 'Resilienz', folder: 'resilienz' }
             ];
         }
 
@@ -184,6 +189,36 @@
                 document.getElementById('questionnaire-description').textContent = config.description || '';
 
                 renderQuestionnaire(config.answers);
+
+                // Umschalt-Buttons für Darstellungsmodus nach jedem Rendern neu verbinden
+                const btnColumn = document.getElementById('btn-column');
+                const btnInline = document.getElementById('btn-inline');
+                function updateButtonStyles() {
+                    const mode = localStorage.getItem('displayMode');
+                    if (btnColumn) {
+                        btnColumn.classList.toggle('bg-blue-600', mode === 'column');
+                        btnColumn.classList.toggle('text-white', mode === 'column');
+                        btnColumn.classList.toggle('bg-gray-200', mode !== 'column');
+                        btnColumn.classList.toggle('text-gray-700', mode !== 'column');
+                    }
+                    if (btnInline) {
+                        btnInline.classList.toggle('bg-blue-600', mode === 'inline');
+                        btnInline.classList.toggle('text-white', mode === 'inline');
+                        btnInline.classList.toggle('bg-gray-200', mode !== 'inline');
+                        btnInline.classList.toggle('text-gray-700', mode !== 'inline');
+                    }
+                }
+                if (btnColumn) btnColumn.onclick = () => {
+                    localStorage.setItem('displayMode', 'column');
+                    renderQuestionnaire(config.answers);
+                    updateButtonStyles();
+                };
+                if (btnInline) btnInline.onclick = () => {
+                    localStorage.setItem('displayMode', 'inline');
+                    renderQuestionnaire(config.answers);
+                    updateButtonStyles();
+                };
+                updateButtonStyles();
 
                 // Prüfe, ob Antworten im Hash stehen (User kommt von Auswertung zurück)
                 const initialScores = parseHash();
@@ -354,11 +389,40 @@
             const frageThClass = fewAnswers ? 'w-3/4' : 'w-1/2';
             const answerThClass = fewAnswers ? 'w-1/8' : 'text-center';
 
-            // Dynamisch: Bei kleinen Screens im column-Modus auf Inline-Darstellung umschalten
-            let displayMode = (config.input && config.input.display === 'inline') ? 'inline' : 'column';
-            if (displayMode === 'column' && window.innerWidth <= 700) {
+
+            // User-Auswahl aus localStorage bevorzugen
+            let displayMode = localStorage.getItem('displayMode');
+            if (!displayMode) {
+                displayMode = (config.input && config.input.display === 'inline') ? 'inline' : 'column';
+            }
+            // Dynamisch: Bei kleinen Screens im column-Modus auf Inline-Darstellung umschalten, außer User hat gewählt
+            if (!localStorage.getItem('displayMode') && displayMode === 'column' && window.innerWidth <= 700) {
                 displayMode = 'inline';
             }
+
+        // Umschalt-Buttons für Darstellungsmodus
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnColumn = document.getElementById('btn-column');
+            const btnInline = document.getElementById('btn-inline');
+            function updateButtonStyles() {
+                const mode = localStorage.getItem('displayMode');
+                if (btnColumn) btnColumn.classList.toggle('bg-blue-600', mode === 'column');
+                if (btnColumn) btnColumn.classList.toggle('text-white', mode === 'column');
+                if (btnInline) btnInline.classList.toggle('bg-blue-600', mode === 'inline');
+                if (btnInline) btnInline.classList.toggle('text-white', mode === 'inline');
+            }
+            if (btnColumn) btnColumn.addEventListener('click', () => {
+                localStorage.setItem('displayMode', 'column');
+                renderQuestionnaire(config.answers);
+                updateButtonStyles();
+            });
+            if (btnInline) btnInline.addEventListener('click', () => {
+                localStorage.setItem('displayMode', 'inline');
+                renderQuestionnaire(config.answers);
+                updateButtonStyles();
+            });
+            updateButtonStyles();
+        });
 
             if (displayMode === 'column') {
                 // Header rendern (Standard)
@@ -438,10 +502,14 @@
 
         // Funktion zum Aktualisieren der Hervorhebung
         function updateHighlighting() {
-            const displayMode = (config.input && config.input.display === 'inline') ? 'inline' : 'column';
+            // Bestimme aktuellen Modus (User-Wahl oder config)
+            let displayMode = localStorage.getItem('displayMode');
+            if (!displayMode) {
+                displayMode = (config.input && config.input.display === 'inline') ? 'inline' : 'column';
+            }
             if (displayMode === 'inline') {
                 // Inline: Highlight aktiven Antwortblock
-                const allBlocks = document.querySelectorAll('td .flex.flex-row > .answer-block');
+                const allBlocks = document.querySelectorAll('.answer-block');
                 allBlocks.forEach(block => {
                     const radio = block.querySelector('input[type="radio"]');
                     if (radio && radio.checked) {
