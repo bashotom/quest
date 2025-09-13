@@ -45,7 +45,13 @@
                 <ul class="flex gap-4" id="questionnaire-menu">
                     <!-- Links werden per JS eingefügt -->
                 </ul>
-                <button id="max-answers-btn" type="button" class="ml-6 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">Alle Maximalwerte</button>
+            </div>
+            <div class="flex justify-center mt-2">
+                <div class="flex gap-2">
+                    <button id="min-answers-btn" type="button" class="border border-blue-300 bg-white hover:bg-blue-50 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Alle Minimalwerte</button>
+                    <button id="random-answers-btn" type="button" class="border border-blue-300 bg-white hover:bg-blue-50 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Alle Zufallswerte</button>
+                    <button id="max-answers-btn" type="button" class="border border-blue-300 bg-white hover:bg-blue-50 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Alle Maximalwerte</button>
+                </div>
             </div>
         </nav>
         <div id="questionnaire-meta" class="mb-4 text-center">
@@ -151,11 +157,7 @@
                 li.innerHTML = `<a href="?q=${qb.folder}" class="px-4 py-2 rounded-lg ${activeFolder === qb.folder ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-blue-100'}">${qb.name}</a>`;
                 menu.appendChild(li);
             });
-            // Maximalwerte-Button nur im Debug-Modus anzeigen
-            const maxBtn = document.getElementById('max-answers-btn');
-            if (maxBtn) {
-                maxBtn.style.display = isDebugMode() ? '' : 'none';
-            }
+            // Maximalwerte-Button immer anzeigen (keine Debug-Bedingung mehr)
         }
 
         // Hole aktiven Fragebogen aus Query-Parameter
@@ -248,6 +250,8 @@
         // Button: Alle Antworten auf Maximalwert setzen
         document.addEventListener('DOMContentLoaded', () => {
             const maxBtn = document.getElementById('max-answers-btn');
+            const minBtn = document.getElementById('min-answers-btn');
+            const randomBtn = document.getElementById('random-answers-btn');
             if (maxBtn) {
                 maxBtn.addEventListener('click', () => {
                     // Für jede Frage das Radio mit höchstem Index aktivieren
@@ -255,6 +259,31 @@
                         const radios = document.querySelectorAll(`input[name="question-${q.id}"]`);
                         if (radios.length > 0) {
                             radios[radios.length - 1].checked = true;
+                        }
+                    });
+                    updateHighlighting();
+                });
+            }
+            if (minBtn) {
+                minBtn.addEventListener('click', () => {
+                    // Für jede Frage das Radio mit niedrigstem Index aktivieren
+                    questions.forEach(q => {
+                        const radios = document.querySelectorAll(`input[name="question-${q.id}"]`);
+                        if (radios.length > 0) {
+                            radios[0].checked = true;
+                        }
+                    });
+                    updateHighlighting();
+                });
+            }
+            if (randomBtn) {
+                randomBtn.addEventListener('click', () => {
+                    // Für jede Frage ein zufälliges Radio aktivieren
+                    questions.forEach(q => {
+                        const radios = document.querySelectorAll(`input[name="question-${q.id}"]`);
+                        if (radios.length > 0) {
+                            const randomIndex = Math.floor(Math.random() * radios.length);
+                            radios[randomIndex].checked = true;
                         }
                     });
                     updateHighlighting();
