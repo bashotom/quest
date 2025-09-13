@@ -129,6 +129,14 @@
             ];
         }
 
+        // Prüfe, ob Debug-Modus aktiv ist
+        function isDebugMode() {
+            // Prüfe, ob debug=1 als Query-Parameter ODER als Hash-Parameter gesetzt ist
+            const searchParams = new URLSearchParams(window.location.search);
+            const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+            return searchParams.get('debug') === '1' || hashParams.get('debug') === '1';
+        }
+
         // Menü dynamisch erzeugen
         function renderQuestionnaireMenu(activeFolder) {
             const menu = document.getElementById('questionnaire-menu');
@@ -138,6 +146,11 @@
                 li.innerHTML = `<a href="?q=${qb.folder}" class="px-4 py-2 rounded-lg ${activeFolder === qb.folder ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-blue-100'}">${qb.name}</a>`;
                 menu.appendChild(li);
             });
+            // Maximalwerte-Button nur im Debug-Modus anzeigen
+            const maxBtn = document.getElementById('max-answers-btn');
+            if (maxBtn) {
+                maxBtn.style.display = isDebugMode() ? '' : 'none';
+            }
         }
 
         // Hole aktiven Fragebogen aus Query-Parameter
@@ -455,18 +468,23 @@
             questionnaireForm.classList.add('hidden');
             evaluationPage.classList.remove('hidden');
 
-            // Debug: Maximalwert anzeigen
+            // Debug: Maximalwert anzeigen (nur im Debug-Modus)
             let maxDebug = document.getElementById('max-debug');
-            if (!maxDebug) {
-                maxDebug = document.createElement('div');
-                maxDebug.id = 'max-debug';
-                maxDebug.className = 'text-sm text-gray-500 text-center mb-2';
-                const evalHeader = evaluationPage.querySelector('h2');
-                if (evalHeader) {
-                    evalHeader.insertAdjacentElement('afterend', maxDebug);
-                } else {
-                    evaluationPage.prepend(maxDebug);
+            if (isDebugMode()) {
+                if (!maxDebug) {
+                    maxDebug = document.createElement('div');
+                    maxDebug.id = 'max-debug';
+                    maxDebug.className = 'text-sm text-gray-500 text-center mb-2';
+                    const evalHeader = evaluationPage.querySelector('h2');
+                    if (evalHeader) {
+                        evalHeader.insertAdjacentElement('afterend', maxDebug);
+                    } else {
+                        evaluationPage.prepend(maxDebug);
+                    }
                 }
+            } else {
+                if (maxDebug) maxDebug.remove();
+                maxDebug = null;
             }
 
 
