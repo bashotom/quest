@@ -551,8 +551,16 @@
                 });
                 return;
             }
-            // Im Column-Modus keine Hervorhebung der Tabellenzelle mehr
-            // (früher: cell.classList.add('bg-blue-100'))
+            // Tabellen-Modus: Zellen mit ausgewähltem Radio farblich hervorheben
+            const allCells = document.querySelectorAll('td.cursor-pointer');
+            allCells.forEach(cell => {
+                const radio = cell.querySelector('input[type="radio"]');
+                if (radio && radio.checked) {
+                    cell.classList.add('bg-blue-100');
+                } else {
+                    cell.classList.remove('bg-blue-100');
+                }
+            });
         }
 
         // Auswertung rendern und Chart erstellen
