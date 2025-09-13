@@ -1,0 +1,16 @@
+title: Resilienz-Fragebogen
+description: Fragebogen zur Stabilität des psychischen Immunsystems (ACEstooHigh.com)
+answers:
+  - Trifft voll und ganz zu: 4
+  - Trifft eher zu: 3
+  - Unentschieden: 2
+  - Trifft eher nicht zu: 1
+  - Trifft überhaupt nicht zu: 0
+categories:
+  - A: Resilienz-Wert
+chart:
+  type: gauge
+input:
+  element: radiobox
+  size: 5
+  display: column

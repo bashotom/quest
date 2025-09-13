@@ -1,0 +1,14 @@
+A1|Ich glaube, dass ich als Kind von meiner Mutter geliebt wurde.
+A2|Ich glaube, dass ich als Kind von meinem Vater geliebt wurde.
+A3|Als ich klein war, wurden meine Mutter und mein Vater bei meiner Betreuung von anderen Menschen unterstützt, die mich zulieben schienen.
+A4|Ich habe gehört, dass es Verwandte gab, die gern mit mir spielten, als ich Kind war – und umgekehrt.
+A5|Wenn ich als Kind traurig oder besorgt war, gab es Verwandte, die mir halfen, mich besser zu fühlen.
+A6|Als ich ein Kind war, schienen mich die Nachbarn oder die Eltern meiner Freundinnen und Freunde zu mögen.
+A7|Als ich ein Kind war, waren Lehrer, Trainer, Jugendleiter oder Geistliche für mich da.
+A8|In meiner Familie gab es Menschen, denen an meinem schulischen Erfolg gelegen war.
+A9|Meine Familie, Nachbarn und Freunde sprachen oft darüber, wie sie unser Leben verbessern konnten.
+A10|Zu Hause gab es Regeln, und es wurde erwartet, dass wir uns daran hielten.
+A11|Wenn es mir echt schlect ging, fand ich immer jemanden, dem ich vertraute, mit dem ich reden konnte.
+A12|In meinen Jugendjahren merkten andere schnell, dass ich tüchtig und in der Lage war, Dinge zu erledigen.
+A13|Ich war selbstständig und tatkräftig.
+A14|Ich glaube: Jeder ist seines Glückes Schmied. 
