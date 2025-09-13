@@ -566,9 +566,13 @@
         // Auswertung rendern und Chart erstellen
         function renderEvaluation(scores, categories) {
 
-            // Maximalwerte-Button ausblenden
+            // Buttons für Minimal/Zufall/Maximalwerte ausblenden
             const maxBtn = document.getElementById('max-answers-btn');
+            const minBtn = document.getElementById('min-answers-btn');
+            const randomBtn = document.getElementById('random-answers-btn');
             if (maxBtn) maxBtn.style.display = 'none';
+            if (minBtn) minBtn.style.display = 'none';
+            if (randomBtn) randomBtn.style.display = 'none';
             // Formular ausblenden, Auswertung anzeigen
             questionnaireForm.classList.add('hidden');
             evaluationPage.classList.remove('hidden');
@@ -873,9 +877,13 @@
 
         // Event-Listener für den "Zurück"-Button
         backButton.addEventListener('click', () => {
-            // Maximalwerte-Button wieder einblenden
+            // Buttons für Minimal/Zufall/Maximalwerte wieder einblenden
             const maxBtn = document.getElementById('max-answers-btn');
+            const minBtn = document.getElementById('min-answers-btn');
+            const randomBtn = document.getElementById('random-answers-btn');
             if (maxBtn) maxBtn.style.display = '';
+            if (minBtn) minBtn.style.display = '';
+            if (randomBtn) randomBtn.style.display = '';
             evaluationPage.classList.add('hidden');
             questionnaireForm.classList.remove('hidden');
             // Tabelle neu rendern
