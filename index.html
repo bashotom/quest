@@ -210,14 +210,55 @@
                         btnInline.classList.toggle('text-gray-700', mode !== 'inline');
                     }
                 }
+                function restoreAnswers() {
+                    questions.forEach(q => {
+                        const radios = document.querySelectorAll(`input[name="question-${q.id}"]`);
+                        const selected = document.querySelector(`input[name="question-${q.id}"]:checked`);
+                        if (selected) {
+                            const idx = selected.value;
+                            // Nach dem Rendern wieder setzen
+                            const newRadio = document.querySelector(`input[name="question-${q.id}"][value="${idx}"]`);
+                            if (newRadio) newRadio.checked = true;
+                        }
+                    });
+                    updateHighlighting();
+                }
                 if (btnColumn) btnColumn.onclick = () => {
+                    // Antworten merken
+                    const selectedMap = {};
+                    questions.forEach(q => {
+                        const selected = document.querySelector(`input[name="question-${q.id}"]:checked`);
+                        if (selected) selectedMap[q.id] = selected.value;
+                    });
                     localStorage.setItem('displayMode', 'column');
                     renderQuestionnaire(config.answers);
+                    // Antworten wiederherstellen
+                    questions.forEach(q => {
+                        if (selectedMap[q.id] !== undefined) {
+                            const newRadio = document.querySelector(`input[name="question-${q.id}"][value="${selectedMap[q.id]}"]`);
+                            if (newRadio) newRadio.checked = true;
+                        }
+                    });
+                    updateHighlighting();
                     updateButtonStyles();
                 };
                 if (btnInline) btnInline.onclick = () => {
+                    // Antworten merken
+                    const selectedMap = {};
+                    questions.forEach(q => {
+                        const selected = document.querySelector(`input[name="question-${q.id}"]:checked`);
+                        if (selected) selectedMap[q.id] = selected.value;
+                    });
                     localStorage.setItem('displayMode', 'inline');
                     renderQuestionnaire(config.answers);
+                    // Antworten wiederherstellen
+                    questions.forEach(q => {
+                        if (selectedMap[q.id] !== undefined) {
+                            const newRadio = document.querySelector(`input[name="question-${q.id}"][value="${selectedMap[q.id]}"]`);
+                            if (newRadio) newRadio.checked = true;
+                        }
+                    });
+                    updateHighlighting();
                     updateButtonStyles();
                 };
                 updateButtonStyles();
