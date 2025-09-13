@@ -503,10 +503,8 @@
                 });
                 tableHeader.appendChild(headerRow);
             } else {
-                // Inline: Nur eine Spalte für Frage+Antworten
-                const headerRow = document.createElement('tr');
-                headerRow.innerHTML = `<th class="${frageThClass}">Frage</th>`;
-                tableHeader.appendChild(headerRow);
+                // Inline: Keine Tabellenheader anzeigen
+                tableHeader.innerHTML = '';
             }
 
             // Größe der Radioboxen bestimmen
