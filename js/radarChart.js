@@ -61,15 +61,28 @@ function RadarChart(id, data, options) {
     const axisGrid = g.append("g").attr("class", "axisWrapper");
 
     //Draw the background circles
-    axisGrid.selectAll(".levels")
+    const levels = axisGrid.selectAll(".levels")
         .data(d3.range(1, cfg.levels+1).reverse())
         .enter()
-        .append("circle")
+        .append("g")
+        .attr("class", "levels");
+
+    // Kreise für die Werteskala
+    levels.append("circle")
         .attr("class", "gridCircle")
         .attr("r", d => radius * d/cfg.levels)
         .style("fill", "#fff")
-        .style("stroke", "#ddd")
+        .style("stroke", "#e2e8f0")
         .style("fill-opacity", cfg.opacityCircles);
+
+    // Werte für die Skala
+    levels.append("text")
+        .attr("class", "axisLabel")
+        .attr("x", 5)
+        .attr("y", d => -radius * d/cfg.levels)
+        .style("font-size", "10px")
+        .style("fill", "#64748b")
+        .text(d => Math.round(maxValue * d/cfg.levels));
 
     //Create the straight lines radiating outward from the center
     const axis = axisGrid.selectAll(".axis")
@@ -85,13 +98,14 @@ function RadarChart(id, data, options) {
         .attr("x2", (d, i) => rScale(maxValue * 1.1) * Math.cos(angleSlice * i - Math.PI/2))
         .attr("y2", (d, i) => rScale(maxValue * 1.1) * Math.sin(angleSlice * i - Math.PI/2))
         .attr("class", "line")
-        .style("stroke", "white")
-        .style("stroke-width", "2px");
+        .style("stroke", "#94a3b8") // Graue Farbe für die Achsen
+        .style("stroke-width", "1px");
 
     //Append the labels at each axis
     axis.append("text")
         .attr("class", "legend")
-        .style("font-size", "11px")
+        .style("font-size", "12px")
+        .style("fill", "#475569")
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
         .attr("x", (d,i) => rScale(maxValue * cfg.labelFactor) * Math.cos(angleSlice * i - Math.PI/2))

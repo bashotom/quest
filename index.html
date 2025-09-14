@@ -681,14 +681,16 @@
             
             console.log('Chart Type:', chartType);
             console.log('Container Size:', containerWidth, containerHeight);
-            // Dynamischen Maximalwert für die Achse berechnen
-            const maxScores = {};
-            questions.forEach(q => {
-                // Maximalwert: Summe der größten Werte pro Frage
+            // Berechne die Maximalwerte pro Kategorie
+            const categoryMaxScores = {};
+            Object.keys(categories).forEach(category => {
+                const categoryQuestions = questions.filter(q => q.category === category[0]);
                 const maxAnswer = Math.max(...config.answers.map(a => a.value));
-                maxScores[q.category] = (maxScores[q.category] || 0) + maxAnswer;
+                categoryMaxScores[category] = categoryQuestions.length * maxAnswer;
             });
-            const maxScore = Math.max(...Object.values(maxScores));
+
+            // Berechne den Gesamtmaximalwert für Debug und andere Charts
+            const maxScore = Math.max(...Object.values(categoryMaxScores));
 
             // Debug: Maximalwert anzeigen
             if (maxDebug) {
@@ -696,7 +698,11 @@
             }
 
             const labels = Object.values(categories);
-            const data = Object.keys(categories).map(key => scores[key] || 0);
+            const data = Object.keys(categories).map(key => {
+                const value = scores[key] || 0;
+                const maxForCategory = categoryMaxScores[key];
+                return (value / maxForCategory) * 100; // Normalisiere auf Prozent
+            });
 
             // Chart-Typ ist bereits oben bestimmt
             if (chartType === 'gauge') {
@@ -859,7 +865,7 @@
                     const chartData = [
                         Object.keys(categories).map(key => ({
                             axis: categories[key],
-                            value: (scores[key] || 0) / maxScore  // Normalisierte Werte zwischen 0 und 1
+                            value: data[Object.keys(categories).indexOf(key)]  // Verwende die bereits normalisierten Prozentwerte
                         }))
                     ];
 
@@ -868,14 +874,14 @@
                         w: containerWidth,
                         h: containerHeight,
                         margin: { top: 50, right: 50, bottom: 50, left: 50 },
-                        maxValue: 1, // Wir arbeiten mit normalisierten Werten
+                        maxValue: 100, // Fester Maximalwert für Prozentanzeige
                         levels: 5,
                         roundStrokes: true,
                         color: d3.scaleOrdinal().range(['#3b82f6']),
                         labelFactor: 1.15,
                         wrapWidth: 80,
                         dotRadius: 4,
-                        opacityArea: 0.35,
+                        opacityArea: 0.2,
                         strokeWidth: 3,
                         opacityCircles: 0.1
                     };
