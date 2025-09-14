@@ -81,7 +81,7 @@ function RadarChart(id, data, options) {
         .attr("x", 5)
         .attr("y", d => -radius * d/cfg.levels)
         .style("font-size", "10px")
-        .style("fill", "#64748b")
+        .style("fill", "#000000")
         .text(d => Math.round(maxValue * d/cfg.levels));
 
     //Create the straight lines radiating outward from the center
@@ -95,8 +95,8 @@ function RadarChart(id, data, options) {
     axis.append("line")
         .attr("x1", 0)
         .attr("y1", 0)
-        .attr("x2", (d, i) => rScale(maxValue * 1.1) * Math.cos(angleSlice * i - Math.PI/2))
-        .attr("y2", (d, i) => rScale(maxValue * 1.1) * Math.sin(angleSlice * i - Math.PI/2))
+        .attr("x2", (d, i) => rScale(maxValue) * Math.cos(angleSlice * i - Math.PI/2))
+        .attr("y2", (d, i) => rScale(maxValue) * Math.sin(angleSlice * i - Math.PI/2))
         .attr("class", "line")
         .style("stroke", "#94a3b8") // Graue Farbe für die Achsen
         .style("stroke-width", "1px");
