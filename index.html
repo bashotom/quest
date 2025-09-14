@@ -8,10 +8,33 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-scale@4"></script>
+    <script src="js/radarChart.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
+        }
+        .radar-chart .axis {
+            stroke: #a0aec0;
+            stroke-width: 1px;
+        }
+        .radar-chart .area {
+            fill-opacity: 0.35;
+        }
+        .radar-chart .circle {
+            fill-opacity: 0.1;
+        }
+        .radar-chart .tooltip {
+            font-family: 'Inter', sans-serif;
+            fill: #4a5568;
+        }
+        /* Definiere den Glow-Effekt */
+        .radar-chart .radarStroke {
+            filter: url(#glow);
+        }
+        .radar-chart .radarArea {
+            filter: url(#glow);
         }
         .container {
             max-width: 900px;
@@ -88,8 +111,7 @@
         <div id="evaluation-page" class="hidden">
             <h2 class="text-2xl font-bold text-center text-gray-800 mb-2">Auswertung</h2>
             <div class="flex justify-center">
-                <div class="w-[77%]" style="height:550px;">
-                    <canvas id="radarChart" style="display:block;width:100%;height:100%;"></canvas>
+                <div class="w-[77%] radar-chart" id="radarChart" style="height:550px;">
                 </div>
             </div>
             <div class="mt-8 flex flex-col items-center space-y-4">
@@ -420,7 +442,12 @@
                     }
                 }
             }
-            if (chartType) result.chartType = chartType;
+            // Chart-Konfiguration speichern
+            if (chartType) {
+                result.chart = {
+                    type: chartType
+                };
+            }
             // Sortiere categories, falls topCategory gesetzt
             if (topCategory && Object.keys(result.categories).length > 1) {
                 const keys = Object.keys(result.categories);
@@ -447,8 +474,6 @@
         const backButton = document.getElementById('back-button');
         const shareLinkInput = document.getElementById('share-link');
         const copyButton = document.getElementById('copy-button');
-
-        let myChart = null; // Variable für das Chart.js-Instanz
 
         // Tabelle rendern
         function renderQuestionnaire(answers) {
@@ -637,30 +662,25 @@
 
 
 
-            // Chart-Typ aus config
+                // Chart-Typ aus config bestimmen
             let chartType = 'radar';
-            if (config.chartType === 'bar') chartType = 'bar';
-            if (config.chartType === 'gauge') chartType = 'gauge';
-
-            // Canvas-Größe für RadarChart dynamisch anpassen
-            const radarCanvas = document.getElementById('radarChart');
-            if (chartType === 'radar') {
-                // Rechteckiges Format mit mehr Breite für die Beschriftungen
-                const containerWidth = radarCanvas.parentElement.offsetWidth;
-                radarCanvas.width = containerWidth;
-                radarCanvas.height = containerWidth * 0.75; // Höhe ist 75% der Breite
-            } else {
-                radarCanvas.width = 400;
-                radarCanvas.height = 400;
+            if (config.chart && config.chart.type) {
+                chartType = config.chart.type;
+                console.log('Setting chart type from config:', config.chart.type);
             }
-            const ctx = radarCanvas.getContext('2d');
+            console.log('Config:', config);
+            console.log('Selected Chart Type:', chartType);
 
-            // Alten Chart zerstören, falls vorhanden
-            if (myChart) {
-                myChart.destroy();
-            }
-
-
+            // Container leeren
+            const container = document.getElementById('radarChart');
+            container.innerHTML = '';
+            
+            // Container-Größe ermitteln
+            const containerWidth = container.offsetWidth;
+            const containerHeight = container.offsetHeight;
+            
+            console.log('Chart Type:', chartType);
+            console.log('Container Size:', containerWidth, containerHeight);
             // Dynamischen Maximalwert für die Achse berechnen
             const maxScores = {};
             questions.forEach(q => {
@@ -684,61 +704,80 @@
                 const firstKey = Object.keys(categories)[0];
                 const value = scores[firstKey] || 0;
                 const categoryLabel = categories[firstKey];
-                // Plugin für zentrale Wertanzeige und Kategoriename
-                const gaugeValuePlugin = {
-                    id: 'gaugeValuePlugin',
-                    afterDraw: chart => {
-                        const { ctx, chartArea } = chart;
-                        ctx.save();
-                        ctx.font = 'bold 2.2rem Inter, Arial, sans-serif';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillStyle = '#3b82f6';
-                        const centerX = (chartArea.left + chartArea.right) / 2;
-                        // Y-Position etwas niedriger (optisch mittig im Halbkreis)
-                        const centerY = chartArea.top + (chartArea.bottom - chartArea.top) * 0.65;
-                        ctx.fillText(value + ' / ' + maxScore, centerX, centerY);
-                        // Kategoriename darunter kleiner anzeigen
-                        ctx.font = '1.1rem Inter, Arial, sans-serif';
-                        ctx.fillStyle = '#64748b';
-                        ctx.fillText(categoryLabel, centerX, centerY + 32);
-                        ctx.restore();
-                    }
-                };
-                myChart = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: [categories[firstKey], ''],
-                        datasets: [{
-                            data: [value, Math.max(maxScore - value, 0)],
-                            backgroundColor: [
-                                'rgba(59, 130, 246, 0.8)',
-                                'rgba(203, 213, 225, 0.5)'
-                            ],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        rotation: -90,
-                        circumference: 180,
-                        cutout: '70%',
-                        layout: {
-                            padding: {
-                                left: 20,
-                                right: 20,
-                                top: 0,
-                                bottom: 0
-                            }
-                        },
-                        maintainAspectRatio: false,
-                        responsive: true,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: { enabled: false }
-                        }
-                    },
-                    plugins: [gaugeValuePlugin]
-                });
+
+                // SVG für Gauge erstellen
+                const svg = d3.select("#radarChart")
+                    .append("svg")
+                    .attr("width", containerWidth)
+                    .attr("height", containerHeight);
+
+                // Gauge-Dimensionen
+                const radius = Math.min(containerWidth, containerHeight) / 2;
+                const centerX = containerWidth / 2;
+                const centerY = containerHeight / 2;
+
+                // Glow-Filter
+                const defs = svg.append("defs");
+                const filter = defs.append("filter")
+                    .attr("id", "glow-gauge");
+                filter.append("feGaussianBlur")
+                    .attr("stdDeviation", "2.5")
+                    .attr("result", "coloredBlur");
+                const feMerge = filter.append("feMerge");
+                feMerge.append("feMergeNode")
+                    .attr("in", "coloredBlur");
+                feMerge.append("feMergeNode")
+                    .attr("in", "SourceGraphic");
+
+                // Gruppe für das Gauge
+                const gauge = svg.append("g")
+                    .attr("transform", `translate(${centerX},${centerY})`);
+
+                // Arc Generator für den Hintergrund
+                const backgroundArc = d3.arc()
+                    .innerRadius(radius * 0.7)
+                    .outerRadius(radius * 0.9)
+                    .startAngle(-Math.PI / 2)
+                    .endAngle(Math.PI / 2);
+
+                // Arc Generator für den Wert
+                const valueArc = d3.arc()
+                    .innerRadius(radius * 0.7)
+                    .outerRadius(radius * 0.9)
+                    .startAngle(-Math.PI / 2)
+                    .endAngle(-Math.PI / 2 + Math.PI * (value / maxScore));
+
+                // Hintergrund zeichnen
+                gauge.append("path")
+                    .attr("d", backgroundArc)
+                    .style("fill", "#e2e8f0");
+
+                // Wert zeichnen
+                gauge.append("path")
+                    .attr("d", valueArc)
+                    .style("fill", "#3b82f6")
+                    .style("filter", "url(#glow-gauge)");
+
+                // Wert Text
+                gauge.append("text")
+                    .attr("class", "gauge-value")
+                    .attr("y", -10)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "2.2rem")
+                    .style("font-weight", "bold")
+                    .style("font-family", "Inter, sans-serif")
+                    .style("fill", "#3b82f6")
+                    .text(value + " / " + maxScore);
+
+                // Kategorie Text
+                gauge.append("text")
+                    .attr("class", "gauge-label")
+                    .attr("y", 30)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "1.1rem")
+                    .style("font-family", "Inter, sans-serif")
+                    .style("fill", "#64748b")
+                    .text(categoryLabel);
             } else {
                 // Dynamische Schrittweite für 4-6 Skalenwerte
                 let tickStep = 1;
@@ -815,24 +854,159 @@
                         }
                     }
                 };
-                myChart = new Chart(ctx, {
-                    type: chartType,
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Ergebnis',
-                            data: data,
-                            backgroundColor: chartType === 'radar' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.5)',
-                            borderColor: 'rgb(59, 130, 246)',
-                            pointBackgroundColor: chartType === 'radar' ? 'rgb(59, 130, 246)' : undefined,
-                            pointBorderColor: chartType === 'radar' ? '#fff' : undefined,
-                            pointHoverBackgroundColor: chartType === 'radar' ? '#fff' : undefined,
-                            pointHoverBorderColor: chartType === 'radar' ? 'rgb(59, 130, 246)' : undefined,
-                            borderWidth: 2
-                        }]
-                    },
-                    options: chartOptions
-                });
+                if (chartType === 'radar') {
+                    // Daten für D3.js RadarChart vorbereiten
+                    const chartData = [
+                        Object.keys(categories).map(key => ({
+                            axis: categories[key],
+                            value: (scores[key] || 0) / maxScore  // Normalisierte Werte zwischen 0 und 1
+                        }))
+                    ];
+
+                    // RadarChart Optionen
+                    const radarChartOptions = {
+                        w: containerWidth,
+                        h: containerHeight,
+                        margin: { top: 50, right: 50, bottom: 50, left: 50 },
+                        maxValue: 1, // Wir arbeiten mit normalisierten Werten
+                        levels: 5,
+                        roundStrokes: true,
+                        color: d3.scaleOrdinal().range(['#3b82f6']),
+                        labelFactor: 1.15,
+                        wrapWidth: 80,
+                        dotRadius: 4,
+                        opacityArea: 0.35,
+                        strokeWidth: 3,
+                        opacityCircles: 0.1
+                    };
+
+                    // RadarChart erstellen
+                    RadarChart("#radarChart", chartData, radarChartOptions);
+
+                } else if (chartType === 'gauge') {
+                    console.log('Creating Gauge Chart');
+                    // Gauge: Zeige nur die erste Kategorie als Wert an
+                    const firstKey = Object.keys(categories)[0];
+                    const value = scores[firstKey] || 0;
+                    const categoryLabel = categories[firstKey];
+                    console.log('Gauge Data:', { value, maxScore, categoryLabel });
+
+                    try {
+                        console.log('Creating SVG');
+                        // SVG für Gauge erstellen
+                        const svg = d3.select("#radarChart")
+                            .append("svg")
+                            .attr("width", containerWidth)
+                            .attr("height", containerHeight)
+                            .attr("class", "gauge-chart"); // Klasse hinzufügen für Debugging
+
+                        console.log('SVG created:', svg.node());
+
+                        // Gauge-Dimensionen
+                        const radius = Math.min(containerWidth, containerHeight) / 2;
+                        const centerX = containerWidth / 2;
+                        const centerY = containerHeight / 2;
+
+                    // Glow-Filter
+                    const defs = svg.append("defs");
+                    const filter = defs.append("filter")
+                        .attr("id", "glow-gauge");
+                    filter.append("feGaussianBlur")
+                        .attr("stdDeviation", "2.5")
+                        .attr("result", "coloredBlur");
+                    const feMerge = filter.append("feMerge");
+                    feMerge.append("feMergeNode")
+                        .attr("in", "coloredBlur");
+                    feMerge.append("feMergeNode")
+                        .attr("in", "SourceGraphic");
+
+                    // Arc Generator
+                    const arc = d3.arc()
+                        .innerRadius(radius * 0.7)
+                        .outerRadius(radius * 0.9)
+                        .startAngle(-Math.PI / 2);
+
+                    // Hintergrund-Arc
+                    svg.append("path")
+                        .datum({endAngle: Math.PI / 2})
+                        .style("fill", "#e2e8f0")
+                        .attr("d", arc)
+                        .attr("transform", `translate(${centerX},${centerY})`);
+
+                    // Wert-Arc
+                    const normalizedValue = value / maxScore;
+                    svg.append("path")
+                        .datum({endAngle: (-Math.PI / 2) + (Math.PI * normalizedValue)})
+                        .style("fill", "#3b82f6")
+                        .style("filter", "url(#glow-gauge)")
+                        .attr("d", arc)
+                        .attr("transform", `translate(${centerX},${centerY})`);
+
+                    // Wert Text
+                    const valueText = svg.append("text")
+                        .attr("class", "value-text")
+                        .attr("x", centerX)
+                        .attr("y", centerY)
+                        .attr("text-anchor", "middle")
+                        .style("font-size", "2.2rem")
+                        .style("font-weight", "bold")
+                        .style("font-family", "Inter, sans-serif")
+                        .style("fill", "#3b82f6");
+
+                    valueText.text(value + " / " + maxScore);
+
+                    // Kategorie Label
+                    svg.append("text")
+                        .attr("x", centerX)
+                        .attr("y", centerY + 32)
+                        .attr("text-anchor", "middle")
+                        .style("font-size", "1.1rem")
+                        .style("font-family", "Inter, sans-serif")
+                        .style("fill", "#64748b")
+                        .text(categoryLabel);
+
+                    } catch (error) {
+                        console.error('Error creating gauge chart:', error);
+                    }
+                } else if (chartType === 'bar') {
+                    // Balkendiagramm mit D3.js implementieren
+                    const margin = {top: 20, right: 20, bottom: 30, left: 40};
+                    const width = containerWidth - margin.left - margin.right;
+                    const height = containerHeight - margin.top - margin.bottom;
+
+                    const svg = d3.select("#radarChart")
+                        .append("svg")
+                        .attr("width", containerWidth)
+                        .attr("height", containerHeight)
+                        .append("g")
+                        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+                    const x = d3.scaleLinear()
+                        .domain([0, maxScore])
+                        .range([0, width]);
+
+                    const y = d3.scaleBand()
+                        .domain(Object.values(categories))
+                        .range([0, height])
+                        .padding(0.1);
+
+                    svg.append("g")
+                        .attr("transform", `translate(0,${height})`)
+                        .call(d3.axisBottom(x));
+
+                    svg.append("g")
+                        .call(d3.axisLeft(y));
+
+                    svg.selectAll("rect")
+                        .data(Object.keys(categories))
+                        .enter()
+                        .append("rect")
+                        .attr("y", d => y(categories[d]))
+                        .attr("height", y.bandwidth())
+                        .attr("x", 0)
+                        .attr("width", d => x(scores[d] || 0))
+                        .attr("fill", "#3b82f6");
+                }
             }
             shareLinkInput.value = window.location.href;
             shareLinkInput.select();
