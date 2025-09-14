@@ -106,7 +106,7 @@ function RadarChart(id, data, options) {
     //Append the labels at each axis
     axis.append("text")
         .attr("class", "legend")
-        .style("font-size", "12px")
+        .style("font-size", "16px")
         .style("fill", "#475569")
         .attr("text-anchor", (d,i) => {
             const angle = angleSlice * i - Math.PI/2;
@@ -142,7 +142,7 @@ function RadarChart(id, data, options) {
         })
         .attr("y", (d,i) => {
             const angle = angleSlice * i - Math.PI/2;
-            const basePosition = rScale(maxValue * cfg.labelFactor) * Math.sin(angle);
+            const basePosition = rScale(maxValue * cfg.labelFactor) * Math.sin(angle) - 10; // 10px höher
             // Position relativ zur Gesamtzahl der Achsen bestimmen
             const normalizedPosition = (i / total) * 2 * Math.PI;
             // Vertikale Position basierend auf der normalisierten Position
