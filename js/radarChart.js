@@ -27,7 +27,39 @@ function RadarChart(id, data, options) {
     //If the supplied maxValue is smaller than the actual one, replace by the max in the data
     const maxValue = Math.max(cfg.maxValue, d3.max(data, i => d3.max(i.map(o => o.value))));
 
-    const allAxis = data[0].map(i => i.axis),
+    // Parse die Kategorien-Daten korrekt
+    const processedData = data.map(dataset => 
+        dataset.map(d => {
+            console.log('Original data point:', d);
+            const axisValue = d.axis;
+            
+            // Wenn axis bereits ein Objekt ist
+            if (typeof axisValue === 'object' && axisValue.key && axisValue.value) {
+                console.log('Using existing object format:', axisValue);
+                return d;
+            }
+            
+            // Wenn axis ein String ist, versuche ihn zu parsen
+            if (typeof axisValue === 'string') {
+                const key = Object.entries(config.categories).find(([k, v]) => v === axisValue)?.[0];
+                if (key) {
+                    console.log('Found category mapping:', { key, value: axisValue });
+                    return {
+                        ...d,
+                        axis: { key, value: axisValue }
+                    };
+                }
+            }
+            
+            console.log('Using fallback format:', axisValue);
+            return {
+                ...d,
+                axis: { key: '?', value: String(axisValue) }
+            };
+        })
+    );
+    
+    const allAxis = processedData[0].map(i => i.axis),
           total = allAxis.length,
           radius = Math.min(cfg.w/2, cfg.h/2),
           angleSlice = Math.PI * 2 / total;
@@ -93,6 +125,32 @@ function RadarChart(id, data, options) {
         .append("g")
         .attr("class", "axis");
 
+    // Function to update labels based on screen width
+    const updateLabels = () => {
+        console.log('updateLabels called, screen width:', window.innerWidth);
+        const legends = axis.selectAll(".legend");
+        console.log('Found legend elements:', legends.size());
+        
+        legends.text(d => {
+            console.log('Processing label:', d);
+            // Erwarte das Format { key: 'A', value: 'gesunde Abgrenzung' }
+            if (d && typeof d === 'object' && d.key && d.value) {
+                if (window.innerWidth < 650) {
+                    console.log('Screen width < 650, using key:', d.key);
+                    return d.key;
+                }
+                console.log('Screen width >= 650, using value:', d.value);
+                return d.value;
+            }
+            // Fallback für altes Format
+            return d;
+        })
+        .call(wrap, cfg.wrapWidth);
+    };
+
+    // Add resize listener
+    window.addEventListener('resize', updateLabels);
+
     //Append the lines
     axis.append("line")
         .attr("x1", 0)
@@ -103,7 +161,7 @@ function RadarChart(id, data, options) {
         .style("stroke", "#94a3b8") // Graue Farbe für die Achsen
         .style("stroke-width", "1px");
 
-    //Append the labels at each axis
+        //Append the labels at each axis
     axis.append("text")
         .attr("class", "legend")
         .style("font-size", "16px")
@@ -116,10 +174,16 @@ function RadarChart(id, data, options) {
         .attr("dy", (d,i) => {
             // Position relativ zur Gesamtzahl der Achsen bestimmen
             const normalizedPosition = (i / total) * 2 * Math.PI;
+            const isNarrowScreen = window.innerWidth < 650;
+            
             // 0 = oben, PI = unten, PI/2 = rechts, 3PI/2 = links
-            if (Math.abs(normalizedPosition - Math.PI) < 0.1) return "-1em";    // unten
-            if (Math.abs(normalizedPosition) < 0.1) return "0em";               // oben
-            return "0.4em";                                                     // seiten
+            if (Math.abs(normalizedPosition - Math.PI) < 0.1) {
+                return "0em";     // unten
+            }
+            if (Math.abs(normalizedPosition) < 0.1) {
+                return isNarrowScreen ? "2.5em" : "0.3em";  // oben: Key weiter unten, volles Label noch höher
+            }
+            return "1.4em";     // seiten
         })
         .attr("x", (d,i) => {
             const angle = angleSlice * i - Math.PI/2;
@@ -159,14 +223,46 @@ function RadarChart(id, data, options) {
             const verticalOffset = Math.abs(Math.sin(normalizedPosition)) * -8;
             return basePosition + verticalOffset;                                                       // seiten
         })
-        .text(d => d)
-        .call(wrap, cfg.wrapWidth);
+        .attr("class", "legend")
+        .text(d => {
+            console.log('Processing label for display:', d);
+            // Stelle sicher, dass wir das korrekte Format haben
+            if (!d) {
+                console.error('No label data received');
+                return 'ERR';
+            }
 
-    //The radial line function
+            const useShortLabels = window.innerWidth < 650;
+            console.log('Window width:', window.innerWidth, 'Using short labels:', useShortLabels);
+            
+            if (useShortLabels) {
+                const shortLabel = d.key || d.split?.(':')?.[0]?.trim() || 'ERR';
+                console.log('Using short label:', shortLabel);
+                return shortLabel;
+            } else {
+                const fullLabel = d.value || d || 'ERR';
+                console.log('Using full label:', fullLabel);
+                return fullLabel;
+            }
+        })
+        .call(wrap, cfg.wrapWidth);
+    
+    // Initial update of labels
+    console.log('Calling initial updateLabels...');
+    updateLabels();
+    
+    // Log when resize event occurs
+    window.addEventListener('resize', () => {
+        console.log('Window resize detected, width:', window.innerWidth);
+        updateLabels();
+    });    //The radial line function
     const radarLine = d3.lineRadial()
         .curve(d3.curveLinearClosed)
         .radius(d => rScale(d.value))
         .angle((d,i) => i * angleSlice);
+        
+    // Verwende die verarbeiteten Daten für das Chart
+    data = processedData;
 
     if(cfg.roundStrokes) {
         radarLine.curve(d3.curveCardinalClosed);
