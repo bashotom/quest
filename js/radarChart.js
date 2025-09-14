@@ -5,7 +5,7 @@ function RadarChart(id, data, options) {
         margin: { top: 30, right: 50, bottom: 30, left: 50 },
         levels: 3,
         maxValue: 0,
-        labelFactor: 1.2,
+        labelFactor: 1.001,
         wrapWidth: 60,
         opacityArea: 0.35,
         dotRadius: 4,
@@ -123,9 +123,21 @@ function RadarChart(id, data, options) {
         })
         .attr("x", (d,i) => {
             const angle = angleSlice * i - Math.PI/2;
-            const position = rScale(maxValue * cfg.labelFactor) * Math.cos(angle);
-            // Horizontaler Abstand je nach Position
-            const offset = Math.abs(Math.sin(angle)) < 0.3 ? 10 : 6;
+            // Reduziere die tatsächliche Position für seitliche Labels
+            let position = rScale(maxValue * cfg.labelFactor) * Math.cos(angle);
+            // Für seitliche Labels (cos nahe 0) reduzieren wir die Position zusätzlich
+            if (Math.abs(Math.cos(angle)) > 0.3) {
+                position = position * 0.92; // Reduziere die Position für seitliche Labels um 8%
+            }
+            // Debug-Ausgaben für die Label-Positionierung
+            console.log(`Label ${d}:`, {
+                angle: (angle * 180 / Math.PI).toFixed(2) + '°',
+                basePosition: position.toFixed(2),
+                scaledValue: rScale(maxValue).toFixed(2),
+                labelFactor: cfg.labelFactor
+            });
+            // Minimaler horizontaler Abstand
+            const offset = 2;
             return position + (Math.cos(angle) > 0 ? offset : Math.cos(angle) < 0 ? -offset : 0);
         })
         .attr("y", (d,i) => {
@@ -134,9 +146,18 @@ function RadarChart(id, data, options) {
             // Position relativ zur Gesamtzahl der Achsen bestimmen
             const normalizedPosition = (i / total) * 2 * Math.PI;
             // Vertikale Position basierend auf der normalisierten Position
-            if (Math.abs(normalizedPosition - Math.PI) < 0.1) return basePosition + 5;    // unten (weiter reduziert auf 5)
-            if (Math.abs(normalizedPosition) < 0.1) return basePosition - 25;             // oben
-            return basePosition;                                                          // seiten
+            // Debug-Ausgaben für die vertikale Positionierung
+            console.log(`Label ${d} (vertikal):`, {
+                normalizedPosition: (normalizedPosition * 180 / Math.PI).toFixed(2) + '°',
+                basePosition: basePosition.toFixed(2),
+                isBottom: Math.abs(normalizedPosition - Math.PI) < 0.1,
+                isTop: Math.abs(normalizedPosition) < 0.1
+            });
+            if (Math.abs(normalizedPosition - Math.PI) < 0.1) return basePosition + 2;     // unten
+            if (Math.abs(normalizedPosition) < 0.1) return basePosition - 5;               // oben
+            // Für seitliche Labels: Position basierend auf dem Winkel anpassen
+            const verticalOffset = Math.abs(Math.sin(normalizedPosition)) * -8;
+            return basePosition + verticalOffset;                                                       // seiten
         })
         .text(d => d)
         .call(wrap, cfg.wrapWidth);
