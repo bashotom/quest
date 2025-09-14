@@ -2,10 +2,10 @@ function RadarChart(id, data, options) {
     const cfg = {
         w: 600,
         h: 600,
-        margin: { top: 20, right: 20, bottom: 20, left: 20 },
+        margin: { top: 30, right: 50, bottom: 30, left: 50 },
         levels: 3,
         maxValue: 0,
-        labelFactor: 1.25,
+        labelFactor: 1.2,
         wrapWidth: 60,
         opacityArea: 0.35,
         dotRadius: 4,
@@ -42,8 +42,10 @@ function RadarChart(id, data, options) {
 
     //Initiate the radar chart SVG
     const svg = d3.select(id).append("svg")
-        .attr("width",  cfg.w + cfg.margin.left + cfg.margin.right)
-        .attr("height", cfg.h + cfg.margin.top + cfg.margin.bottom)
+        .attr("width", "100%")
+        .attr("height", "100%")
+        .attr("viewBox", `0 0 ${cfg.w + cfg.margin.left + cfg.margin.right} ${cfg.h + cfg.margin.top + cfg.margin.bottom}`)
+        .attr("preserveAspectRatio", "xMidYMid meet")
         .attr("class", "radar");
 
     //Append a g element
@@ -106,10 +108,36 @@ function RadarChart(id, data, options) {
         .attr("class", "legend")
         .style("font-size", "12px")
         .style("fill", "#475569")
-        .attr("text-anchor", "middle")
-        .attr("dy", "0.35em")
-        .attr("x", (d,i) => rScale(maxValue * cfg.labelFactor) * Math.cos(angleSlice * i - Math.PI/2))
-        .attr("y", (d,i) => rScale(maxValue * cfg.labelFactor) * Math.sin(angleSlice * i - Math.PI/2))
+        .attr("text-anchor", (d,i) => {
+            const angle = angleSlice * i - Math.PI/2;
+            if (Math.abs(Math.cos(angle)) < 0.1) return "middle";
+            return Math.cos(angle) > 0 ? "start" : "end";
+        })
+        .attr("dy", (d,i) => {
+            // Position relativ zur Gesamtzahl der Achsen bestimmen
+            const normalizedPosition = (i / total) * 2 * Math.PI;
+            // 0 = oben, PI = unten, PI/2 = rechts, 3PI/2 = links
+            if (Math.abs(normalizedPosition - Math.PI) < 0.1) return "-1em";    // unten
+            if (Math.abs(normalizedPosition) < 0.1) return "0em";               // oben
+            return "0.4em";                                                     // seiten
+        })
+        .attr("x", (d,i) => {
+            const angle = angleSlice * i - Math.PI/2;
+            const position = rScale(maxValue * cfg.labelFactor) * Math.cos(angle);
+            // Horizontaler Abstand je nach Position
+            const offset = Math.abs(Math.sin(angle)) < 0.3 ? 10 : 6;
+            return position + (Math.cos(angle) > 0 ? offset : Math.cos(angle) < 0 ? -offset : 0);
+        })
+        .attr("y", (d,i) => {
+            const angle = angleSlice * i - Math.PI/2;
+            const basePosition = rScale(maxValue * cfg.labelFactor) * Math.sin(angle);
+            // Position relativ zur Gesamtzahl der Achsen bestimmen
+            const normalizedPosition = (i / total) * 2 * Math.PI;
+            // Vertikale Position basierend auf der normalisierten Position
+            if (Math.abs(normalizedPosition - Math.PI) < 0.1) return basePosition + 5;    // unten (weiter reduziert auf 5)
+            if (Math.abs(normalizedPosition) < 0.1) return basePosition - 25;             // oben
+            return basePosition;                                                          // seiten
+        })
         .text(d => d)
         .call(wrap, cfg.wrapWidth);
 

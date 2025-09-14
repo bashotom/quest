@@ -29,6 +29,17 @@
             font-family: 'Inter', sans-serif;
             fill: #4a5568;
         }
+        @media (max-width: 640px) {
+            .radar-chart text {
+                font-size: 10px;
+            }
+            .radar-chart .axisLabel {
+                font-size: 9px;
+            }
+            .radar-chart .axis text {
+                transform: translateY(-2px);
+            }
+        }
         /* Definiere den Glow-Effekt */
         .radar-chart .radarStroke {
             filter: url(#glow);
@@ -61,25 +72,25 @@
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
 
-    <div id="app" class="container bg-white rounded-lg shadow-xl p-8 space-y-8">
+    <div id="app" class="container mx-auto bg-white rounded-lg shadow-xl p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 md:space-y-8 max-w-7xl">
         <!-- Top-Menü für Fragebogen-Auswahl -->
-        <nav class="mb-6">
-            <div class="flex justify-center gap-4 items-center">
-                <ul class="flex gap-4" id="questionnaire-menu">
+        <nav class="mb-4 sm:mb-6">
+            <div class="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4 items-center">
+                <ul class="flex flex-wrap justify-center gap-2 sm:gap-4" id="questionnaire-menu">
                     <!-- Links werden per JS eingefügt -->
                 </ul>
             </div>
-            <div class="flex justify-center mt-2">
-                <div class="flex gap-2">
-                    <button id="min-answers-btn" type="button" class="border border-blue-300 bg-white hover:bg-blue-50 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Alle Minimalwerte</button>
-                    <button id="random-answers-btn" type="button" class="border border-blue-300 bg-white hover:bg-blue-50 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Alle Zufallswerte</button>
-                    <button id="max-answers-btn" type="button" class="border border-blue-300 bg-white hover:bg-blue-50 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Alle Maximalwerte</button>
+            <div class="flex justify-center mt-2 sm:mt-4">
+                <div class="flex flex-wrap justify-center gap-2">
+                    <button id="min-answers-btn" type="button" class="border border-blue-300 bg-white hover:bg-blue-50 text-blue-700 font-medium py-1.5 px-3 rounded transition duration-150 text-xs sm:text-sm whitespace-nowrap">Alle Minimalwerte</button>
+                    <button id="random-answers-btn" type="button" class="border border-blue-300 bg-white hover:bg-blue-50 text-blue-700 font-medium py-1.5 px-3 rounded transition duration-150 text-xs sm:text-sm whitespace-nowrap">Alle Zufallswerte</button>
+                    <button id="max-answers-btn" type="button" class="border border-blue-300 bg-white hover:bg-blue-50 text-blue-700 font-medium py-1.5 px-3 rounded transition duration-150 text-xs sm:text-sm whitespace-nowrap">Alle Maximalwerte</button>
                 </div>
             </div>
         </nav>
-        <div id="questionnaire-meta" class="mb-4 text-center">
-            <h1 id="questionnaire-title" class="text-3xl font-bold text-gray-800"></h1>
-            <p id="questionnaire-description" class="text-gray-600 mt-2"></p>
+        <div id="questionnaire-meta" class="mb-4 text-center px-2 sm:px-4">
+            <h1 id="questionnaire-title" class="text-2xl sm:text-3xl font-bold text-gray-800"></h1>
+            <p id="questionnaire-description" class="text-gray-600 mt-2 text-sm sm:text-base"></p>
         </div>
         <div id="questionnaire-form">
             <div class="mb-4 flex justify-center gap-4">
@@ -89,19 +100,19 @@
             <p id="error-message" class="text-red-600 text-sm mb-4 hidden"></p>
             <form id="quiz-form">
                 <!-- Oberer Auswerten-Button -->
-                <div class="mb-8 flex justify-center">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                <div class="mb-6 sm:mb-8 flex justify-center">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 text-sm sm:text-base">
                         Fragebogen auswerten
                     </button>
                 </div>
-                <div class="questionnaire-table-scroll overflow-x-auto rounded-lg border border-gray-200">
+                <div class="questionnaire-table-scroll overflow-x-auto rounded-lg border border-gray-200 -mx-4 sm:mx-0">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead id="table-header" class="bg-gray-50"></thead>
-                        <tbody id="table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                        <tbody id="table-body" class="bg-white divide-y divide-gray-200 text-sm sm:text-base"></tbody>
                     </table>
                 </div>
-                <div class="mt-8 flex justify-center">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                <div class="mt-6 sm:mt-8 flex justify-center">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 text-sm sm:text-base">
                         Fragebogen auswerten
                     </button>
                 </div>
@@ -111,18 +122,20 @@
         <div id="evaluation-page" class="hidden">
             <h2 class="text-2xl font-bold text-center text-gray-800 mb-2">Auswertung</h2>
             <div class="flex justify-center">
-                <div class="w-[77%] radar-chart" id="radarChart" style="height:550px;">
+                <div class="flex justify-center w-full">
+                    <div class="w-full sm:w-[92%] md:w-[88%] lg:w-[85%] xl:w-[82%] radar-chart min-h-[200px] max-h-[700px] h-[min(400px,80vh)] px-1 sm:px-4" id="radarChart">
+                    </div>
                 </div>
             </div>
-            <div class="mt-8 flex flex-col items-center space-y-4">
-                <h3 class="text-xl font-semibold text-gray-700">Link teilen</h3>
-                <div class="flex w-full max-w-xl space-x-2">
-                    <input type="text" id="share-link" readonly class="flex-grow rounded-lg border border-gray-300 px-4 py-2 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <button id="copy-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
+            <div class="mt-6 sm:mt-8 flex flex-col items-center space-y-3 sm:space-y-4 px-2 sm:px-4">
+                <h3 class="text-lg sm:text-xl font-semibold text-gray-700">Link teilen</h3>
+                <div class="flex flex-col sm:flex-row w-full max-w-xl space-y-2 sm:space-y-0 sm:space-x-2">
+                    <input type="text" id="share-link" readonly class="flex-grow rounded-lg border border-gray-300 px-3 sm:px-4 py-2 text-sm sm:text-base text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="copy-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 text-sm sm:text-base w-full sm:w-auto">
                         Kopieren
                     </button>
                 </div>
-                <button id="back-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                <button id="back-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 text-sm sm:text-base w-full sm:w-auto">
                     Zurück zum Fragebogen
                 </button>
             </div>
@@ -870,16 +883,26 @@
                     ];
 
                     // RadarChart Optionen
+                    const screenWidth = window.innerWidth;
+                    const responsiveOptions = {
+                        // Responsive Margins basierend auf Bildschirmbreite
+                        margin: screenWidth < 640 ? 
+                            { top: 40, right: 40, bottom: 40, left: 40 } : 
+                            { top: 50, right: 50, bottom: 50, left: 50 },
+                        // Responsive Label-Faktoren
+                        labelFactor: screenWidth < 640 ? 1.25 : 1.15,
+                        // Kleinere Textbreite auf kleinen Bildschirmen
+                        wrapWidth: screenWidth < 640 ? 100 : 80,
+                    };
+
                     const radarChartOptions = {
                         w: containerWidth,
                         h: containerHeight,
-                        margin: { top: 50, right: 50, bottom: 50, left: 50 },
+                        ...responsiveOptions,
                         maxValue: 100, // Fester Maximalwert für Prozentanzeige
                         levels: 5,
                         roundStrokes: true,
                         color: d3.scaleOrdinal().range(['#3b82f6']),
-                        labelFactor: 1.15,
-                        wrapWidth: 80,
                         dotRadius: 4,
                         opacityArea: 0.2,
                         strokeWidth: 3,
