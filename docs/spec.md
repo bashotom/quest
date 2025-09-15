@@ -1,49 +1,57 @@
+
 # Produktspezifikation: Dynamischer Fragebogen (Webanwendung)
 
 ## 1. Zielsetzung
-Die Webanwendung dient der Durchführung, Auswertung und Visualisierung von Fragebögen mit dynamisch konfigurierbaren Fragen, Antwortoptionen und Auswertungsdiagrammen. Sie ist für verschiedene Fragebogen-Typen und -Inhalte flexibel einsetzbar.
+Die Anwendung ermöglicht das browserbasierte Ausfüllen, Auswerten und Visualisieren von beliebigen Fragebögen, die rein aus statischen Dateien bestehen. Sie ist vollständig clientseitig, benötigt keinen Build-Schritt und keinen Server.
 
 ## 2. Hauptfunktionen
-- **Dynamisches Laden von Fragebögen**: Fragen und Konfiguration werden aus Text- und YAML-Dateien geladen.
-- **Mehrere Fragebögen**: Auswahl über ein Top-Menü, automatische Erkennung aller verfügbaren Fragebögen.
-- **Konfigurierbare Antworten**: Antwortoptionen und deren Werte werden aus der Konfiguration geladen.
-- **Kategorien**: Jede Frage ist einer Kategorie zugeordnet, Kategorien werden in der Auswertung aggregiert.
-- **Radar-, Balken- und Gauge-Diagramm**: Die Auswertungsart ist pro Fragebogen konfigurierbar.
-- **Antwort-Persistenz**: Antworten werden beim Wechsel zwischen Auswertung und Fragebogen erhalten.
-- **Teilen-Link**: Die aktuelle Beantwortung kann als Link geteilt werden.
+- **Dynamisches Laden**: Fragebögen werden aus Unterordnern in `quests/` erkannt und per Menü auswählbar gemacht.
+- **Fragen & Konfiguration**: Jede Umfrage besteht aus `questions.txt` (Pipe-separierte Fragen) und `config.yml` (YAML mit Titel, Beschreibung, Antwortoptionen, Kategorien, Chart-Optionen).
+- **Antworten**: Antwortoptionen und deren Werte werden aus YAML geladen und dynamisch als Radio-Buttons gerendert.
+- **Kategorien**: Jede Frage ist per ID-Präfix einer Kategorie zugeordnet, Kategorien werden in der Auswertung aggregiert.
+- **Diagramm-Auswertung**: Die Auswertung erfolgt als Radar-, Balken- oder Gauge-Chart (D3.js/Chart.js), gesteuert durch die YAML-Konfiguration.
+- **Antwort-Persistenz & Teilen**: Antworten werden im URL-Hash gespeichert, sodass sie beim Reload oder Teilen des Links erhalten bleiben.
+- **Responsive UI**: Zwei Darstellungsmodi (Tabellen- und Kartenmodus), automatische Umschaltung auf kleinen Bildschirmen, moderne Optik mit TailwindCSS.
 
 ## 3. Technische Details
-- **Frontend**: HTML, Tailwind CSS, JavaScript (ohne Framework)
-- **Diagramme**: Chart.js (Radar, Bar, Gauge) und optional Google Charts (Gauge)
+- **Frontend**: Nur `index.html` (HTML, JS, TailwindCSS, D3.js, Chart.js), keine externen JS-Dateien außer für RadarChart.
 - **Dateistruktur**:
-  - `/index.html`: Hauptanwendung
-  - `/quests/<fragebogen>/questions.txt`: Fragen
-  - `/quests/<fragebogen>/config.yml`: Konfiguration (Antworten, Kategorien, Chart-Typ, etc.)
-  - `/docs/spec.md`: Produktspezifikation
-- **Konfigurationsoptionen**:
-  - `answers`: Antwortoptionen mit Label und Wert
-  - `categories`: Kategorien mit Schlüssel und Beschreibung
-  - `chart`: Chart-Typ (`radar`, `bar`, `gauge`), optional `top` für die Ausrichtung im Radar-Chart
-  - `title`, `description`: Metadaten für den Fragebogen
+  - `/index.html`: Enthält die gesamte App-Logik und das UI
+  - `/quests/<name>/questions.txt`: Fragen (Format: `<ID>|<Fragetext>`)
+  - `/quests/<name>/config.yml`: YAML-Konfiguration (siehe unten)
+  - `/js/radarChart.js`: RadarChart-Rendering (D3.js)
+- **Konfigurationsoptionen in YAML**:
+  - `title`: Titel des Fragebogens
+  - `description`: Beschreibung
+  - `answers`: Liste von Antwortoptionen (`- Label: Wert`)
+  - `categories`: Zuordnung von Präfix zu Kategoriebezeichnung (`- A: Autonomie`)
+  - `chart`: Chart-Optionen (`type: radar|bar|gauge`, optional `top: <Kategorie>`)
+  - `input`: (optional) UI-Optionen (`display: inline|column`, `size: +/-N`)
+- **Datenfluss**:
+  - Beim Laden werden Fragen und Konfiguration per `fetch` geladen und geparst.
+  - Die UI wird dynamisch gerendert, Antworten werden im URL-Hash gespeichert.
+  - Die Auswertung aggregiert die Werte pro Kategorie und zeigt das Ergebnis als Chart.
 
 ## 4. Bedienung
-- Auswahl des Fragebogens über das Menü
-- Beantwortung der Fragen durch Auswahl der Antwortoptionen
-- Auswertung per Button, Anzeige des Diagramms und Teil-Link
+- Auswahl des Fragebogens über das Menü (automatisch generiert)
+- Beantwortung der Fragen durch Radio-Buttons (Tabellen- oder Kartenmodus)
+- Auswertung per Button, Anzeige des Diagramms und eines Teil-Links
 - Navigation zurück zum Fragebogen mit Erhalt der Antworten
 
 ## 5. Besondere Features
-- **Flexible Reihenfolge der Kategorien**: Über das `top`-Attribut in der YAML-Konfiguration kann die Ausrichtung der Achsen im Radar-Chart gesteuert werden.
-- **Automatische URL-Korrektur**: Fetch-URLs werden so gebaut, dass sie auf beliebigen Servern funktionieren.
-- **Barrierearm**: Tastaturbedienung und klare visuelle Hervorhebung der Auswahl
+- **Vollständig statisch**: Keine Server-Logik, keine Authentifizierung, keine Speicherung auf dem Server
+- **Flexible Erweiterbarkeit**: Neue Fragebögen durch Anlegen eines neuen Unterordners in `quests/`
+- **Barrierearm**: Tastaturbedienung, visuelle Hervorhebung, responsive Darstellung
+- **Debug-Modus**: Per URL-Parameter aktivierbar, zeigt Maximalwerte an
 
 ## 6. Erweiterbarkeit
-- Neue Fragebögen können durch Anlegen eines neuen Unterordners in `/quests` mit `questions.txt` und `config.yml` hinzugefügt werden.
-- Weitere Diagrammtypen oder Auswertungslogiken können durch Anpassung der JS-Logik ergänzt werden.
+- Neue Fragebögen: Einfach neuen Ordner in `quests/` mit `questions.txt` und `config.yml` anlegen
+- Neue Chart-Typen oder UI-Optionen: Anpassung der Logik in `index.html` und ggf. `radarChart.js`
 
 ## 7. Nicht-Funktionen
-- Keine Benutzerverwaltung oder Authentifizierung
-- Keine Speicherung der Ergebnisse auf dem Server
+- Keine Benutzerverwaltung, kein Login, keine serverseitige Speicherung
+- Keine dynamischen API-Calls, keine Build-Tools, keine externen JS-Module (außer CDN)
 
 ---
-Letzte Aktualisierung: 12.09.2025
+
+Letzte Aktualisierung: 15.09.2025
