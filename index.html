@@ -616,7 +616,7 @@
                 displayMode = (config.input && config.input.display === 'inline') ? 'inline' : 'column';
             }
             if (displayMode === 'inline') {
-                // Inline: Highlight aktiven Antwortblock
+                // Inline: Highlight aktiven Antwortblock!
                 const allBlocks = document.querySelectorAll('.answer-block');
                 allBlocks.forEach(block => {
                     const radio = block.querySelector('input[type="radio"]');
