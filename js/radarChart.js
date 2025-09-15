@@ -109,14 +109,8 @@ function RadarChart(id, data, options) {
         .style("stroke", "#e2e8f0")
         .style("fill-opacity", cfg.opacityCircles);
 
-    // Werte für die Skala
-    levels.append("text")
-        .attr("class", "axisLabel")
-        .attr("x", 5)
-        .attr("y", d => -radius * d/cfg.levels)
-        .style("font-size", "10px")
-        .style("fill", "#000000")
-        .text(d => Math.round(maxValue * d/cfg.levels));
+    // Werte für die Skala - nur für konfigurierte Achsen anzeigen
+    // (wird später in der Tickmarks-Logik behandelt)
 
     //Create the straight lines radiating outward from the center
     const axis = axisGrid.selectAll(".axis")
@@ -125,13 +119,14 @@ function RadarChart(id, data, options) {
         .append("g")
         .attr("class", "axis");
 
-    // Parse chart configuration for arrow directions
-    const getArrowConfig = () => {
+    // Parse chart configuration for arrow directions and tickmarks
+    const getChartConfig = () => {
         console.log('Checking config:', typeof config, config);
         if (typeof config === 'object' && config.chart) {
             console.log('Chart config found:', config.chart);
             let radiusvector = [];
             let inverseradiusvector = [];
+            let tickmarks = [];
             
             // Try different ways to access the config
             if (config.chart.radiusvector) {
@@ -146,8 +141,13 @@ function RadarChart(id, data, options) {
                 inverseradiusvector = config.chart.inverseradiusvector.split(',').map(s => s.trim());
             }
             
+            if (config.chart.tickmarks) {
+                tickmarks = config.chart.tickmarks.split(',').map(s => s.trim());
+            }
+            
             console.log('Parsed radiusvector:', radiusvector);
             console.log('Parsed inverseradiusvector:', inverseradiusvector);
+            console.log('Parsed tickmarks:', tickmarks);
             
             // If still empty, use the hardcoded values from config.yml
             if (radiusvector.length === 0) {
@@ -156,14 +156,56 @@ function RadarChart(id, data, options) {
             if (inverseradiusvector.length === 0) {
                 inverseradiusvector = ['D', 'E', 'F'];
             }
+            if (tickmarks.length === 0) {
+                tickmarks = ['B', 'E'];
+            }
             
-            return { radiusvector, inverseradiusvector };
+            return { radiusvector, inverseradiusvector, tickmarks };
         }
         console.log('No config found, using hardcoded values');
-        return { radiusvector: ['A', 'B', 'C'], inverseradiusvector: ['D', 'E', 'F'] };
+        return { radiusvector: ['A', 'B', 'C'], inverseradiusvector: ['D', 'E', 'F'], tickmarks: ['B', 'E'] };
     };
 
-    const arrowConfig = getArrowConfig();
+    const chartConfig = getChartConfig();
+
+    // Add tickmarks for specified axes (B and E)
+    const tickmarkAxes = allAxis.map((axis, index) => ({ axis, index }))
+        .filter(item => chartConfig.tickmarks.includes(item.axis.key));
+    
+    // Zeichne Tickmarks für die konfigurierten Achsen
+    tickmarkAxes.forEach(({ axis, index }) => {
+        const angle = angleSlice * index - Math.PI/2;
+        const isInverseAxis = chartConfig.inverseradiusvector.includes(axis.key);
+        
+        // Für jeden Level-Wert
+        d3.range(1, cfg.levels + 1).forEach(levelIndex => {
+            let levelValue, radiusAtLevel;
+            
+            if (isInverseAxis) {
+                // Für inverseradiusvector: außen 0, innen 100
+                levelValue = Math.round(maxValue * (cfg.levels - levelIndex)/cfg.levels);
+                radiusAtLevel = radius * levelIndex/cfg.levels;
+            } else {
+                // Für normale Achsen: innen 0, außen 100
+                levelValue = Math.round(maxValue * levelIndex/cfg.levels);
+                radiusAtLevel = radius * levelIndex/cfg.levels;
+            }
+            
+            // Position für den Tickmark-Text
+            const tickX = radiusAtLevel * Math.cos(angle);
+            const tickY = radiusAtLevel * Math.sin(angle);
+            
+            // Füge den Tickmark-Text hinzu
+            axisGrid.append("text")
+                .attr("class", "tickmark")
+                .attr("x", tickX + (Math.cos(angle) > 0 ? 5 : Math.cos(angle) < 0 ? -5 : 0))
+                .attr("y", tickY + (Math.sin(angle) > 0 ? 5 : Math.sin(angle) < 0 ? -5 : 0))
+                .style("font-size", "10px")
+                .style("fill", "#000000")
+                .style("text-anchor", Math.cos(angle) > 0 ? "start" : Math.cos(angle) < 0 ? "end" : "middle")
+                .text(levelValue);
+        });
+    });
 
     // Function to update labels based on screen width
     const updateLabels = () => {
@@ -264,11 +306,11 @@ function RadarChart(id, data, options) {
         const endY = rScale(maxValue) * Math.sin(angle);
         
         console.log('Processing axis:', axisKey, 'angle:', angle, 'endX:', endX, 'endY:', endY);
-        console.log('radiusvector config:', arrowConfig.radiusvector);
-        console.log('inverseradiusvector config:', arrowConfig.inverseradiusvector);
+        console.log('radiusvector config:', chartConfig.radiusvector);
+        console.log('inverseradiusvector config:', chartConfig.inverseradiusvector);
         
         // Check if this axis should have an arrow
-        if (arrowConfig.radiusvector.includes(axisKey)) {
+        if (chartConfig.radiusvector.includes(axisKey)) {
             console.log('Adding outward arrow for:', axisKey);
             // Arrow pointing outward - extend the line slightly beyond the end
             const extendX = endX * 1.03;
@@ -282,7 +324,7 @@ function RadarChart(id, data, options) {
                 .style("stroke", "#94a3b8")
                 .style("stroke-width", "1px")
                 .style("marker-end", "url(#arrow-outward)");
-        } else if (arrowConfig.inverseradiusvector.includes(axisKey)) {
+        } else if (chartConfig.inverseradiusvector.includes(axisKey)) {
             console.log('Adding inward arrow for:', axisKey);
             // Arrow pointing inward - from outer edge all the way to center
             d3.select(this).append("line")
