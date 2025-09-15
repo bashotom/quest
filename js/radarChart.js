@@ -125,6 +125,46 @@ function RadarChart(id, data, options) {
         .append("g")
         .attr("class", "axis");
 
+    // Parse chart configuration for arrow directions
+    const getArrowConfig = () => {
+        console.log('Checking config:', typeof config, config);
+        if (typeof config === 'object' && config.chart) {
+            console.log('Chart config found:', config.chart);
+            let radiusvector = [];
+            let inverseradiusvector = [];
+            
+            // Try different ways to access the config
+            if (config.chart.radiusvector) {
+                radiusvector = config.chart.radiusvector.split(',').map(s => s.trim());
+            } else if (typeof config.chart.radiusvector === 'string') {
+                radiusvector = config.chart.radiusvector.split(',').map(s => s.trim());
+            }
+            
+            if (config.chart.inverseradiusvector) {
+                inverseradiusvector = config.chart.inverseradiusvector.split(',').map(s => s.trim());
+            } else if (typeof config.chart.inverseradiusvector === 'string') {
+                inverseradiusvector = config.chart.inverseradiusvector.split(',').map(s => s.trim());
+            }
+            
+            console.log('Parsed radiusvector:', radiusvector);
+            console.log('Parsed inverseradiusvector:', inverseradiusvector);
+            
+            // If still empty, use the hardcoded values from config.yml
+            if (radiusvector.length === 0) {
+                radiusvector = ['A', 'B', 'C'];
+            }
+            if (inverseradiusvector.length === 0) {
+                inverseradiusvector = ['D', 'E', 'F'];
+            }
+            
+            return { radiusvector, inverseradiusvector };
+        }
+        console.log('No config found, using hardcoded values');
+        return { radiusvector: ['A', 'B', 'C'], inverseradiusvector: ['D', 'E', 'F'] };
+    };
+
+    const arrowConfig = getArrowConfig();
+
     // Function to update labels based on screen width
     const updateLabels = () => {
         console.log('updateLabels called, screen width:', window.innerWidth);
@@ -161,10 +201,107 @@ function RadarChart(id, data, options) {
         .style("stroke", "#94a3b8") // Graue Farbe für die Achsen
         .style("stroke-width", "1px");
 
+    // Add arrow markers to SVG defs
+    const defs = svg.select("defs");
+    
+    // Arrow marker pointing outward (for radiusvector) - simple two-line arrow
+    defs.append("marker")
+        .attr("id", "arrow-outward")
+        .attr("markerWidth", 12)
+        .attr("markerHeight", 12)
+        .attr("refX", 10)
+        .attr("refY", 6)
+        .attr("orient", "auto")
+        .attr("markerUnits", "strokeWidth")
+        .append("g")
+        .append("line")
+        .attr("x1", 2)
+        .attr("y1", 2)
+        .attr("x2", 9)
+        .attr("y2", 6)
+        .style("stroke", "#94a3b8")
+        .style("stroke-width", "1px");
+
+    defs.select("#arrow-outward g").append("line")
+        .attr("x1", 2)
+        .attr("y1", 10)
+        .attr("x2", 9)
+        .attr("y2", 6)
+        .style("stroke", "#94a3b8")
+        .style("stroke-width", "1px");
+
+    // Arrow marker pointing inward (for inverseradiusvector) - simple two-line arrow
+    defs.append("marker")
+        .attr("id", "arrow-inward")
+        .attr("markerWidth", 12)
+        .attr("markerHeight", 12)
+        .attr("refX", 2)
+        .attr("refY", 6)
+        .attr("orient", "auto")
+        .attr("markerUnits", "strokeWidth")
+        .append("g")
+        .append("line")
+        .attr("x1", 10)
+        .attr("y1", 2)
+        .attr("x2", 3)
+        .attr("y2", 6)
+        .style("stroke", "#94a3b8")
+        .style("stroke-width", "1px");
+
+    defs.select("#arrow-inward g").append("line")
+        .attr("x1", 10)
+        .attr("y1", 10)
+        .attr("x2", 3)
+        .attr("y2", 6)
+        .style("stroke", "#94a3b8")
+        .style("stroke-width", "1px");
+
+    // Add arrows to specific axes based on configuration
+    axis.each(function(d, i) {
+        const axisKey = d.key;
+        const angle = angleSlice * i - Math.PI/2;
+        const endX = rScale(maxValue) * Math.cos(angle);
+        const endY = rScale(maxValue) * Math.sin(angle);
+        
+        console.log('Processing axis:', axisKey, 'angle:', angle, 'endX:', endX, 'endY:', endY);
+        console.log('radiusvector config:', arrowConfig.radiusvector);
+        console.log('inverseradiusvector config:', arrowConfig.inverseradiusvector);
+        
+        // Check if this axis should have an arrow
+        if (arrowConfig.radiusvector.includes(axisKey)) {
+            console.log('Adding outward arrow for:', axisKey);
+            // Arrow pointing outward - extend the line slightly beyond the end
+            const extendX = endX * 1.03;
+            const extendY = endY * 1.03;
+            d3.select(this).append("line")
+                .attr("x1", endX)
+                .attr("y1", endY)
+                .attr("x2", extendX)
+                .attr("y2", extendY)
+                .attr("class", "arrow-line")
+                .style("stroke", "#94a3b8")
+                .style("stroke-width", "1px")
+                .style("marker-end", "url(#arrow-outward)");
+        } else if (arrowConfig.inverseradiusvector.includes(axisKey)) {
+            console.log('Adding inward arrow for:', axisKey);
+            // Arrow pointing inward - from outer edge all the way to center
+            d3.select(this).append("line")
+                .attr("x1", 0)
+                .attr("y1", 0)
+                .attr("x2", endX)
+                .attr("y2", endY)
+                .attr("class", "arrow-line")
+                .style("stroke", "#94a3b8")
+                .style("stroke-width", "1px")
+                .style("marker-end", "url(#arrow-inward)");
+        }
+    });
+
         //Append the labels at each axis
     axis.append("text")
         .attr("class", "legend")
         .style("font-size", "16px")
+        .style("font-weight", "bold")
         .style("fill", "#475569")
         .attr("text-anchor", (d,i) => {
             const angle = angleSlice * i - Math.PI/2;
