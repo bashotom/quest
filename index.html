@@ -376,7 +376,7 @@
         // Einfacher YAML-Parser für die spezifische Struktur
         function parseYaml(yamlString) {
             const lines = yamlString.split('\n').filter(line => line.trim() !== '');
-            const result = { answers: [], categories: {} };
+            const result = { answers: [], categories: {}, categoriesArray: [] };
             let currentSection = '';
 
             let topCategory = null;
@@ -451,6 +451,7 @@
                             const key = parts[0].trim();
                             const value = parts[1].trim();
                             result.categories[key] = value;
+                            result.categoriesArray.push({ key, value });
                         }
                     }
                 }
@@ -461,7 +462,7 @@
                     type: chartType
                 };
             }
-            // Sortiere categories, falls topCategory gesetzt
+            // Sortiere nur result.categories (Objekt) für das Chart, aber lasse result.categoriesArray (für Legende) unverändert!
             if (topCategory && Object.keys(result.categories).length > 1) {
                 const keys = Object.keys(result.categories);
                 const idx = keys.indexOf(topCategory);
@@ -470,6 +471,7 @@
                     const newCategories = {};
                     rotated.forEach(k => { newCategories[k] = result.categories[k]; });
                     result.categories = newCategories;
+                    // result.categoriesArray bleibt unverändert für die Legende
                 }
             }
             return result;

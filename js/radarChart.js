@@ -355,6 +355,61 @@ function RadarChart(id, data, options) {
         .attr("class", "tooltip")
         .style("opacity", 0);
 
+    // Create legend for narrow screens in config.categories order
+    if (window.innerWidth < 650 && typeof config === 'object' && Array.isArray(config.categoriesArray)) {
+        d3.selectAll(".radar-legend").remove();
+        const chartContainer = document.querySelector(id);
+        const parentContainer = chartContainer.parentNode;
+        parentContainer.style.display = 'block';
+        const legendContainer = document.createElement('div');
+        legendContainer.className = 'radar-legend';
+        Object.assign(legendContainer.style, {
+            marginTop: '2rem',
+            fontFamily: "'Inter', sans-serif",
+            fontSize: '0.95rem',
+            color: '#4a5568',
+            textAlign: 'left',
+            padding: '0 1rem',
+            width: '100%',
+            clear: 'both',
+            display: 'block',
+            position: 'relative'
+        });
+        // Überschrift hinzufügen
+        const legendTitle = document.createElement('div');
+        legendTitle.textContent = 'Legende:';
+        legendTitle.style.fontWeight = '600';
+        legendTitle.style.marginBottom = '0.5em';
+        legendTitle.style.fontSize = '1.05em';
+        legendContainer.appendChild(legendTitle);
+        const wrapperDiv = document.createElement('div');
+        Object.assign(wrapperDiv.style, {
+            display: 'block',
+            width: '100%',
+            clear: 'both'
+        });
+        wrapperDiv.appendChild(legendContainer);
+        if (chartContainer.nextSibling) {
+            parentContainer.insertBefore(wrapperDiv, chartContainer.nextSibling);
+        } else {
+            parentContainer.appendChild(wrapperDiv);
+        }
+        // Verwende die Reihenfolge aus categoriesArray
+        const ul = document.createElement('ul');
+        ul.style.listStyle = 'disc inside';
+        ul.style.margin = '0';
+        ul.style.padding = '0';
+        config.categoriesArray.forEach(({key, value}) => {
+            const li = document.createElement('li');
+            li.style.marginBottom = '0.4em';
+            li.textContent = `${key}: ${value}`;
+            ul.appendChild(li);
+        });
+        legendContainer.appendChild(ul);
+    } else {
+        d3.selectAll(".radar-legend").remove();
+    }
+
     function wrap(text, width) {
         text.each(function() {
             var text = d3.select(this),
