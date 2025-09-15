@@ -206,7 +206,7 @@ function RadarChart(id, data, options) {
         })
         .attr("y", (d,i) => {
             const angle = angleSlice * i - Math.PI/2;
-            const basePosition = rScale(maxValue * cfg.labelFactor) * Math.sin(angle) - 10; // 10px höher
+            const basePosition = rScale(maxValue * cfg.labelFactor) * Math.sin(angle) - 20; // 20px höher
             // Position relativ zur Gesamtzahl der Achsen bestimmen
             const normalizedPosition = (i / total) * 2 * Math.PI;
             // Vertikale Position basierend auf der normalisierten Position
