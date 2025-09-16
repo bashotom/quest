@@ -1098,8 +1098,18 @@
             shareLinkInput.value = window.location.href;
             shareLinkInput.select();
             
-            // Kategorien-Tabelle füllen
-            renderCategoriesTable(scores, categories);
+            // Kategorien-Tabelle nur bei RadarChart anzeigen
+            const categoriesTableSection = document.getElementById('categories-table-content').closest('div').closest('div');
+            if (chartType === 'radar') {
+                if (categoriesTableSection) {
+                    categoriesTableSection.style.display = 'block';
+                }
+                renderCategoriesTable(scores, categories);
+            } else {
+                if (categoriesTableSection) {
+                    categoriesTableSection.style.display = 'none';
+                }
+            }
         }
 
         // Kategorien-Tabelle rendern
