@@ -125,6 +125,7 @@ function RadarChart(id, data, options) {
             let radiusvector = [];
             let inverseradiusvector = [];
             let tickmarks = [];
+            let horizontalline = false;
             
             // Try different ways to access the config
             if (cfg.config.chart.radiusvector) {
@@ -143,14 +144,19 @@ function RadarChart(id, data, options) {
                 tickmarks = cfg.config.chart.tickmarks.split(',').map(s => s.trim());
             }
             
+            // Check for horizontalline setting
+            if (cfg.config.chart.horizontalline) {
+                horizontalline = cfg.config.chart.horizontalline === 'yes' || cfg.config.chart.horizontalline === true;
+            }
+            
             // Wenn tickmarks leer ist, verwende einen Fallback-Wert
             if (tickmarks.length === 0) {
                 tickmarks = ['B', 'E']; // Standard-Tickmarks
             }
             
-            return { radiusvector, inverseradiusvector, tickmarks };
+            return { radiusvector, inverseradiusvector, tickmarks, horizontalline };
         }
-        return { radiusvector: [], inverseradiusvector: [], tickmarks: ['B', 'E'] };
+        return { radiusvector: [], inverseradiusvector: [], tickmarks: ['B', 'E'], horizontalline: false };
     };
 
     const chartConfig = getChartConfig();
@@ -182,11 +188,14 @@ function RadarChart(id, data, options) {
             const tickX = radiusAtLevel * Math.cos(angle);
             const tickY = radiusAtLevel * Math.sin(angle);
             
+            // Bestimme ob es die untere vertikale Achse ist (angle ≈ Math.PI/2)
+            const isBottomVerticalAxis = Math.abs(angle - Math.PI/2) < 0.1;
+            
             // Füge den Tickmark-Text hinzu
             axisGrid.append("text")
                 .attr("class", "tickmark")
                 .attr("x", tickX + (Math.cos(angle) > 0 ? 5 : Math.cos(angle) < 0 ? -5 : 0))
-                .attr("y", tickY + (Math.sin(angle) > 0 ? 5 : Math.sin(angle) < 0 ? -5 : 0))
+                .attr("y", tickY + (Math.sin(angle) > 0 ? 5 : Math.sin(angle) < 0 ? -5 : 0) - (isBottomVerticalAxis ? 6 : 0))
                 .style("font-size", "10px")
                 .style("fill", "#000000")
                 .style("text-anchor", Math.cos(angle) > 0 ? "start" : Math.cos(angle) < 0 ? "end" : "middle")
@@ -229,6 +238,20 @@ function RadarChart(id, data, options) {
         .attr("class", "line")
         .style("stroke", "#94a3b8") // Graue Farbe für die Achsen
         .style("stroke-width", "1px");
+
+    // Füge gestrichelte horizontale Mittellinie hinzu (nur wenn konfiguriert)
+    // Horizontale Linie nur anzeigen wenn in der Konfiguration aktiviert
+    if (chartConfig.horizontalline) {
+        axisGrid.append("line")
+            .attr("x1", -radius * 1.2)
+            .attr("y1", 0)
+            .attr("x2", radius * 1.2)
+            .attr("y2", 0)
+            .attr("class", "center-line-horizontal")
+            .style("stroke", "#9ca3af")
+            .style("stroke-width", "1px")
+            .style("stroke-dasharray", "3,3");
+    }
 
     // Add arrow markers to SVG defs - entfernt, da nicht mehr benötigt
     

@@ -449,7 +449,7 @@
                     inChartObject = true;
                     continue;
                 }
-                if (inChartObject && (trimmedLine.startsWith('type:') || trimmedLine.startsWith('top:') || trimmedLine.startsWith('radiusvector:') || trimmedLine.startsWith('inverseradiusvector:') || trimmedLine.startsWith('tickmarks:'))) {
+                if (inChartObject && (trimmedLine.startsWith('type:') || trimmedLine.startsWith('top:') || trimmedLine.startsWith('radiusvector:') || trimmedLine.startsWith('inverseradiusvector:') || trimmedLine.startsWith('tickmarks:') || trimmedLine.startsWith('horizontalline:'))) {
                     const [key, value] = trimmedLine.split(':');
                     if (key.trim() === 'type') chartType = value.trim();
                     if (key.trim() === 'top') topCategory = value.trim();

@@ -19,6 +19,7 @@ chart:
   radiusvector: A,B,C
   inverseradiusvector: D,E,F
   tickmarks: B,E
+  horizontalline: yes
 input:
   element: radiobox
   display: column 
