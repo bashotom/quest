@@ -29,12 +29,10 @@ function RadarChart(id, data, options) {
     // Parse die Kategorien-Daten korrekt
     const processedData = data.map(dataset => 
         dataset.map(d => {
-            console.log('Original data point:', d);
             const axisValue = d.axis;
             
             // Wenn axis bereits ein Objekt ist
             if (typeof axisValue === 'object' && axisValue.key && axisValue.value) {
-                console.log('Using existing object format:', axisValue);
                 return d;
             }
             
@@ -42,7 +40,6 @@ function RadarChart(id, data, options) {
             if (typeof axisValue === 'string') {
                 const key = cfg.config && cfg.config.categories ? Object.entries(cfg.config.categories).find(([k, v]) => v === axisValue)?.[0] : null;
                 if (key) {
-                    console.log('Found category mapping:', { key, value: axisValue });
                     return {
                         ...d,
                         axis: { key, value: axisValue }
@@ -50,7 +47,6 @@ function RadarChart(id, data, options) {
                 }
             }
             
-            console.log('Using fallback format:', axisValue);
             return {
                 ...d,
                 axis: { key: '?', value: String(axisValue) }
@@ -204,19 +200,14 @@ function RadarChart(id, data, options) {
 
     // Function to update labels based on screen width
     const updateLabels = () => {
-        console.log('updateLabels called, screen width:', window.innerWidth);
         const legends = axis.selectAll(".legend");
-        console.log('Found legend elements:', legends.size());
         
         legends.text(d => {
-            console.log('Processing label:', d);
             // Erwarte das Format { key: 'A', value: 'gesunde Abgrenzung' }
             if (d && typeof d === 'object' && d.key && d.value) {
                 if (window.innerWidth < 650) {
-                    console.log('Screen width < 650, using key:', d.key);
                     return d.key;
                 }
-                console.log('Screen width >= 650, using value:', d.value);
                 return d.value;
             }
             // Fallback für altes Format
@@ -370,12 +361,6 @@ function RadarChart(id, data, options) {
             const normalizedPosition = (i / total) * 2 * Math.PI;
             // Vertikale Position basierend auf der normalisierten Position
             // Debug-Ausgaben für die vertikale Positionierung
-            console.log(`Label ${d} (vertikal):`, {
-                normalizedPosition: (normalizedPosition * 180 / Math.PI).toFixed(2) + '°',
-                basePosition: basePosition.toFixed(2),
-                isBottom: Math.abs(normalizedPosition - Math.PI) < 0.1,
-                isTop: Math.abs(normalizedPosition) < 0.1
-            });
             if (Math.abs(normalizedPosition - Math.PI) < 0.1) return basePosition + 2;     // unten
             if (Math.abs(normalizedPosition) < 0.1) return basePosition - 5;               // oben
             // Für seitliche Labels: Position basierend auf dem Winkel anpassen
@@ -384,35 +369,28 @@ function RadarChart(id, data, options) {
         })
         .attr("class", "legend")
         .text(d => {
-            console.log('Processing label for display:', d);
             // Stelle sicher, dass wir das korrekte Format haben
             if (!d) {
-                console.error('No label data received');
                 return 'ERR';
             }
 
             const useShortLabels = window.innerWidth < 650;
-            console.log('Window width:', window.innerWidth, 'Using short labels:', useShortLabels);
             
             if (useShortLabels) {
                 const shortLabel = d.key || d.split?.(':')?.[0]?.trim() || 'ERR';
-                console.log('Using short label:', shortLabel);
                 return shortLabel;
             } else {
                 const fullLabel = d.value || d || 'ERR';
-                console.log('Using full label:', fullLabel);
                 return fullLabel;
             }
         })
         .call(wrap, cfg.wrapWidth);
     
     // Initial update of labels
-    console.log('Calling initial updateLabels...');
     updateLabels();
     
     // Log when resize event occurs
     window.addEventListener('resize', () => {
-        console.log('Window resize detected, width:', window.innerWidth);
         updateLabels();
     });    //The radial line function with support for inverse radius vectors
     const radarLine = d3.lineRadial()

@@ -18,7 +18,7 @@
   ],
   "chart": {
     "type": "radar",
-    "top": "B",
+    "topaxis": "B",
     "radiusvector": "A,B,C",
     "inverseradiusvector": "D,E,F",
     "tickmarks": "B,E",

@@ -433,7 +433,27 @@ class QuestionnaireApp extends HTMLElement {
 
     renderRadarChartInLightDOM(chartData, inputResponsiveOptions, shadowChartElement) {
         // Daten für RadarChart vorbereiten
-        const data = Object.keys(this.config.categories).map(key => {
+        // Sortiere die Kategorien basierend auf dem topaxis-Attribut
+        let categoryKeys = Object.keys(this.config.categories);
+        console.log('Original categoryKeys:', categoryKeys);
+        console.log('Config chart:', this.config.chart);
+        
+        if (this.config.chart && this.config.chart.topaxis) {
+            const topAxisKey = this.config.chart.topaxis;
+            console.log('TopAxis key:', topAxisKey);
+            
+            // Finde den Index der topaxis in der ursprünglichen Reihenfolge
+            const topAxisIndex = categoryKeys.indexOf(topAxisKey);
+            if (topAxisIndex !== -1) {
+                // Erstelle neue Reihenfolge: topaxis, dann alle nachfolgenden, dann alle vorherigen
+                const afterTopAxis = categoryKeys.slice(topAxisIndex + 1);
+                const beforeTopAxis = categoryKeys.slice(0, topAxisIndex);
+                categoryKeys = [topAxisKey, ...afterTopAxis, ...beforeTopAxis];
+            }
+            console.log('Sorted categoryKeys:', categoryKeys);
+        }
+        
+        const data = categoryKeys.map(key => {
             const value = this.currentScores[key] || 0;
             const categoryQuestions = this.questions.filter(q => q.category === key);
             const maxAnswer = Math.max(...this.config.answers.map(a => a.value));
@@ -444,7 +464,7 @@ class QuestionnaireApp extends HTMLElement {
         });
 
         const finalChartData = [
-            Object.keys(this.config.categories).map((key, index) => {
+            categoryKeys.map((key, index) => {
                 const value = data[index];
                 // Stelle sicher, dass der Wert numerisch und valide ist
                 const safeValue = (isNaN(value) || value < 0) ? 0 : Math.min(100, Math.round(value));
@@ -454,6 +474,8 @@ class QuestionnaireApp extends HTMLElement {
                 };
             })
         ];
+        
+        console.log('Final chartData:', finalChartData);
 
         // Zusätzliche Validierung der finalChartData
         const isValidData = finalChartData[0] && Array.isArray(finalChartData[0]) && 
@@ -479,6 +501,12 @@ class QuestionnaireApp extends HTMLElement {
             wrapWidth: screenWidth < 640 ? 100 : 80,
         };
 
+        // Erstelle eine aktualisierte Konfiguration mit sortierter categoriesArray
+        const sortedConfig = {
+            ...this.config,
+            categoriesArray: categoryKeys.map(key => ({ key, value: this.config.categories[key] }))
+        };
+
         const safeOptions = {
             w: Math.max(inputResponsiveOptions?.w || 300, 200),
             h: Math.max(inputResponsiveOptions?.h || 300, 200),
@@ -491,7 +519,7 @@ class QuestionnaireApp extends HTMLElement {
             opacityArea: 0.2,
             strokeWidth: 3,
             opacityCircles: 0.1,
-            config: this.config // Konfiguration für Pfeile und Tickmarks
+            config: sortedConfig // Konfiguration für Pfeile und Tickmarks mit sortierter categoriesArray
         };
 
         console.log('RadarChart options:', safeOptions);
