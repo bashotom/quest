@@ -390,10 +390,22 @@ function RadarChart(id, data, options) {
     window.addEventListener('resize', () => {
         console.log('Window resize detected, width:', window.innerWidth);
         updateLabels();
-    });    //The radial line function
+    });    //The radial line function with support for inverse radius vectors
     const radarLine = d3.lineRadial()
         .curve(d3.curveLinearClosed)
-        .radius(d => rScale(d.value))
+        .radius((d, i) => {
+            const axisKey = d.axis ? d.axis.key : allAxis[i]?.key;
+            const isInverseAxis = chartConfig.inverseradiusvector.includes(axisKey);
+            
+            if (isInverseAxis) {
+                // For inverse axes: invert the value (maxValue - value)
+                const invertedValue = maxValue - d.value;
+                return rScale(invertedValue);
+            } else {
+                // For normal axes: use the value as is
+                return rScale(d.value);
+            }
+        })
         .angle((d,i) => i * angleSlice);
         
     // Verwende die verarbeiteten Daten für das Chart
@@ -449,8 +461,28 @@ function RadarChart(id, data, options) {
         .append("circle")
         .attr("class", "radarCircle")
         .attr("r", cfg.dotRadius)
-        .attr("cx", (d,i) => rScale(d.value) * Math.cos(angleSlice * i - Math.PI/2))
-        .attr("cy", (d,i) => rScale(d.value) * Math.sin(angleSlice * i - Math.PI/2))
+        .attr("cx", (d,i) => {
+            const axisKey = d.axis ? d.axis.key : allAxis[i]?.key;
+            const isInverseAxis = chartConfig.inverseradiusvector.includes(axisKey);
+            
+            if (isInverseAxis) {
+                const invertedValue = maxValue - d.value;
+                return rScale(invertedValue) * Math.cos(angleSlice * i - Math.PI/2);
+            } else {
+                return rScale(d.value) * Math.cos(angleSlice * i - Math.PI/2);
+            }
+        })
+        .attr("cy", (d,i) => {
+            const axisKey = d.axis ? d.axis.key : allAxis[i]?.key;
+            const isInverseAxis = chartConfig.inverseradiusvector.includes(axisKey);
+            
+            if (isInverseAxis) {
+                const invertedValue = maxValue - d.value;
+                return rScale(invertedValue) * Math.sin(angleSlice * i - Math.PI/2);
+            } else {
+                return rScale(d.value) * Math.sin(angleSlice * i - Math.PI/2);
+            }
+        })
         .style("fill", (d,i,j) => cfg.color(j))
         .style("fill-opacity", 0.8);
 
@@ -466,8 +498,28 @@ function RadarChart(id, data, options) {
         .enter().append("circle")
         .attr("class", "radarInvisibleCircle")
         .attr("r", cfg.dotRadius * 1.5)
-        .attr("cx", (d,i) => rScale(d.value) * Math.cos(angleSlice*i - Math.PI/2))
-        .attr("cy", (d,i) => rScale(d.value) * Math.sin(angleSlice*i - Math.PI/2))
+        .attr("cx", (d,i) => {
+            const axisKey = d.axis ? d.axis.key : allAxis[i]?.key;
+            const isInverseAxis = chartConfig.inverseradiusvector.includes(axisKey);
+            
+            if (isInverseAxis) {
+                const invertedValue = maxValue - d.value;
+                return rScale(invertedValue) * Math.cos(angleSlice * i - Math.PI/2);
+            } else {
+                return rScale(d.value) * Math.cos(angleSlice * i - Math.PI/2);
+            }
+        })
+        .attr("cy", (d,i) => {
+            const axisKey = d.axis ? d.axis.key : allAxis[i]?.key;
+            const isInverseAxis = chartConfig.inverseradiusvector.includes(axisKey);
+            
+            if (isInverseAxis) {
+                const invertedValue = maxValue - d.value;
+                return rScale(invertedValue) * Math.sin(angleSlice * i - Math.PI/2);
+            } else {
+                return rScale(d.value) * Math.sin(angleSlice * i - Math.PI/2);
+            }
+        })
         .style("fill", "none")
         .style("pointer-events", "all")
         .on("mouseover", function(event, d) {
