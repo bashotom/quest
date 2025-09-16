@@ -67,6 +67,17 @@
         input[type="radio"] {
             accent-color: #3b82f6;
         }
+        
+        /* Kategorien-Tabelle Animation */
+        #categories-table-content {
+            transition: max-height 0.3s ease-in-out;
+            overflow: hidden;
+        }
+        
+        #table-arrow {
+            transition: transform 0.3s ease-in-out;
+        }
+        
     /* Kein horizontales Scrollen mehr auf kleinen Screens */
     </style>
 </head>
@@ -124,6 +135,37 @@
             <div class="flex justify-center">
                 <div class="flex justify-center w-full">
                     <div class="w-full sm:w-[92%] md:w-[88%] lg:w-[85%] xl:w-[82%] radar-chart min-h-[200px] max-h-[700px] h-[min(400px,80vh)] flex justify-center items-center" id="radarChart">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Kategorien-Tabelle -->
+            <div class="mt-6 sm:mt-8 px-2 sm:px-4">
+                <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+                    <div class="border-b border-gray-200 p-4">
+                        <button id="toggle-categories-table" class="flex items-center justify-between w-full text-left font-medium text-gray-800 hover:text-blue-600 transition-colors">
+                            <span class="text-lg">Kategorien-Übersicht</span>
+                            <svg id="table-arrow" class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="categories-table-content" class="overflow-hidden">
+                        <div class="p-4">
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-50">
+                                            <th class="border border-gray-200 px-4 py-3 text-left text-sm font-medium text-gray-700">Kategorie</th>
+                                            <th class="border border-gray-200 px-4 py-3 text-left text-sm font-medium text-gray-700">Punktewert</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="categories-table-body">
+                                        <!-- Wird durch JavaScript gefüllt -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1050,6 +1092,62 @@
             }
             shareLinkInput.value = window.location.href;
             shareLinkInput.select();
+            
+            // Kategorien-Tabelle füllen
+            renderCategoriesTable(scores, categories);
+        }
+
+        // Kategorien-Tabelle rendern
+        function renderCategoriesTable(scores, categories) {
+            const tableBody = document.getElementById('categories-table-body');
+            tableBody.innerHTML = '';
+            
+            // Verwende config.categoriesArray für die ursprüngliche Reihenfolge
+            const categoriesArray = config.categoriesArray || [];
+            
+            categoriesArray.forEach(categoryItem => {
+                const categoryId = categoryItem.key;
+                const categoryName = categoryItem.value;
+                const score = scores[categoryId] || 0;
+                
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 transition-colors';
+                row.innerHTML = `
+                    <td class="border border-gray-200 px-4 py-3 text-sm text-gray-800"><span class="font-mono text-gray-600">${categoryId}:</span> ${categoryName}</td>
+                    <td class="border border-gray-200 px-4 py-3 text-sm font-semibold text-blue-600">${score}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            // Toggle-Funktionalität für die Tabelle
+            setupCategoriesTableToggle();
+        }
+
+        // Toggle-Funktionalität für Kategorien-Tabelle
+        function setupCategoriesTableToggle() {
+            const toggleButton = document.getElementById('toggle-categories-table');
+            const tableContent = document.getElementById('categories-table-content');
+            const arrow = document.getElementById('table-arrow');
+            
+            // Standardmäßig aufgeklappt
+            let isExpanded = true;
+            
+            toggleButton.addEventListener('click', () => {
+                isExpanded = !isExpanded;
+                
+                if (isExpanded) {
+                    tableContent.style.maxHeight = tableContent.scrollHeight + 'px';
+                    arrow.style.transform = 'rotate(0deg)';
+                } else {
+                    tableContent.style.maxHeight = '0px';
+                    arrow.style.transform = 'rotate(-90deg)';
+                }
+            });
+            
+            // Initial aufgeklappt setzen
+            setTimeout(() => {
+                tableContent.style.maxHeight = tableContent.scrollHeight + 'px';
+            }, 50);
         }
 
         // Antworten aus dem URL-Hash parsen
