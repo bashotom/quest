@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamischer Fragebogen</title>
+    
+    <!-- External Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-scale@4"></script>
+    
+    <!-- Chart Library (noch aus dem ursprünglichen Projekt) -->
+    <script src="js/radarChart.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+        }
+        
+        /* Fallback styles für den Fall, dass WebComponents nicht geladen werden */
+        .loading-fallback {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 50vh;
+            color: #6b7280;
+            font-size: 1.125rem;
+        }
+        
+        .error-fallback {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin: 2rem auto;
+            max-width: 600px;
+            text-align: center;
+        }
+        
+        /* WebComponent wird sichtbar, sobald es geladen ist */
+        questionnaire-app {
+            display: block;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        questionnaire-app.loaded {
+            opacity: 1;
+        }
+        
+        /* Legacy support für alte Browser */
+        @supports not (display: flex) {
+            .loading-fallback {
+                text-align: center;
+                padding-top: 5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Fallback für Benutzer ohne JavaScript oder moderne Browser -->
+        <noscript>
+            <div class="error-fallback">
+                <h2>JavaScript erforderlich</h2>
+                <p>Diese Anwendung benötigt JavaScript, um zu funktionieren. Bitte aktivieren Sie JavaScript in Ihrem Browser.</p>
+            </div>
+        </noscript>
+        
+        <!-- Loading-Indikator während WebComponents geladen werden -->
+        <div id="loading-fallback" class="loading-fallback">
+            <div>
+                <div style="margin-bottom: 1rem;">⏳</div>
+                <div>Fragebogen-Anwendung wird geladen...</div>
+            </div>
+        </div>
+        
+        <!-- Error-Fallback für Browser-Kompatibilitätsprobleme -->
+        <div id="error-fallback" class="error-fallback" style="display: none;">
+            <h2>Laden fehlgeschlagen</h2>
+            <p>Die Anwendung konnte nicht geladen werden. Möglicherweise wird Ihr Browser nicht unterstützt.</p>
+            <p><strong>Unterstützte Browser:</strong> Chrome 67+, Firefox 63+, Safari 13.1+, Edge 79+</p>
+            <button onclick="location.reload()" style="background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 0.375rem; cursor: pointer; margin-top: 1rem;">
+                Seite neu laden
+            </button>
+        </div>
+        
+        <!-- Haupt-WebComponent -->
+        <questionnaire-app id="main-app"></questionnaire-app>
+    </div>
+
+    <!-- ES6 Module Loading mit Fallback -->
+    <script type="module">
+        // Feature Detection für moderne Browser-Features
+        function checkBrowserSupport() {
+            const requiredFeatures = [
+                'customElements' in window,
+                'attachShadow' in Element.prototype,
+                'Promise' in window,
+                'fetch' in window,
+                'URLSearchParams' in window
+            ];
+            
+            return requiredFeatures.every(feature => feature);
+        }
+        
+        // Error Handler
+        function showError(message) {
+            console.error('WebComponent Loading Error:', message);
+            document.getElementById('loading-fallback').style.display = 'none';
+            document.getElementById('error-fallback').style.display = 'block';
+        }
+        
+        // Success Handler
+        function showApp() {
+            document.getElementById('loading-fallback').style.display = 'none';
+            document.getElementById('error-fallback').style.display = 'none';
+            
+            const app = document.getElementById('main-app');
+            app.classList.add('loaded');
+        }
+        
+        // ES6 Module Loading mit Fallback
+        if (!checkBrowserSupport()) {
+            showError('Browser unterstützt erforderliche Features nicht');
+        } else {
+            try {
+                // Warte bis RadarChart verfügbar ist
+                function waitForRadarChart() {
+                    return new Promise((resolve) => {
+                        if (typeof window.RadarChart === 'function') {
+                            resolve();
+                        } else {
+                            setTimeout(() => waitForRadarChart().then(resolve), 100);
+                        }
+                    });
+                }
+                
+                // Load WebComponents nach RadarChart
+                waitForRadarChart().then(() => {
+                    return Promise.all([
+                        import('./components/questionnaire-app.js'),
+                        import('./components/questionnaire-form.js')
+                    ]);
+                }).then(() => {
+                    // Warte bis das Custom Element definiert ist
+                    if (customElements.get('questionnaire-app')) {
+                        showApp();
+                    } else {
+                        customElements.whenDefined('questionnaire-app').then(showApp);
+                    }
+                }).catch(error => {
+                    showError(`Fehler beim Laden der Komponenten: ${error.message}`);
+                });
+            } catch (error) {
+                showError(`JavaScript-Fehler: ${error.message}`);
+            }
+        }
+        
+        // Global Error Handler
+        window.addEventListener('error', (event) => {
+            console.error('Global Error:', event.error);
+        });
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Unhandled Promise Rejection:', event.reason);
+        });
+    </script>
+    
+    <!-- Fallback für Browser ohne ES6 Module Support -->
+    <script nomodule>
+        document.getElementById('loading-fallback').style.display = 'none';
+        document.getElementById('error-fallback').style.display = 'block';
+        document.querySelector('#error-fallback p').innerHTML = 
+            'Ihr Browser unterstützt keine modernen JavaScript-Module.<br>' +
+            '<strong>Bitte verwenden Sie einen aktuellen Browser:</strong><br>' +
+            'Chrome 61+, Firefox 60+, Safari 11+, Edge 16+';
+    </script>
+</body>
+</html>

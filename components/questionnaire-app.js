@@ -1,0 +1,746 @@
+import { QuestionnaireLoader } from '../services/questionnaire-loader.js';
+import { URLHashManager } from '../utils/url-hash-manager.js';
+
+/**
+ * Haupt-WebComponent für die Fragebogen-Anwendung
+ * Koordiniert alle anderen Komponenten und Services
+ */
+class QuestionnaireApp extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        
+        // State
+        this.questions = [];
+        this.config = {};
+        this.currentFolder = '';
+        
+        // Bind methods
+        this.handleHashChange = this.handleHashChange.bind(this);
+        this.handleFormSubmit = this.handleFormSubmit.bind(this);
+        this.handleMenuNavigation = this.handleMenuNavigation.bind(this);
+    }
+
+    connectedCallback() {
+        this.render();
+        this.setupEventListeners();
+        this.initializeApp();
+    }
+
+    disconnectedCallback() {
+        this.removeEventListeners();
+    }
+
+    render() {
+        this.shadowRoot.innerHTML = `
+            <style>
+                :host {
+                    display: block;
+                    font-family: 'Inter', sans-serif;
+                }
+                
+                /* TailwindCSS wird von außen eingebunden, hier nur komponenten-spezifische Styles */
+                .container {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 1rem;
+                }
+
+                .loading {
+                    text-align: center;
+                    padding: 2rem;
+                    color: #6b7280;
+                }
+
+                .error {
+                    background: #fee2e2;
+                    border: 1px solid #fecaca;
+                    color: #dc2626;
+                    padding: 1rem;
+                    border-radius: 0.5rem;
+                    margin: 1rem 0;
+                }
+
+                /* Menu Styles */
+                .menu {
+                    display: flex;
+                    flex-wrap: wrap;
+                    justify-content: center;
+                    gap: 0.5rem;
+                    margin-bottom: 2rem;
+                }
+
+                .menu-item {
+                    padding: 0.5rem 1rem;
+                    border-radius: 0.5rem;
+                    text-decoration: none;
+                    transition: all 0.2s;
+                    border: 1px solid #d1d5db;
+                }
+
+                .menu-item.active {
+                    background: #3b82f6;
+                    color: white;
+                    border-color: #3b82f6;
+                }
+
+                .menu-item:not(.active) {
+                    background: #f3f4f6;
+                    color: #374151;
+                }
+
+                .menu-item:not(.active):hover {
+                    background: #e5e7eb;
+                }
+
+                /* Action Buttons */
+                .action-buttons {
+                    display: flex;
+                    flex-wrap: wrap;
+                    justify-content: center;
+                    gap: 0.5rem;
+                    margin-bottom: 1rem;
+                }
+
+                .action-button {
+                    padding: 0.375rem 0.75rem;
+                    border: 1px solid #3b82f6;
+                    background: white;
+                    color: #3b82f6;
+                    border-radius: 0.375rem;
+                    cursor: pointer;
+                    transition: all 0.15s;
+                    font-size: 0.875rem;
+                }
+
+                .action-button:hover {
+                    background: #dbeafe;
+                }
+
+                /* Form Container */
+                .form-container {
+                    margin-bottom: 2rem;
+                }
+
+                /* Meta Information */
+                .meta {
+                    text-align: center;
+                    margin-bottom: 2rem;
+                }
+
+                .meta h1 {
+                    font-size: 2rem;
+                    font-weight: bold;
+                    color: #1f2937;
+                    margin-bottom: 0.5rem;
+                }
+
+                .meta p {
+                    color: #6b7280;
+                }
+
+                @media (max-width: 640px) {
+                    .container {
+                        padding: 0.5rem;
+                    }
+                    
+                    .meta h1 {
+                        font-size: 1.5rem;
+                    }
+                    
+                    .action-button {
+                        font-size: 0.75rem;
+                        padding: 0.25rem 0.5rem;
+                    }
+                }
+            </style>
+            
+            <div class="container">
+                <div id="loading" class="loading">
+                    Fragebogen wird geladen...
+                </div>
+                
+                <div id="error" class="error" style="display: none;">
+                    <strong>Fehler:</strong> <span id="error-message"></span>
+                </div>
+                
+                <div id="app-content" style="display: none;">
+                    <!-- Navigation Menu -->
+                    <nav class="menu" id="questionnaire-menu">
+                        <!-- Menu items werden dynamisch eingefügt -->
+                    </nav>
+                    
+                    <!-- Action Buttons -->
+                    <div class="action-buttons">
+                        <button class="action-button" id="min-answers-btn">Alle Minimalwerte</button>
+                        <button class="action-button" id="random-answers-btn">Alle Zufallswerte</button>
+                        <button class="action-button" id="max-answers-btn">Alle Maximalwerte</button>
+                    </div>
+                    
+                    <!-- Meta Information -->
+                    <div class="meta">
+                        <h1 id="questionnaire-title"></h1>
+                        <p id="questionnaire-description"></p>
+                    </div>
+                    
+                    <!-- Form Container (wird von QuestionnaireForm gefüllt) -->
+                    <div class="form-container" id="form-container">
+                        <!-- Questionnaire Form Component wird hier eingefügt -->
+                    </div>
+                    
+                    <!-- Evaluation Container (wird von EvaluationView gefüllt) -->
+                    <div id="evaluation-container" style="display: none;">
+                        <!-- Evaluation Component wird hier eingefügt -->
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    setupEventListeners() {
+        // Hash change listener
+        URLHashManager.onHashChange(this.handleHashChange);
+        
+        // Action buttons
+        this.shadowRoot.getElementById('min-answers-btn')?.addEventListener('click', () => this.setAllAnswers('min'));
+        this.shadowRoot.getElementById('random-answers-btn')?.addEventListener('click', () => this.setAllAnswers('random'));
+        this.shadowRoot.getElementById('max-answers-btn')?.addEventListener('click', () => this.setAllAnswers('max'));
+    }
+
+    removeEventListeners() {
+        URLHashManager.offHashChange(this.handleHashChange);
+    }
+
+    async initializeApp() {
+        try {
+            this.currentFolder = QuestionnaireLoader.getActiveQuestionnaire();
+            await this.loadQuestionnaire();
+            this.renderMenu();
+            this.showContent();
+        } catch (error) {
+            this.showError(error.message);
+        }
+    }
+
+    async loadQuestionnaire() {
+        try {
+            const data = await QuestionnaireLoader.loadQuestionnaire(this.currentFolder);
+            this.questions = data.questions;
+            this.config = data.config;
+            
+            this.updateMetaInfo();
+            await this.renderForm();
+            
+            // Check for existing answers in hash
+            const scores = URLHashManager.parseScoresFromHash(this.questions);
+            if (scores) {
+                this.showEvaluation(scores);
+            }
+            
+        } catch (error) {
+            console.error('Fehler beim Laden des Fragebogens:', error);
+            throw error;
+        }
+    }
+
+    renderMenu() {
+        const menu = this.shadowRoot.getElementById('questionnaire-menu');
+        if (!menu) return;
+        
+        menu.innerHTML = '';
+        const folders = QuestionnaireLoader.getQuestionnaireFolders();
+        
+        folders.forEach(folder => {
+            const link = document.createElement('a');
+            link.href = `?q=${folder.folder}`;
+            link.textContent = folder.name;
+            link.className = `menu-item ${folder.folder === this.currentFolder ? 'active' : ''}`;
+            link.addEventListener('click', (e) => this.handleMenuNavigation(e, folder.folder));
+            menu.appendChild(link);
+        });
+    }
+
+    async renderForm() {
+        const container = this.shadowRoot.getElementById('form-container');
+        if (!container) return;
+        
+        // QuestionnaireForm WebComponent verwenden
+        container.innerHTML = '<questionnaire-form id="questionnaire-form"></questionnaire-form>';
+        
+        const formComponent = container.querySelector('#questionnaire-form');
+        if (formComponent) {
+            // Daten an die Form-Komponente weitergeben
+            formComponent.setData(this.questions, this.config);
+            
+            // Event-Listener für Form-Events
+            formComponent.addEventListener('formSubmit', this.handleFormSubmit);
+            formComponent.addEventListener('answerChanged', (event) => {
+                // Optional: Reagiere auf Antwort-Änderungen
+                console.log('Answer changed:', event.detail);
+            });
+        }
+    }
+
+    updateMetaInfo() {
+        const title = this.shadowRoot.getElementById('questionnaire-title');
+        const description = this.shadowRoot.getElementById('questionnaire-description');
+        
+        if (title) title.textContent = this.config.title;
+        if (description) description.textContent = this.config.description;
+    }
+
+    showContent() {
+        const loading = this.shadowRoot.getElementById('loading');
+        const content = this.shadowRoot.getElementById('app-content');
+        const error = this.shadowRoot.getElementById('error');
+        
+        if (loading) loading.style.display = 'none';
+        if (content) content.style.display = 'block';
+        if (error) error.style.display = 'none';
+    }
+
+    showError(message) {
+        const loading = this.shadowRoot.getElementById('loading');
+        const content = this.shadowRoot.getElementById('app-content');
+        const error = this.shadowRoot.getElementById('error');
+        const errorMessage = this.shadowRoot.getElementById('error-message');
+        
+        if (loading) loading.style.display = 'none';
+        if (content) content.style.display = 'none';
+        if (error) error.style.display = 'block';
+        if (errorMessage) errorMessage.textContent = message;
+    }
+
+    handleFormSubmit(event) {
+        const answers = event.detail.answers;
+        const scores = URLHashManager.calculateScores(answers, this.questions, this.config.answers);
+        
+        // Update hash with answers
+        URLHashManager.updateHash(answers);
+        
+        // Show evaluation
+        this.showEvaluation(scores);
+    }
+
+    showEvaluation(scores) {
+        const formContainer = this.shadowRoot.getElementById('form-container');
+        const evaluationContainer = this.shadowRoot.getElementById('evaluation-container');
+        
+        if (formContainer) formContainer.style.display = 'none';
+        if (evaluationContainer) {
+            evaluationContainer.style.display = 'block';
+            evaluationContainer.innerHTML = `
+                <div style="text-align: center;">
+                    <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">Auswertung</h2>
+                    <div id="chart-container" style="height: 400px; margin-bottom: 2rem;">
+                        <!-- Chart wird hier eingefügt -->
+                    </div>
+                    <button id="back-to-form" style="background: #3b82f6; color: white; padding: 0.75rem 1.5rem; border-radius: 0.5rem; border: none; font-weight: bold; cursor: pointer;">
+                        Zurück zum Fragebogen
+                    </button>
+                </div>
+            `;
+            
+            // Back button
+            evaluationContainer.querySelector('#back-to-form')?.addEventListener('click', () => {
+                this.showForm();
+            });
+            
+            // TODO: Hier würde das Chart gerendert werden
+            this.renderChart(scores);
+        }
+    }
+
+    showForm() {
+        const formContainer = this.shadowRoot.getElementById('form-container');
+        const evaluationContainer = this.shadowRoot.getElementById('evaluation-container');
+        
+        if (formContainer) formContainer.style.display = 'block';
+        if (evaluationContainer) evaluationContainer.style.display = 'none';
+        
+        // Clear hash
+        window.history.replaceState(null, null, window.location.pathname + window.location.search);
+    }
+
+    renderChart(scores) {
+        // Scores für andere Methoden speichern
+        this.currentScores = scores;
+        
+        const chartContainer = this.shadowRoot.getElementById('chart-container');
+        if (!chartContainer) return;
+
+        // Chart-Typ aus Konfiguration bestimmen
+        let chartType = 'radar';
+        if (this.config.chart && this.config.chart.type) {
+            chartType = this.config.chart.type;
+        }
+
+        // Container leeren
+        chartContainer.innerHTML = '';
+        
+        // Chart-Container erstellen
+        chartContainer.innerHTML = '<div id="chart-element" style="width: 100%; height: 400px;"></div>';
+        const chartElement = chartContainer.querySelector('#chart-element');
+
+        // Container-Größe ermitteln
+        const containerWidth = chartElement.offsetWidth;
+        const containerHeight = chartElement.offsetHeight;
+
+        // Berechne die Maximalwerte pro Kategorie
+        const categoryMaxScores = {};
+        Object.keys(this.config.categories).forEach(category => {
+            const categoryQuestions = this.questions.filter(q => q.category === category);
+            const maxAnswer = Math.max(...this.config.answers.map(a => a.value));
+            categoryMaxScores[category] = categoryQuestions.length * maxAnswer;
+        });
+
+        // Berechne den Gesamtmaximalwert
+        const maxScore = Math.max(...Object.values(categoryMaxScores));
+
+        if (chartType === 'radar') {
+            // RadarChart Optionen - sicherstellen dass Dimensionen positiv sind
+            const screenWidth = window.innerWidth;
+            const minSize = screenWidth < 640 ? 200 : 300;
+            const safeWidth = Math.max(containerWidth, minSize);
+            const safeHeight = Math.max(containerHeight, minSize);
+            
+            const responsiveOptions = {
+                margin: screenWidth < 640 ? 
+                    { top: 40, right: 40, bottom: 40, left: 40 } : 
+                    { top: 50, right: 50, bottom: 50, left: 50 },
+                w: Math.max(safeWidth - (screenWidth < 640 ? 80 : 100), 200),
+                h: Math.max(safeHeight - (screenWidth < 640 ? 80 : 100), 200),
+                maxValue: 100,
+                levels: 5,
+                roundStrokes: true,
+                color: d3.scaleOrdinal().range(["#3b82f6"]),
+                format: '.0f',
+                unit: '%',
+                config: this.config
+            };
+            
+            // Für RadarChart verwenden wir den Container aus dem Light DOM
+            // da die RadarChart-Funktion D3-Selektoren verwendet
+            this.renderRadarChartInLightDOM(null, responsiveOptions, chartElement);
+
+        } else if (chartType === 'gauge') {
+            this.renderGaugeChart(scores, chartElement, containerWidth, containerHeight);
+            
+        } else if (chartType === 'bar') {
+            this.renderBarChart(scores, chartElement, containerWidth, containerHeight, maxScore);
+        }
+    }
+
+    renderRadarChartInLightDOM(chartData, inputResponsiveOptions, shadowChartElement) {
+        // Daten für RadarChart vorbereiten
+        const data = Object.keys(this.config.categories).map(key => {
+            const value = this.currentScores[key] || 0;
+            const categoryQuestions = this.questions.filter(q => q.category === key);
+            const maxAnswer = Math.max(...this.config.answers.map(a => a.value));
+            const maxForCategory = categoryQuestions.length * maxAnswer;
+            const percentage = maxForCategory > 0 ? (value / maxForCategory) * 100 : 0;
+            // Sicherstellen dass Werte zwischen 0 und 100 liegen
+            return Math.max(0, Math.min(100, percentage));
+        });
+
+        const finalChartData = [
+            Object.keys(this.config.categories).map((key, index) => {
+                const value = data[index];
+                // Stelle sicher, dass der Wert numerisch und valide ist
+                const safeValue = (isNaN(value) || value < 0) ? 0 : Math.min(100, Math.round(value));
+                return {
+                    axis: { key: key, value: this.config.categories[key] },
+                    value: safeValue
+                };
+            })
+        ];
+
+        // Zusätzliche Validierung der finalChartData
+        const isValidData = finalChartData[0] && Array.isArray(finalChartData[0]) && 
+                           finalChartData[0].length > 0 &&
+                           finalChartData[0].every(d => 
+                               d && typeof d.value === 'number' && 
+                               !isNaN(d.value) && d.value >= 0 && d.value <= 100
+                           );
+
+        if (!isValidData) {
+            console.warn('Invalid chart data structure, using fallback');
+            this.renderFallbackChart(this.currentScores);
+            return;
+        }
+
+        // Validierung der Chart-Optionen - genau wie im Original
+        const screenWidth = window.innerWidth;
+        const responsiveOptions = {
+            margin: screenWidth < 640 ? 
+                { top: 40, right: 40, bottom: 40, left: 40 } : 
+                { top: 50, right: 50, bottom: 50, left: 50 },
+            labelFactor: screenWidth < 640 ? 1.25 : 1.15,
+            wrapWidth: screenWidth < 640 ? 100 : 80,
+        };
+
+        const safeOptions = {
+            w: Math.max(inputResponsiveOptions?.w || 300, 200),
+            h: Math.max(inputResponsiveOptions?.h || 300, 200),
+            ...responsiveOptions,
+            maxValue: 100, // Fester Maximalwert für Prozentanzeige
+            levels: 5,
+            roundStrokes: true,
+            color: d3.scaleOrdinal().range(['#3b82f6']),
+            dotRadius: 6,
+            opacityArea: 0.2,
+            strokeWidth: 3,
+            opacityCircles: 0.1,
+            config: this.config // Konfiguration für Pfeile und Tickmarks
+        };
+
+        console.log('RadarChart options:', safeOptions);
+        console.log('RadarChart data:', finalChartData);
+
+        // Erstelle einen temporären Container im Light DOM
+        const tempContainer = document.createElement('div');
+        tempContainer.id = 'temp-radar-chart-' + Date.now();
+        tempContainer.style.cssText = `width: ${safeOptions.w + 100}px; height: ${safeOptions.h + 100}px; position: absolute; top: -9999px; left: -9999px;`;
+        document.body.appendChild(tempContainer);
+
+        // RadarChart im Light DOM erstellen
+        if (typeof window.RadarChart === 'function') {
+            try {
+                console.log('Attempting to create RadarChart with data:', finalChartData);
+                console.log('Chart options:', safeOptions);
+                
+                window.RadarChart('#' + tempContainer.id, finalChartData, safeOptions);
+                
+                // Warte bis der Chart gerendert ist, dann verschiebe ins Shadow DOM
+                setTimeout(() => {
+                    try {
+                        const svg = tempContainer.querySelector('svg');
+                        if (svg) {
+                            // Prüfe ob SVG valide ist
+                            const circles = svg.querySelectorAll('circle');
+                            let hasInvalidCircles = false;
+                            
+                            circles.forEach(circle => {
+                                const r = parseFloat(circle.getAttribute('r'));
+                                if (isNaN(r) || r < 0) {
+                                    console.warn('Invalid circle radius detected:', r);
+                                    hasInvalidCircles = true;
+                                }
+                            });
+                            
+                            if (hasInvalidCircles) {
+                                console.warn('Chart contains invalid elements, using fallback');
+                                if (document.body.contains(tempContainer)) {
+                                    document.body.removeChild(tempContainer);
+                                }
+                                this.renderFallbackChart(this.currentScores);
+                                return;
+                            }
+                            
+                            // SVG ins Shadow DOM kopieren
+                            shadowChartElement.innerHTML = '';
+                            shadowChartElement.appendChild(svg.cloneNode(true));
+                            
+                            // Temporären Container entfernen
+                            if (document.body.contains(tempContainer)) {
+                                document.body.removeChild(tempContainer);
+                            }
+                        } else {
+                            console.warn('No SVG found in radar chart');
+                            if (document.body.contains(tempContainer)) {
+                                document.body.removeChild(tempContainer);
+                            }
+                            this.renderFallbackChart(this.currentScores);
+                        }
+                    } catch (svgError) {
+                        console.error('Error processing SVG:', svgError);
+                        if (document.body.contains(tempContainer)) {
+                            document.body.removeChild(tempContainer);
+                        }
+                        this.renderFallbackChart(this.currentScores);
+                    }
+                }, 500);
+                
+            } catch (error) {
+                console.error('Error creating radar chart:', error);
+                if (document.body.contains(tempContainer)) {
+                    document.body.removeChild(tempContainer);
+                }
+                this.renderFallbackChart(this.currentScores);
+            }
+        } else {
+            console.warn('RadarChart function not available');
+            document.body.removeChild(tempContainer);
+            this.renderFallbackChart(this.currentScores);
+        }
+    }
+
+    renderFallbackChart(scores) {
+        const chartContainer = this.shadowRoot.getElementById('chart-container');
+        if (!chartContainer) return;
+        
+        let html = '<div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem;"><h3>Ergebnisse:</h3><ul>';
+        Object.entries(scores).forEach(([category, score]) => {
+            const categoryName = this.config.categories[category] || category;
+            html += `<li><strong>${categoryName}:</strong> ${score}</li>`;
+        });
+        html += '</ul></div>';
+        
+        chartContainer.innerHTML = html;
+    }
+
+    renderGaugeChart(scores, container, containerWidth, containerHeight) {
+        // Gauge: Zeige nur die erste Kategorie als Wert an
+        const firstKey = Object.keys(this.config.categories)[0];
+        const value = scores[firstKey] || 0;
+        const categoryLabel = this.config.categories[firstKey];
+
+        // Berechne Maximalwert für diese Kategorie
+        const categoryQuestions = this.questions.filter(q => q.category === firstKey);
+        const maxAnswer = Math.max(...this.config.answers.map(a => a.value));
+        const maxForCategory = categoryQuestions.length * maxAnswer;
+        const percentage = (value / maxForCategory) * 100;
+
+        try {
+            // SVG für Gauge erstellen
+            const svg = d3.select(container)
+                .append("svg")
+                .attr("width", containerWidth)
+                .attr("height", containerHeight);
+
+            const radius = Math.min(containerWidth, containerHeight) / 3;
+            const centerX = containerWidth / 2;
+            const centerY = containerHeight / 2;
+
+            // Gauge-Hintergrund
+            const arc = d3.arc()
+                .innerRadius(radius - 20)
+                .outerRadius(radius)
+                .startAngle(-Math.PI / 2)
+                .endAngle(Math.PI / 2);
+
+            svg.append("path")
+                .attr("d", arc)
+                .attr("transform", `translate(${centerX},${centerY})`)
+                .attr("fill", "#e5e7eb");
+
+            // Gauge-Wert
+            const valueArc = d3.arc()
+                .innerRadius(radius - 20)
+                .outerRadius(radius)
+                .startAngle(-Math.PI / 2)
+                .endAngle(-Math.PI / 2 + (Math.PI * percentage / 100));
+
+            svg.append("path")
+                .attr("d", valueArc)
+                .attr("transform", `translate(${centerX},${centerY})`)
+                .attr("fill", "#3b82f6");
+
+            // Wert-Text
+            svg.append("text")
+                .attr("x", centerX)
+                .attr("y", centerY + 10)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "24px")
+                .attr("font-weight", "bold")
+                .attr("fill", "#1f2937")
+                .text(`${value}`);
+
+            // Kategorie-Label
+            svg.append("text")
+                .attr("x", centerX)
+                .attr("y", centerY + 40)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "14px")
+                .attr("fill", "#6b7280")
+                .text(categoryLabel);
+
+        } catch (error) {
+            console.error('Error creating gauge chart:', error);
+            this.renderFallbackChart(scores);
+        }
+    }
+
+    renderBarChart(scores, container, containerWidth, containerHeight, maxScore) {
+        try {
+            const margin = {top: 20, right: 20, bottom: 30, left: 40};
+            const width = containerWidth - margin.left - margin.right;
+            const height = containerHeight - margin.top - margin.bottom;
+
+            const svg = d3.select(container)
+                .append("svg")
+                .attr("width", containerWidth)
+                .attr("height", containerHeight)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            const x = d3.scaleLinear()
+                .domain([0, maxScore])
+                .range([0, width]);
+
+            const y = d3.scaleBand()
+                .domain(Object.values(this.config.categories))
+                .range([0, height])
+                .padding(0.1);
+
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x));
+
+            svg.append("g")
+                .call(d3.axisLeft(y));
+
+            svg.selectAll("rect")
+                .data(Object.keys(this.config.categories))
+                .enter()
+                .append("rect")
+                .attr("y", d => y(this.config.categories[d]))
+                .attr("height", y.bandwidth())
+                .attr("x", 0)
+                .attr("width", d => x(scores[d] || 0))
+                .attr("fill", "#3b82f6");
+
+        } catch (error) {
+            console.error('Error creating bar chart:', error);
+            this.renderFallbackChart(scores);
+        }
+    }
+
+    setAllAnswers(mode) {
+        const formComponent = this.shadowRoot.querySelector('#questionnaire-form');
+        if (formComponent && formComponent.setAllAnswers) {
+            formComponent.setAllAnswers(mode);
+        }
+    }
+
+    handleMenuNavigation(event, folder) {
+        event.preventDefault();
+        
+        // Update URL
+        const url = new URL(window.location);
+        url.searchParams.set('q', folder);
+        window.history.pushState(null, null, url);
+        
+        // Reload questionnaire
+        this.currentFolder = folder;
+        this.loadQuestionnaire().then(() => {
+            this.renderMenu();
+        });
+    }
+
+    handleHashChange() {
+        const scores = URLHashManager.parseScoresFromHash(this.questions);
+        if (scores) {
+            this.showEvaluation(scores);
+        } else {
+            this.showForm();
+            const formComponent = this.shadowRoot.querySelector('#questionnaire-form');
+            if (formComponent && formComponent.setAnswersFromHash) {
+                formComponent.setAnswersFromHash();
+            }
+        }
+    }
+}
+
+// Register the custom element
+customElements.define('questionnaire-app', QuestionnaireApp);

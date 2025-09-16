@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamischer Fragebogen - Modular</title>
+    
+    <!-- External Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-scale@4"></script>
+    
+    <!-- Chart Library -->
+    <script src="js/radarChart.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+            font-size: 1.125rem;
+        }
+        
+        .error {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin: 2rem auto;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        /* Radar Chart Styles */
+        .radar-chart .axis .line {
+            stroke: #e2e8f0;
+            stroke-width: 1px;
+        }
+        .radar-chart .area {
+            fill-opacity: 0.35;
+        }
+        .radar-chart .circle {
+            fill-opacity: 0.1;
+        }
+        .radar-chart .tooltip {
+            font-family: 'Inter', sans-serif;
+            fill: #4a5568;
+        }
+        
+        @media (max-width: 640px) {
+            .radar-chart text {
+                font-size: 10px;
+            }
+            .radar-chart .axisLabel {
+                font-size: 9px;
+            }
+            .radar-chart .axis text {
+                transform: translateY(-2px);
+            }
+        }
+        
+        .radar-chart .radarStroke {
+            filter: url(#glow);
+        }
+        .radar-chart .radarArea {
+            filter: url(#glow);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Fallback für Browser ohne JavaScript -->
+        <noscript>
+            <div class="error">
+                <h2>JavaScript erforderlich</h2>
+                <p>Diese Anwendung benötigt JavaScript, um zu funktionieren. Bitte aktivieren Sie JavaScript in Ihrem Browser.</p>
+            </div>
+        </noscript>
+        
+        <!-- Loading-Indikator -->
+        <div id="loading" class="loading">
+            <div>⏳ Fragebogen wird geladen...</div>
+        </div>
+        
+        <!-- Error-Fallback -->
+        <div id="error" class="error" style="display: none;">
+            <h2>Fehler beim Laden</h2>
+            <p><strong>Fehler:</strong> <span id="error-message"></span></p>
+            <button onclick="location.reload()" class="bg-blue-600 text-white px-4 py-2 rounded mt-4 hover:bg-blue-700">
+                Seite neu laden
+            </button>
+        </div>
+        
+        <!-- Hauptinhalt -->
+        <div id="app-content" style="display: none;">
+            <!-- Navigation Menu -->
+            <nav class="mb-4 sm:mb-6">
+                <div class="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4 items-center">
+                    <ul class="flex flex-wrap justify-center gap-2 sm:gap-4" id="questionnaire-menu">
+                        <!-- Links werden per JS eingefügt -->
+                    </ul>
+                </div>
+                <div class="flex justify-center mt-2 sm:mt-4">
+                    <div class="flex flex-wrap justify-center gap-2">
+                        <button id="min-answers-btn" type="button" class="border border-blue-300 bg-white hover:bg-blue-50 text-blue-700 font-medium py-1.5 px-3 rounded transition duration-150 text-xs sm:text-sm whitespace-nowrap">Alle Minimalwerte</button>
+                        <button id="random-answers-btn" type="button" class="border border-blue-300 bg-white hover:bg-blue-50 text-blue-700 font-medium py-1.5 px-3 rounded transition duration-150 text-xs sm:text-sm whitespace-nowrap">Alle Zufallswerte</button>
+                        <button id="max-answers-btn" type="button" class="border border-blue-300 bg-white hover:bg-blue-50 text-blue-700 font-medium py-1.5 px-3 rounded transition duration-150 text-xs sm:text-sm whitespace-nowrap">Alle Maximalwerte</button>
+                    </div>
+                </div>
+            </nav>
+            
+            <!-- Meta Information -->
+            <div class="mb-4 text-center px-2 sm:px-4">
+                <h1 id="questionnaire-title" class="text-2xl sm:text-3xl font-bold text-gray-800"></h1>
+                <p id="questionnaire-description" class="text-gray-600 mt-2 text-sm sm:text-base"></p>
+            </div>
+            
+            <!-- Form Container -->
+            <div id="questionnaire-form">
+                <!-- Form wird hier eingefügt -->
+            </div>
+            
+            <!-- Evaluation Container -->
+            <div id="evaluation-page" class="hidden">
+                <h2 class="text-2xl font-bold text-center text-gray-800 mb-2">Auswertung</h2>
+                <div class="flex justify-center">
+                    <div class="flex justify-center w-full">
+                        <div class="w-full sm:w-[92%] md:w-[88%] lg:w-[85%] xl:w-[82%] radar-chart min-h-[200px] max-h-[700px] h-[min(400px,80vh)] flex justify-center items-center" id="radarChart">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Share Link Section -->
+                <div class="mt-6 sm:mt-8 px-2 sm:px-4">
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Ergebnis teilen</h3>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input type="text" id="share-link" readonly 
+                                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button id="copy-button" 
+                                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-150 text-sm font-medium whitespace-nowrap">
+                                Kopieren
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Back Button -->
+                <div class="mt-6 sm:mt-8 flex justify-center px-2 sm:px-4">
+                    <button id="back-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 text-sm sm:text-base w-full sm:w-auto">
+                        Zurück zum Fragebogen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ES6 Module Application -->
+    <script type="module">
+        import { QuestionnaireLoader } from './services/questionnaire-loader.js';
+        import { URLHashManager } from './utils/url-hash-manager.js';
+
+        // Application State
+        let questions = [];
+        let config = {};
+        let currentFolder = '';
+
+        // DOM Elements
+        const loadingElement = document.getElementById('loading');
+        const errorElement = document.getElementById('error');
+        const errorMessageElement = document.getElementById('error-message');
+        const appContentElement = document.getElementById('app-content');
+        const questionnaireForm = document.getElementById('questionnaire-form');
+        const evaluationPage = document.getElementById('evaluation-page');
+        const shareLinkInput = document.getElementById('share-link');
+        const copyButton = document.getElementById('copy-button');
+        const backButton = document.getElementById('back-button');
+
+        // Utility Functions
+        function showError(message) {
+            loadingElement.style.display = 'none';
+            appContentElement.style.display = 'none';
+            errorElement.style.display = 'block';
+            errorMessageElement.textContent = message;
+        }
+
+        function showContent() {
+            loadingElement.style.display = 'none';
+            errorElement.style.display = 'none';
+            appContentElement.style.display = 'block';
+        }
+
+        function showForm() {
+            questionnaireForm.classList.remove('hidden');
+            evaluationPage.classList.add('hidden');
+            
+            // Buttons wieder anzeigen
+            ['min-answers-btn', 'random-answers-btn', 'max-answers-btn'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.style.display = '';
+            });
+        }
+
+        function showEvaluation() {
+            questionnaireForm.classList.add('hidden');
+            evaluationPage.classList.remove('hidden');
+            
+            // Buttons ausblenden
+            ['min-answers-btn', 'random-answers-btn', 'max-answers-btn'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.style.display = 'none';
+            });
+        }
+
+        // UI Rendering Functions
+        function renderMenu() {
+            const menu = document.getElementById('questionnaire-menu');
+            menu.innerHTML = '';
+            const folders = QuestionnaireLoader.getQuestionnaireFolders();
+            
+            folders.forEach(folder => {
+                const li = document.createElement('li');
+                const link = document.createElement('a');
+                link.href = `?q=${folder.folder}`;
+                link.textContent = folder.name;
+                link.className = `px-4 py-2 rounded-lg ${folder.folder === currentFolder ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-blue-100'}`;
+                link.addEventListener('click', (e) => handleMenuNavigation(e, folder.folder));
+                li.appendChild(link);
+                menu.appendChild(li);
+            });
+        }
+
+        function renderForm() {
+            questionnaireForm.innerHTML = `
+                <div class="mb-4 flex justify-center gap-4">
+                    <button type="button" id="btn-column" class="border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Tabellen-Modus</button>
+                    <button type="button" id="btn-inline" class="border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Karten-Modus</button>
+                </div>
+                <p id="error-message" class="text-red-600 text-sm mb-4 hidden"></p>
+                <form id="quiz-form">
+                    <div class="mb-6 sm:mb-8 flex justify-center">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 text-sm sm:text-base">
+                            Fragebogen auswerten
+                        </button>
+                    </div>
+                    <div class="questionnaire-table-scroll overflow-x-auto rounded-lg border border-gray-200 -mx-4 sm:mx-0">
+                        <div id="questions-container"></div>
+                    </div>
+                    <div class="mt-6 sm:mt-8 flex justify-center">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 text-sm sm:text-base">
+                            Fragebogen auswerten
+                        </button>
+                    </div>
+                </form>
+            `;
+
+            renderQuestions();
+            setupFormEvents();
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('questions-container');
+            const displayMode = localStorage.getItem('displayMode') || 'column';
+
+            if (displayMode === 'column') {
+                renderTableMode(container);
+            } else {
+                renderInlineMode(container);
+            }
+
+            updateButtonStyles();
+            URLHashManager.setAnswersFromHash(questions);
+        }
+
+        function renderTableMode(container) {
+            const fewAnswers = config.answers?.length === 2;
+            const frageThClass = fewAnswers ? 'w-3/4' : 'w-1/2';
+            const answerThClass = fewAnswers ? 'w-1/8' : 'w-1/' + (config.answers?.length || 4);
+
+            let html = `
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="${frageThClass} px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Frage</th>
+            `;
+
+            config.answers?.forEach(answer => {
+                html += `<th class="${answerThClass} px-2 py-2 sm:px-4 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">${answer.label}</th>`;
+            });
+
+            html += `</tr></thead><tbody class="bg-white divide-y divide-gray-200">`;
+
+            questions.forEach(question => {
+                html += `<tr class="hover:bg-gray-50"><td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm text-gray-900">${question.text}</td>`;
+                
+                config.answers?.forEach((answer, index) => {
+                    html += `
+                        <td class="px-2 py-2 sm:px-4 sm:py-4 text-center cursor-pointer" onclick="selectRadio('${question.id}', '${index}')">
+                            <input type="radio" name="question-${question.id}" value="${index}" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 mx-auto">
+                        </td>
+                    `;
+                });
+                
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function renderInlineMode(container) {
+            let html = '<div class="space-y-4 sm:space-y-6">';
+
+            questions.forEach(question => {
+                html += `
+                    <div class="border border-gray-200 rounded-lg p-4 sm:p-6 bg-white">
+                        <div class="font-medium mb-3 sm:mb-4 text-sm sm:text-base text-gray-900">${question.text}</div>
+                        <div class="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4">
+                `;
+
+                config.answers?.forEach((answer, index) => {
+                    html += `
+                        <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-50 transition-colors">
+                            <input type="radio" name="question-${question.id}" value="${index}" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            <span class="text-sm sm:text-base">${answer.label}</span>
+                        </label>
+                    `;
+                });
+
+                html += '</div></div>';
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Event Handlers
+        function setupFormEvents() {
+            // Display mode buttons
+            document.getElementById('btn-column')?.addEventListener('click', () => {
+                localStorage.setItem('displayMode', 'column');
+                renderQuestions();
+            });
+
+            document.getElementById('btn-inline')?.addEventListener('click', () => {
+                localStorage.setItem('displayMode', 'inline');
+                renderQuestions();
+            });
+
+            // Form submission
+            document.getElementById('quiz-form')?.addEventListener('submit', handleFormSubmit);
+
+            // Answer buttons
+            document.getElementById('min-answers-btn')?.addEventListener('click', () => setAllAnswers('min'));
+            document.getElementById('random-answers-btn')?.addEventListener('click', () => setAllAnswers('random'));
+            document.getElementById('max-answers-btn')?.addEventListener('click', () => setAllAnswers('max'));
+
+            // Back and copy buttons
+            backButton?.addEventListener('click', () => {
+                showForm();
+                window.history.replaceState(null, null, window.location.pathname + window.location.search);
+            });
+
+            copyButton?.addEventListener('click', () => {
+                shareLinkInput.select();
+                navigator.clipboard.writeText(shareLinkInput.value).then(() => {
+                    copyButton.textContent = 'Kopiert!';
+                    setTimeout(() => copyButton.textContent = 'Kopieren', 2000);
+                }).catch(err => console.error('Fehler beim Kopieren:', err));
+            });
+        }
+
+        function updateButtonStyles() {
+            const mode = localStorage.getItem('displayMode') || 'column';
+            const btnColumn = document.getElementById('btn-column');
+            const btnInline = document.getElementById('btn-inline');
+
+            if (btnColumn && btnInline) {
+                if (mode === 'column') {
+                    btnColumn.className = 'border border-blue-300 bg-blue-600 text-white font-medium py-1 px-3 rounded transition duration-150 text-sm';
+                    btnInline.className = 'border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm';
+                } else {
+                    btnColumn.className = 'border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm';
+                    btnInline.className = 'border border-blue-300 bg-blue-600 text-white font-medium py-1 px-3 rounded transition duration-150 text-sm';
+                }
+            }
+        }
+
+        function setAllAnswers(mode) {
+            questions.forEach(question => {
+                const radios = document.querySelectorAll(`input[name="question-${question.id}"]`);
+                if (radios.length === 0) return;
+
+                let targetRadio;
+                switch (mode) {
+                    case 'min': targetRadio = radios[0]; break;
+                    case 'max': targetRadio = radios[radios.length - 1]; break;
+                    case 'random': targetRadio = radios[Math.floor(Math.random() * radios.length)]; break;
+                }
+
+                if (targetRadio) targetRadio.checked = true;
+            });
+        }
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            
+            const answers = URLHashManager.collectAnswersFromForm(questions);
+            const incomplete = questions.filter(q => !(q.id in answers));
+            
+            if (incomplete.length > 0) {
+                const errorMsg = document.getElementById('error-message');
+                if (errorMsg) {
+                    errorMsg.textContent = `Bitte beantworten Sie alle Fragen. Fehlende: ${incomplete.map(q => q.id).join(', ')}`;
+                    errorMsg.classList.remove('hidden');
+                }
+                return;
+            }
+            
+            const scores = URLHashManager.calculateScores(answers, questions, config.answers);
+            URLHashManager.updateHash(answers);
+            
+            renderEvaluation(scores);
+            showEvaluation();
+        }
+
+        function renderEvaluation(scores) {
+            const container = document.getElementById('radarChart');
+            container.innerHTML = '';
+
+            // Share link aktualisieren
+            if (shareLinkInput) {
+                shareLinkInput.value = window.location.href;
+            }
+
+            // Chart-Typ aus Konfiguration
+            const chartType = config.chart?.type || 'radar';
+
+            if (chartType === 'radar' && typeof window.RadarChart === 'function') {
+                renderRadarChart(scores, container);
+            } else if (chartType === 'gauge') {
+                renderGaugeChart(scores, container);
+            } else if (chartType === 'bar') {
+                renderBarChart(scores, container);
+            } else {
+                renderFallbackChart(scores, container);
+            }
+        }
+
+        function renderRadarChart(scores, container) {
+            // Berechne Maximalwerte pro Kategorie
+            const categoryMaxScores = {};
+            Object.keys(config.categories).forEach(category => {
+                const categoryQuestions = questions.filter(q => q.category === category);
+                const maxAnswer = Math.max(...config.answers.map(a => a.value));
+                categoryMaxScores[category] = categoryQuestions.length * maxAnswer;
+            });
+
+            // Normalisierte Daten
+            const data = Object.keys(config.categories).map(key => {
+                const value = scores[key] || 0;
+                const maxForCategory = categoryMaxScores[key];
+                return (value / maxForCategory) * 100;
+            });
+
+            const chartData = [
+                Object.keys(config.categories).map((key, index) => ({
+                    axis: { key: key, value: config.categories[key] },
+                    value: data[index]
+                }))
+            ];
+
+            const screenWidth = window.innerWidth;
+            const containerWidth = container.offsetWidth;
+            const containerHeight = container.offsetHeight || 400;
+
+            const options = {
+                margin: screenWidth < 640 ? 
+                    { top: 40, right: 40, bottom: 40, left: 40 } : 
+                    { top: 50, right: 50, bottom: 50, left: 50 },
+                w: containerWidth - (screenWidth < 640 ? 80 : 100),
+                h: containerHeight - (screenWidth < 640 ? 80 : 100),
+                maxValue: 100,
+                levels: 5,
+                roundStrokes: true,
+                color: d3.scaleOrdinal().range(["#3b82f6"]),
+                format: '.0f',
+                unit: '%',
+                config: config
+            };
+
+            try {
+                window.RadarChart('#radarChart', chartData, options);
+            } catch (error) {
+                console.error('Error creating radar chart:', error);
+                renderFallbackChart(scores, container);
+            }
+        }
+
+        function renderGaugeChart(scores, container) {
+            // Implementierung für Gauge Chart
+            renderFallbackChart(scores, container);
+        }
+
+        function renderBarChart(scores, container) {
+            // Implementierung für Bar Chart
+            renderFallbackChart(scores, container);
+        }
+
+        function renderFallbackChart(scores, container) {
+            let html = '<div class="bg-white border rounded-lg p-6"><h3 class="text-lg font-bold mb-4">Ergebnisse:</h3><ul class="space-y-2">';
+            Object.entries(scores).forEach(([category, score]) => {
+                const categoryName = config.categories[category] || category;
+                html += `<li class="flex justify-between"><span><strong>${categoryName}:</strong></span><span class="font-mono">${score}</span></li>`;
+            });
+            html += '</ul></div>';
+            container.innerHTML = html;
+        }
+
+        function handleMenuNavigation(event, folder) {
+            event.preventDefault();
+            
+            const url = new URL(window.location);
+            url.searchParams.set('q', folder);
+            window.history.pushState(null, null, url);
+            
+            currentFolder = folder;
+            loadQuestionnaire();
+        }
+
+        function handleHashChange() {
+            const scores = URLHashManager.parseScoresFromHash(questions);
+            if (scores) {
+                renderEvaluation(scores);
+                showEvaluation();
+            } else {
+                showForm();
+                URLHashManager.setAnswersFromHash(questions);
+            }
+        }
+
+        // Main Application Functions
+        async function loadQuestionnaire() {
+            try {
+                currentFolder = QuestionnaireLoader.getActiveQuestionnaire();
+                const data = await QuestionnaireLoader.loadQuestionnaire(currentFolder);
+                
+                questions = data.questions;
+                config = data.config;
+                
+                // Update meta info
+                document.getElementById('questionnaire-title').textContent = config.title;
+                document.getElementById('questionnaire-description').textContent = config.description;
+                
+                renderMenu();
+                renderForm();
+                
+                // Check for existing answers in hash
+                const scores = URLHashManager.parseScoresFromHash(questions);
+                if (scores) {
+                    renderEvaluation(scores);
+                    showEvaluation();
+                } else {
+                    showForm();
+                }
+                
+                showContent();
+                
+            } catch (error) {
+                console.error('Error loading questionnaire:', error);
+                showError(error.message);
+            }
+        }
+
+        // Global Functions (for table mode)
+        window.selectRadio = function(qid, aval) {
+            const radio = document.querySelector(`input[name='question-${qid}'][value='${aval}']`);
+            if (radio) {
+                radio.checked = true;
+                radio.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        };
+
+        // Event Listeners
+        URLHashManager.onHashChange(handleHashChange);
+        window.addEventListener('popstate', loadQuestionnaire);
+
+        // Error Handlers
+        window.addEventListener('error', (event) => {
+            console.error('Global Error:', event.error);
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Unhandled Promise Rejection:', event.reason);
+        });
+
+        // Initialize Application
+        loadQuestionnaire();
+    </script>
+    
+    <!-- Fallback für Browser ohne ES6 Module Support -->
+    <script nomodule>
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'block';
+        document.querySelector('#error-message').textContent = 
+            'Ihr Browser unterstützt keine modernen JavaScript-Module. Bitte verwenden Sie einen aktuellen Browser: Chrome 61+, Firefox 60+, Safari 11+, Edge 16+';
+    </script>
+</body>
+</html>
