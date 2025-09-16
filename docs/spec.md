@@ -6,10 +6,10 @@ Die Anwendung ermöglicht das browserbasierte Ausfüllen, Auswerten und Visualis
 
 ## 2. Hauptfunktionen
 - **Dynamisches Laden**: Fragebögen werden aus Unterordnern in `quests/` erkannt und per Menü auswählbar gemacht.
-- **Fragen & Konfiguration**: Jede Umfrage besteht aus `questions.txt` (Pipe-separierte Fragen) und `config.yml` (YAML mit Titel, Beschreibung, Antwortoptionen, Kategorien, Chart-Optionen).
-- **Antworten**: Antwortoptionen und deren Werte werden aus YAML geladen und dynamisch als Radio-Buttons gerendert.
+- **Fragen & Konfiguration**: Jede Umfrage besteht aus `questions.txt` (Pipe-separierte Fragen) und `config.json` (JSON mit Titel, Beschreibung, Antwortoptionen, Kategorien, Chart-Optionen).
+- **Antworten**: Antwortoptionen und deren Werte werden aus JSON geladen und dynamisch als Radio-Buttons gerendert.
 - **Kategorien**: Jede Frage ist per ID-Präfix einer Kategorie zugeordnet, Kategorien werden in der Auswertung aggregiert.
-- **Diagramm-Auswertung**: Die Auswertung erfolgt als Radar-, Balken- oder Gauge-Chart (D3.js/Chart.js), gesteuert durch die YAML-Konfiguration.
+- **Diagramm-Auswertung**: Die Auswertung erfolgt als Radar-, Balken- oder Gauge-Chart (D3.js/Chart.js), gesteuert durch die JSON-Konfiguration.
 - **Antwort-Persistenz & Teilen**: Antworten werden im URL-Hash gespeichert, sodass sie beim Reload oder Teilen des Links erhalten bleiben.
 - **Responsive UI**: Zwei Darstellungsmodi (Tabellen- und Kartenmodus), automatische Umschaltung auf kleinen Bildschirmen, moderne Optik mit TailwindCSS.
 
@@ -18,15 +18,15 @@ Die Anwendung ermöglicht das browserbasierte Ausfüllen, Auswerten und Visualis
 - **Dateistruktur**:
   - `/index.html`: Enthält die gesamte App-Logik und das UI
   - `/quests/<name>/questions.txt`: Fragen (Format: `<ID>|<Fragetext>`)
-  - `/quests/<name>/config.yml`: YAML-Konfiguration (siehe unten)
+  - `/quests/<name>/config.json`: JSON-Konfiguration (siehe unten)
   - `/js/radarChart.js`: RadarChart-Rendering (D3.js)
-- **Konfigurationsoptionen in YAML**:
+- **Konfigurationsoptionen in JSON**:
   - `title`: Titel des Fragebogens
   - `description`: Beschreibung
-  - `answers`: Liste von Antwortoptionen (`- Label: Wert`)
-  - `categories`: Zuordnung von Präfix zu Kategoriebezeichnung (`- A: Autonomie`)
-  - `chart`: Chart-Optionen (`type: radar|bar|gauge`, optional `top: <Kategorie>`)
-  - `input`: (optional) UI-Optionen (`display: inline|column`, `size: +/-N`)
+  - `answers`: Array von Antwortoptionen (`[{"Label": Wert}]`)
+  - `categories`: Array von Kategorien (`[{"A": "Autonomie"}]`)
+  - `chart`: Chart-Objekt (`{"type": "radar|bar|gauge"}`, optional `"top": "<Kategorie>"`)
+  - `input`: (optional) UI-Optionen (`{"display": "inline|column", "size": N}`)
 - **Datenfluss**:
   - Beim Laden werden Fragen und Konfiguration per `fetch` geladen und geparst.
   - Die UI wird dynamisch gerendert, Antworten werden im URL-Hash gespeichert.
@@ -45,7 +45,7 @@ Die Anwendung ermöglicht das browserbasierte Ausfüllen, Auswerten und Visualis
 - **Debug-Modus**: Per URL-Parameter aktivierbar, zeigt Maximalwerte an
 
 ## 6. Erweiterbarkeit
-- Neue Fragebögen: Einfach neuen Ordner in `quests/` mit `questions.txt` und `config.yml` anlegen
+- Neue Fragebögen: Einfach neuen Ordner in `quests/` mit `questions.txt` und `config.json` anlegen
 - Neue Chart-Typen oder UI-Optionen: Anpassung der Logik in `index.html` und ggf. `radarChart.js`
 
 ## 7. Nicht-Funktionen

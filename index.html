@@ -693,10 +693,7 @@
             let chartType = 'radar';
             if (config.chart && config.chart.type) {
                 chartType = config.chart.type;
-                console.log('Setting chart type from config:', config.chart.type);
             }
-            console.log('Config:', config);
-            console.log('Selected Chart Type:', chartType);
 
             // Container leeren
             const container = document.getElementById('radarChart');
@@ -706,8 +703,6 @@
             const containerWidth = container.offsetWidth;
             const containerHeight = container.offsetHeight;
             
-            console.log('Chart Type:', chartType);
-            console.log('Container Size:', containerWidth, containerHeight);
             // Berechne die Maximalwerte pro Kategorie
             const categoryMaxScores = {};
             Object.keys(categories).forEach(category => {
@@ -928,23 +923,18 @@
                     RadarChart("#radarChart", chartData, radarChartOptions);
 
                 } else if (chartType === 'gauge') {
-                    console.log('Creating Gauge Chart');
                     // Gauge: Zeige nur die erste Kategorie als Wert an
                     const firstKey = Object.keys(categories)[0];
                     const value = scores[firstKey] || 0;
                     const categoryLabel = categories[firstKey];
-                    console.log('Gauge Data:', { value, maxScore, categoryLabel });
 
                     try {
-                        console.log('Creating SVG');
                         // SVG für Gauge erstellen
                         const svg = d3.select("#radarChart")
                             .append("svg")
                             .attr("width", containerWidth)
                             .attr("height", containerHeight)
                             .attr("class", "gauge-chart"); // Klasse hinzufügen für Debugging
-
-                        console.log('SVG created:', svg.node());
 
                         // Gauge-Dimensionen
                         const radius = Math.min(containerWidth, containerHeight) / 2;
