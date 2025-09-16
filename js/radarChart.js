@@ -271,15 +271,16 @@ function RadarChart(id, data, options) {
         if (isInRadiusVector) {
             // Pfeil nach außen - dezentes Design
             const arrowSize = 8;
-            const extendX = endX * 1.08;
-            const extendY = endY * 1.08;
+            const extendX = endX; // Pfeilspitze bündig mit dem letzten Kreis
+            const extendY = endY; // Pfeilspitze bündig mit dem letzten Kreis
             
-            // Berechne die Punkte für das Dreieck
+            // Berechne die Punkte für das Dreieck - Basis etwas nach innen
             const perpAngle = angle + Math.PI/2;
-            const px1 = endX + Math.cos(perpAngle) * arrowSize/2;
-            const py1 = endY + Math.sin(perpAngle) * arrowSize/2;
-            const px2 = endX - Math.cos(perpAngle) * arrowSize/2;
-            const py2 = endY - Math.sin(perpAngle) * arrowSize/2;
+            const baseDistance = 0.92; // Basis leicht nach innen versetzt
+            const px1 = endX * baseDistance + Math.cos(perpAngle) * arrowSize/2;
+            const py1 = endY * baseDistance + Math.sin(perpAngle) * arrowSize/2;
+            const px2 = endX * baseDistance - Math.cos(perpAngle) * arrowSize/2;
+            const py2 = endY * baseDistance - Math.sin(perpAngle) * arrowSize/2;
             
             d3.select(this).append("polygon")
                 .attr("points", `${extendX},${extendY} ${px1},${py1} ${px2},${py2}`)
@@ -290,23 +291,24 @@ function RadarChart(id, data, options) {
                 .style("opacity", "0.8");
             
         } else if (isInInverseVector) {
-            // Pfeil nach innen - Pfeilspitze außerhalb des Kreises, aber zeigt zum Zentrum
+            // Pfeil nach innen - Pfeilspitze zeigt zum Zentrum
             const arrowSize = 8; // Gleiche Größe wie outward arrows
             
-            // Basis des Dreiecks außerhalb des Kreises positionieren
-            const baseX = endX * 1.08; // Basis außerhalb, wie bei outward arrows
-            const baseY = endY * 1.08;
+            // Basis des Dreiecks am äußeren Rand (bündig mit dem letzten Kreis)
+            const baseX = endX;
+            const baseY = endY;
             
-            // Berechne die beiden Basispunkte des Dreiecks (außerhalb)
+            // Berechne die beiden Basispunkte des Dreiecks am äußeren Rand
             const perpAngle = angle + Math.PI/2;
             const px1 = baseX + Math.cos(perpAngle) * arrowSize/2;
             const py1 = baseY + Math.sin(perpAngle) * arrowSize/2;
             const px2 = baseX - Math.cos(perpAngle) * arrowSize/2;
             const py2 = baseY - Math.sin(perpAngle) * arrowSize/2;
             
-            // Pfeilspitze minimal nach außen verschoben
-            const tipX = endX * 1.02; // Minimal außerhalb des Kreis-Rands
-            const tipY = endY * 1.02;
+            // Pfeilspitze nach innen versetzt (zeigt zum Zentrum)
+            const tipDistance = 0.92; // Spitze nach innen versetzt
+            const tipX = endX * tipDistance;
+            const tipY = endY * tipDistance;
             
             d3.select(this).append("polygon")
                 .attr("points", `${tipX},${tipY} ${px1},${py1} ${px2},${py2}`)
