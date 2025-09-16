@@ -207,14 +207,13 @@
 
 
         let questionDataString = '';
-        let configYamlString = '';
         let questions = [];
         let config;
 
 
         // Hilfsfunktion: Hole alle Fragebogen-Ordner
         function getQuestionnaireFolders() {
-            // Dynamisch: alle Unterordner von /quests mit questions.txt und config.yml
+            // Dynamisch: alle Unterordner von /quests mit questions.txt und config.json
             return [
                 { name: 'Autonomie', folder: 'autonomie' },
                 { name: 'ACE', folder: 'ace' },
@@ -255,18 +254,17 @@
             // Baue absolute URLs für fetch, damit es überall funktioniert
             const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
             const questionsUrl = new URL(`quests/${activeFolder}/questions.txt`, base).toString();
-            const configUrl = new URL(`quests/${activeFolder}/config.yml`, base).toString();
+            const configUrl = new URL(`quests/${activeFolder}/config.json`, base).toString();
             Promise.all([
                 fetch(questionsUrl).then(r => r.text()),
-                fetch(configUrl).then(r => r.text())
-            ]).then(([questionsText, configText]) => {
+                fetch(configUrl).then(r => r.json())
+            ]).then(([questionsText, configData]) => {
                 questionDataString = questionsText;
-                configYamlString = configText;
                 questions = questionDataString.split('\n').map(line => {
                     const [id, text] = line.split('|');
                     return { id, text, category: id.charAt(0) };
                 });
-                config = parseYaml(configYamlString);
+                config = parseJsonConfig(configData);
 
                 // Titel und Beschreibung anzeigen
                 document.getElementById('questionnaire-title').textContent = config.title || 'Fragebogen';
@@ -418,113 +416,66 @@
         window.addEventListener('popstate', loadQuestionnaire);
 
 
-    // configYamlString wird jetzt dynamisch geladen
+    // JSON-Konfiguration verarbeiten
 
-        // Einfacher YAML-Parser für die spezifische Struktur
-        function parseYaml(yamlString) {
-            const lines = yamlString.split('\n').filter(line => line.trim() !== '');
+        // JSON-Parser für die JSON-Konfigurationsdateien
+        function parseJsonConfig(jsonData) {
             const result = { answers: [], categories: {}, categoriesArray: [] };
-            let currentSection = '';
-
-            let topCategory = null;
-            let chartType = null;
-            let inChartObject = false;
-            let inInputObject = false;
-            result.input = {};
-            for (let i = 0; i < lines.length; i++) {
-                const trimmedLine = lines[i].trim();
-                if (trimmedLine.startsWith('title:')) {
-                    result.title = trimmedLine.replace('title:', '').trim();
-                    continue;
-                }
-                if (trimmedLine.startsWith('description:')) {
-                    result.description = trimmedLine.replace('description:', '').trim();
-                    continue;
-                }
-                if (trimmedLine === 'answers:') {
-                    currentSection = 'answers';
-                    continue;
-                }
-                if (trimmedLine === 'categories:') {
-                    currentSection = 'categories';
-                    continue;
-                }
-                if (trimmedLine === 'chart:') {
-                    currentSection = 'chart';
-                    inChartObject = true;
-                    continue;
-                }
-                if (inChartObject && (trimmedLine.startsWith('type:') || trimmedLine.startsWith('top:') || trimmedLine.startsWith('radiusvector:') || trimmedLine.startsWith('inverseradiusvector:') || trimmedLine.startsWith('tickmarks:') || trimmedLine.startsWith('horizontalline:'))) {
-                    const [key, value] = trimmedLine.split(':');
-                    if (key.trim() === 'type') chartType = value.trim();
-                    if (key.trim() === 'top') topCategory = value.trim();
-                    // Neue Chart-Eigenschaften hinzufügen
-                    if (!result.chartConfig) result.chartConfig = {};
-                    result.chartConfig[key.trim()] = value.trim();
-                    continue;
-                }
-                if (inChartObject && !trimmedLine.startsWith(' ')) {
-                    inChartObject = false;
-                }
-                if (trimmedLine === 'input:') {
-                    currentSection = 'input';
-                    inInputObject = true;
-                    continue;
-                }
-                if (inInputObject && (trimmedLine.startsWith('element:') || trimmedLine.startsWith('size:') || trimmedLine.startsWith('display:'))) {
-                    const [key, value] = trimmedLine.split(':');
-                    result.input[key.trim()] = value.trim();
-                    continue;
-                }
-                if (inInputObject && !trimmedLine.startsWith(' ')) {
-                    inInputObject = false;
-                }
-
-                if (currentSection === 'answers') {
-                    if (trimmedLine.startsWith('- ')) {
-                        // Format: - label: value
-                        const parts = trimmedLine.substring(2).split(':');
-                        if (parts.length === 2) {
-                            result.answers.push({
-                                label: parts[0].trim(),
-                                value: parseFloat(parts[1].trim())
-                            });
-                        } else {
-                            // Fallback: Nur Label
-                            result.answers.push({ label: trimmedLine.substring(2).trim(), value: 0 });
-                        }
-                    }
-                } else if (currentSection === 'categories') {
-                    if (trimmedLine.startsWith('- ')) {
-                        const parts = trimmedLine.substring(2).split(':');
-                        if (parts.length === 2) {
-                            const key = parts[0].trim();
-                            const value = parts[1].trim();
-                            result.categories[key] = value;
-                            result.categoriesArray.push({ key, value });
-                        }
+            
+            // Titel und Beschreibung direkt übernehmen
+            result.title = jsonData.title || '';
+            result.description = jsonData.description || '';
+            
+            // Answers verarbeiten - aus Array von Objekten zu Array mit label/value
+            if (jsonData.answers && Array.isArray(jsonData.answers)) {
+                result.answers = jsonData.answers.map(answerObj => {
+                    const key = Object.keys(answerObj)[0];
+                    const value = answerObj[key];
+                    return { label: key, value: value };
+                });
+            }
+            
+            // Categories verarbeiten - aus Array von Objekten zu Objekten und Array
+            if (jsonData.categories && Array.isArray(jsonData.categories)) {
+                jsonData.categories.forEach(categoryObj => {
+                    const key = Object.keys(categoryObj)[0];
+                    const value = categoryObj[key];
+                    result.categories[key] = value;
+                    result.categoriesArray.push({ key, value });
+                });
+            }
+            
+            // Chart-Konfiguration verarbeiten
+            if (jsonData.chart) {
+                result.chart = { ...jsonData.chart };
+                result.chartConfig = { ...jsonData.chart };
+                
+                // Kategorie-Sortierung basierend auf "top"-Eigenschaft
+                const topCategory = jsonData.chart.top;
+                if (topCategory && Object.keys(result.categories).length > 1) {
+                    const keys = Object.keys(result.categories);
+                    const idx = keys.indexOf(topCategory);
+                    if (idx > 0) {
+                        const rotated = keys.slice(idx).concat(keys.slice(0, idx));
+                        const newCategories = {};
+                        rotated.forEach(k => { newCategories[k] = result.categories[k]; });
+                        result.categories = newCategories;
+                        // result.categoriesArray bleibt unverändert für die Legende
                     }
                 }
             }
-            // Chart-Konfiguration speichern
-            if (chartType || result.chartConfig) {
-                result.chart = {
-                    type: chartType,
-                    ...result.chartConfig
-                };
-            }
-            // Sortiere nur result.categories (Objekt) für das Chart, aber lasse result.categoriesArray (für Legende) unverändert!
-            if (topCategory && Object.keys(result.categories).length > 1) {
-                const keys = Object.keys(result.categories);
-                const idx = keys.indexOf(topCategory);
-                if (idx > 0) {
-                    const rotated = keys.slice(idx).concat(keys.slice(0, idx));
-                    const newCategories = {};
-                    rotated.forEach(k => { newCategories[k] = result.categories[k]; });
-                    result.categories = newCategories;
-                    // result.categoriesArray bleibt unverändert für die Legende
+            
+            // Input-Konfiguration verarbeiten
+            if (jsonData.input) {
+                result.input = { ...jsonData.input };
+                // Size als Zahl parsen falls es als String vorliegt
+                if (result.input.size) {
+                    result.input.size = parseInt(result.input.size);
                 }
+            } else {
+                result.input = {};
             }
+            
             return result;
         }
 
@@ -601,10 +552,11 @@
             // Größe der Radioboxen bestimmen
             let radioSize = 4;
             if (config.input && config.input.size) {
-                const match = config.input.size.match(/([+-]?\d+)/);
-                if (match) {
-                    radioSize = Math.max(1, Math.min(5, 4 + parseInt(match[1], 10)));
-                }
+                // Behandle sowohl Zahlen als auch Strings
+                const sizeValue = typeof config.input.size === 'string' ? 
+                    parseInt(config.input.size, 10) : 
+                    config.input.size;
+                radioSize = Math.max(1, Math.min(5, sizeValue));
             }
 
             // Body rendern

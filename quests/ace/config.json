@@ -1,0 +1,19 @@
+{
+  "title": "ACE-Fragebogen",
+  "description": "Adverse Childhood Experiences (ACE) Fragebogen",
+  "answers": [
+    {"Nein": 0},
+    {"Ja": 1}
+  ],
+  "categories": [
+    {"A": "ACE-Gesamtwert"}
+  ],
+  "chart": {
+    "type": "gauge"
+  },
+  "input": {
+    "element": "radiobox",
+    "size": 5,
+    "display": "inline"
+  }
+}
