@@ -449,10 +449,13 @@
                     inChartObject = true;
                     continue;
                 }
-                if (inChartObject && (trimmedLine.startsWith('type:') || trimmedLine.startsWith('top:'))) {
+                if (inChartObject && (trimmedLine.startsWith('type:') || trimmedLine.startsWith('top:') || trimmedLine.startsWith('radiusvector:') || trimmedLine.startsWith('inverseradiusvector:') || trimmedLine.startsWith('tickmarks:'))) {
                     const [key, value] = trimmedLine.split(':');
                     if (key.trim() === 'type') chartType = value.trim();
                     if (key.trim() === 'top') topCategory = value.trim();
+                    // Neue Chart-Eigenschaften hinzufügen
+                    if (!result.chartConfig) result.chartConfig = {};
+                    result.chartConfig[key.trim()] = value.trim();
                     continue;
                 }
                 if (inChartObject && !trimmedLine.startsWith(' ')) {
@@ -499,9 +502,10 @@
                 }
             }
             // Chart-Konfiguration speichern
-            if (chartType) {
+            if (chartType || result.chartConfig) {
                 result.chart = {
-                    type: chartType
+                    type: chartType,
+                    ...result.chartConfig
                 };
             }
             // Sortiere nur result.categories (Objekt) für das Chart, aber lasse result.categoriesArray (für Legende) unverändert!
@@ -930,7 +934,7 @@
                     // Daten für D3.js RadarChart vorbereiten
                     const chartData = [
                         Object.keys(categories).map(key => ({
-                            axis: categories[key],
+                            axis: { key: key, value: categories[key] },
                             value: data[Object.keys(categories).indexOf(key)]  // Verwende die bereits normalisierten Prozentwerte
                         }))
                     ];
@@ -959,7 +963,8 @@
                         dotRadius: 4,
                         opacityArea: 0.2,
                         strokeWidth: 3,
-                        opacityCircles: 0.1
+                        opacityCircles: 0.1,
+                        config: config // Konfiguration für Pfeile und Tickmarks
                     };
 
                     // RadarChart erstellen

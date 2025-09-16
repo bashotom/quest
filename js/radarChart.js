@@ -41,7 +41,7 @@ function RadarChart(id, data, options) {
             
             // Wenn axis ein String ist, versuche ihn zu parsen
             if (typeof axisValue === 'string') {
-                const key = Object.entries(config.categories).find(([k, v]) => v === axisValue)?.[0];
+                const key = cfg.config && cfg.config.categories ? Object.entries(cfg.config.categories).find(([k, v]) => v === axisValue)?.[0] : null;
                 if (key) {
                     console.log('Found category mapping:', { key, value: axisValue });
                     return {
@@ -121,49 +121,36 @@ function RadarChart(id, data, options) {
 
     // Parse chart configuration for arrow directions and tickmarks
     const getChartConfig = () => {
-        console.log('Checking config:', typeof config, config);
-        if (typeof config === 'object' && config.chart) {
-            console.log('Chart config found:', config.chart);
+        if (typeof cfg.config === 'object' && cfg.config && cfg.config.chart) {
             let radiusvector = [];
             let inverseradiusvector = [];
             let tickmarks = [];
             
             // Try different ways to access the config
-            if (config.chart.radiusvector) {
-                radiusvector = config.chart.radiusvector.split(',').map(s => s.trim());
-            } else if (typeof config.chart.radiusvector === 'string') {
-                radiusvector = config.chart.radiusvector.split(',').map(s => s.trim());
+            if (cfg.config.chart.radiusvector) {
+                radiusvector = cfg.config.chart.radiusvector.split(',').map(s => s.trim());
+            } else if (typeof cfg.config.chart.radiusvector === 'string') {
+                radiusvector = cfg.config.chart.radiusvector.split(',').map(s => s.trim());
             }
             
-            if (config.chart.inverseradiusvector) {
-                inverseradiusvector = config.chart.inverseradiusvector.split(',').map(s => s.trim());
-            } else if (typeof config.chart.inverseradiusvector === 'string') {
-                inverseradiusvector = config.chart.inverseradiusvector.split(',').map(s => s.trim());
+            if (cfg.config.chart.inverseradiusvector) {
+                inverseradiusvector = cfg.config.chart.inverseradiusvector.split(',').map(s => s.trim());
+            } else if (typeof cfg.config.chart.inverseradiusvector === 'string') {
+                inverseradiusvector = cfg.config.chart.inverseradiusvector.split(',').map(s => s.trim());
             }
             
-            if (config.chart.tickmarks) {
-                tickmarks = config.chart.tickmarks.split(',').map(s => s.trim());
+            if (cfg.config.chart.tickmarks) {
+                tickmarks = cfg.config.chart.tickmarks.split(',').map(s => s.trim());
             }
             
-            console.log('Parsed radiusvector:', radiusvector);
-            console.log('Parsed inverseradiusvector:', inverseradiusvector);
-            console.log('Parsed tickmarks:', tickmarks);
-            
-            // If still empty, use the hardcoded values from config.yml
-            if (radiusvector.length === 0) {
-                radiusvector = ['A', 'B', 'C'];
-            }
-            if (inverseradiusvector.length === 0) {
-                inverseradiusvector = ['D', 'E', 'F'];
-            }
+            // Wenn tickmarks leer ist, verwende einen Fallback-Wert
             if (tickmarks.length === 0) {
-                tickmarks = ['B', 'E'];
+                tickmarks = ['B', 'E']; // Standard-Tickmarks
             }
             
             return { radiusvector, inverseradiusvector, tickmarks };
         }
-        console.log('No config found, using hardcoded values');
-        return { radiusvector: ['A', 'B', 'C'], inverseradiusvector: ['D', 'E', 'F'], tickmarks: ['B', 'E'] };
+        return { radiusvector: [], inverseradiusvector: [], tickmarks: ['B', 'E'] };
     };
 
     const chartConfig = getChartConfig();
@@ -243,99 +230,68 @@ function RadarChart(id, data, options) {
         .style("stroke", "#94a3b8") // Graue Farbe für die Achsen
         .style("stroke-width", "1px");
 
-    // Add arrow markers to SVG defs
-    const defs = svg.select("defs");
+    // Add arrow markers to SVG defs - entfernt, da nicht mehr benötigt
     
-    // Arrow marker pointing outward (for radiusvector) - simple two-line arrow
-    defs.append("marker")
-        .attr("id", "arrow-outward")
-        .attr("markerWidth", 12)
-        .attr("markerHeight", 12)
-        .attr("refX", 10)
-        .attr("refY", 6)
-        .attr("orient", "auto")
-        .attr("markerUnits", "strokeWidth")
-        .append("g")
-        .append("line")
-        .attr("x1", 2)
-        .attr("y1", 2)
-        .attr("x2", 9)
-        .attr("y2", 6)
-        .style("stroke", "#94a3b8")
-        .style("stroke-width", "1px");
-
-    defs.select("#arrow-outward g").append("line")
-        .attr("x1", 2)
-        .attr("y1", 10)
-        .attr("x2", 9)
-        .attr("y2", 6)
-        .style("stroke", "#94a3b8")
-        .style("stroke-width", "1px");
-
-    // Arrow marker pointing inward (for inverseradiusvector) - simple two-line arrow
-    defs.append("marker")
-        .attr("id", "arrow-inward")
-        .attr("markerWidth", 12)
-        .attr("markerHeight", 12)
-        .attr("refX", 2)
-        .attr("refY", 6)
-        .attr("orient", "auto")
-        .attr("markerUnits", "strokeWidth")
-        .append("g")
-        .append("line")
-        .attr("x1", 10)
-        .attr("y1", 2)
-        .attr("x2", 3)
-        .attr("y2", 6)
-        .style("stroke", "#94a3b8")
-        .style("stroke-width", "1px");
-
-    defs.select("#arrow-inward g").append("line")
-        .attr("x1", 10)
-        .attr("y1", 10)
-        .attr("x2", 3)
-        .attr("y2", 6)
-        .style("stroke", "#94a3b8")
-        .style("stroke-width", "1px");
-
     // Add arrows to specific axes based on configuration
     axis.each(function(d, i) {
-        const axisKey = d.key;
+        // Prüfe sowohl d.key als auch d.value für Kompatibilität
+        const axisKey = d.key || d;
+        const axisValue = d.value || d;
         const angle = angleSlice * i - Math.PI/2;
         const endX = rScale(maxValue) * Math.cos(angle);
         const endY = rScale(maxValue) * Math.sin(angle);
         
-        console.log('Processing axis:', axisKey, 'angle:', angle, 'endX:', endX, 'endY:', endY);
-        console.log('radiusvector config:', chartConfig.radiusvector);
-        console.log('inverseradiusvector config:', chartConfig.inverseradiusvector);
+        // Check if this axis should have an arrow - prüfe sowohl key als auch value
+        const isInRadiusVector = chartConfig.radiusvector.includes(axisKey) || chartConfig.radiusvector.includes(axisValue);
+        const isInInverseVector = chartConfig.inverseradiusvector.includes(axisKey) || chartConfig.inverseradiusvector.includes(axisValue);
         
-        // Check if this axis should have an arrow
-        if (chartConfig.radiusvector.includes(axisKey)) {
-            console.log('Adding outward arrow for:', axisKey);
-            // Arrow pointing outward - extend the line slightly beyond the end
-            const extendX = endX * 1.03;
-            const extendY = endY * 1.03;
-            d3.select(this).append("line")
-                .attr("x1", endX)
-                .attr("y1", endY)
-                .attr("x2", extendX)
-                .attr("y2", extendY)
-                .attr("class", "arrow-line")
-                .style("stroke", "#94a3b8")
+        if (isInRadiusVector) {
+            // Pfeil nach außen - dezentes Design
+            const arrowSize = 8;
+            const extendX = endX * 1.08;
+            const extendY = endY * 1.08;
+            
+            // Berechne die Punkte für das Dreieck
+            const perpAngle = angle + Math.PI/2;
+            const px1 = endX + Math.cos(perpAngle) * arrowSize/2;
+            const py1 = endY + Math.sin(perpAngle) * arrowSize/2;
+            const px2 = endX - Math.cos(perpAngle) * arrowSize/2;
+            const py2 = endY - Math.sin(perpAngle) * arrowSize/2;
+            
+            d3.select(this).append("polygon")
+                .attr("points", `${extendX},${extendY} ${px1},${py1} ${px2},${py2}`)
+                .attr("class", "arrow-triangle outward-arrow")
+                .style("fill", "#64748b")
+                .style("stroke", "#64748b")
                 .style("stroke-width", "1px")
-                .style("marker-end", "url(#arrow-outward)");
-        } else if (chartConfig.inverseradiusvector.includes(axisKey)) {
-            console.log('Adding inward arrow for:', axisKey);
-            // Arrow pointing inward - from outer edge all the way to center
-            d3.select(this).append("line")
-                .attr("x1", 0)
-                .attr("y1", 0)
-                .attr("x2", endX)
-                .attr("y2", endY)
-                .attr("class", "arrow-line")
-                .style("stroke", "#94a3b8")
+                .style("opacity", "0.8");
+            
+        } else if (isInInverseVector) {
+            // Pfeil nach innen - Pfeilspitze außerhalb des Kreises, aber zeigt zum Zentrum
+            const arrowSize = 8; // Gleiche Größe wie outward arrows
+            
+            // Basis des Dreiecks außerhalb des Kreises positionieren
+            const baseX = endX * 1.08; // Basis außerhalb, wie bei outward arrows
+            const baseY = endY * 1.08;
+            
+            // Berechne die beiden Basispunkte des Dreiecks (außerhalb)
+            const perpAngle = angle + Math.PI/2;
+            const px1 = baseX + Math.cos(perpAngle) * arrowSize/2;
+            const py1 = baseY + Math.sin(perpAngle) * arrowSize/2;
+            const px2 = baseX - Math.cos(perpAngle) * arrowSize/2;
+            const py2 = baseY - Math.sin(perpAngle) * arrowSize/2;
+            
+            // Pfeilspitze minimal nach außen verschoben
+            const tipX = endX * 1.02; // Minimal außerhalb des Kreis-Rands
+            const tipY = endY * 1.02;
+            
+            d3.select(this).append("polygon")
+                .attr("points", `${tipX},${tipY} ${px1},${py1} ${px2},${py2}`)
+                .attr("class", "arrow-triangle inward-arrow")
+                .style("fill", "#64748b") // Gleiche Farbe wie outward arrows
+                .style("stroke", "#64748b") // Gleiche Farbe wie outward arrows
                 .style("stroke-width", "1px")
-                .style("marker-end", "url(#arrow-inward)");
+                .style("opacity", "0.8");
         }
     });
 
@@ -534,8 +490,8 @@ function RadarChart(id, data, options) {
         .attr("class", "tooltip")
         .style("opacity", 0);
 
-    // Create legend for narrow screens in config.categories order
-    if (window.innerWidth < 650 && typeof config === 'object' && Array.isArray(config.categoriesArray)) {
+    // Create legend for narrow screens in cfg.config.categories order
+    if (window.innerWidth < 650 && typeof cfg.config === 'object' && Array.isArray(cfg.config.categoriesArray)) {
         d3.selectAll(".radar-legend").remove();
         const chartContainer = document.querySelector(id);
         const parentContainer = chartContainer.parentNode;
@@ -578,7 +534,7 @@ function RadarChart(id, data, options) {
         ul.style.listStyle = 'disc inside';
         ul.style.margin = '0';
         ul.style.padding = '0';
-        config.categoriesArray.forEach(({key, value}) => {
+        cfg.config.categoriesArray.forEach(({key, value}) => {
             const li = document.createElement('li');
             li.style.marginBottom = '0.4em';
             li.textContent = `${key}: ${value}`;
