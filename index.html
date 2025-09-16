@@ -1107,6 +1107,14 @@
             const tableBody = document.getElementById('categories-table-body');
             tableBody.innerHTML = '';
             
+            // Berechne die Maximalwerte pro Kategorie für Prozentwerte
+            const categoryMaxScores = {};
+            Object.keys(categories).forEach(category => {
+                const categoryQuestions = questions.filter(q => q.category === category[0]);
+                const maxAnswer = Math.max(...config.answers.map(a => a.value));
+                categoryMaxScores[category] = categoryQuestions.length * maxAnswer;
+            });
+            
             // Verwende config.categoriesArray für die ursprüngliche Reihenfolge
             const categoriesArray = config.categoriesArray || [];
             
@@ -1114,12 +1122,14 @@
                 const categoryId = categoryItem.key;
                 const categoryName = categoryItem.value;
                 const score = scores[categoryId] || 0;
+                const maxScore = categoryMaxScores[categoryId] || 1; // Fallback um Division durch 0 zu vermeiden
+                const percentage = Math.round((score / maxScore) * 100);
                 
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-gray-50 transition-colors';
                 row.innerHTML = `
                     <td class="border border-gray-200 px-4 py-3 text-sm text-gray-800"><span class="font-mono text-gray-600">${categoryId}:</span> ${categoryName}</td>
-                    <td class="border border-gray-200 px-4 py-3 text-sm font-semibold text-blue-600">${score}</td>
+                    <td class="border border-gray-200 px-4 py-3 text-sm font-semibold text-blue-600">${percentage}% <span class="text-gray-500">(${score})</span></td>
                 `;
                 tableBody.appendChild(row);
             });
