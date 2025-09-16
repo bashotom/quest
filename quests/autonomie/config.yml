@@ -16,6 +16,9 @@ categories:
 chart:
   type: radar
   top: B
+  radiusvector: A,B,C
+  inverseradiusvector: D,E,F
+  tickmarks: B,E
 input:
   element: radiobox
   display: column 
