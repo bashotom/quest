@@ -145,7 +145,7 @@
             </div>
             
             <!-- Kategorien-Tabelle -->
-            <div class="mt-6 sm:mt-8 px-2 sm:px-4">
+            <div id="categories-table-section" class="mt-6 sm:mt-8 px-2 sm:px-4">
                 <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
                     <div class="border-b border-gray-200 p-4">
                         <button id="toggle-categories-table" class="flex items-center justify-between w-full text-left font-medium text-gray-800 hover:text-blue-600 transition-colors">
@@ -1103,8 +1103,8 @@
             shareLinkInput.value = window.location.href;
             shareLinkInput.select();
             
-            // Kategorien-Tabelle nur bei RadarChart anzeigen
-            const categoriesTableSection = document.getElementById('categories-table-content').closest('div').closest('div');
+            // Kategorien-Tabelle nur bei RadarChart anzeigen (nicht bei Bar oder Gauge)
+            const categoriesTableSection = document.getElementById('categories-table-section');
             if (chartType === 'radar') {
                 if (categoriesTableSection) {
                     categoriesTableSection.style.display = 'block';
