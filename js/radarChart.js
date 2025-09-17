@@ -361,35 +361,24 @@ function RadarChart(id, data, options) {
         })
         .attr("x", (d,i) => {
             const angle = angleSlice * i - Math.PI/2;
-            // Reduziere die tatsächliche Position für seitliche Labels
-            let position = rScale(maxValue * cfg.labelFactor) * Math.cos(angle);
-            // Für seitliche Labels (cos nahe 0) reduzieren wir die Position zusätzlich
-            if (Math.abs(Math.cos(angle)) > 0.3) {
-                position = position * 0.92; // Reduziere die Position für seitliche Labels um 8%
-            }
-            // Debug-Ausgaben für die Label-Positionierung
-            console.log(`Label ${d}:`, {
-                angle: (angle * 180 / Math.PI).toFixed(2) + '°',
-                basePosition: position.toFixed(2),
-                scaledValue: rScale(maxValue).toFixed(2),
-                labelFactor: cfg.labelFactor
-            });
-            // Minimaler horizontaler Abstand
-            const offset = 2;
+            // Erhöhe die Position für alle Labels, um sie außerhalb der Kreisfläche zu positionieren
+            let position = rScale(maxValue * cfg.labelFactor * 1.10) * Math.cos(angle);
+            // Zusätzlicher Abstand für bessere Lesbarkeit
+            const offset = 10;
             return position + (Math.cos(angle) > 0 ? offset : Math.cos(angle) < 0 ? -offset : 0);
         })
         .attr("y", (d,i) => {
             const angle = angleSlice * i - Math.PI/2;
-            const basePosition = rScale(maxValue * cfg.labelFactor) * Math.sin(angle) - 20; // 20px höher
+            // Erhöhe die Position für alle Labels, um sie außerhalb der Kreisfläche zu positionieren
+            const basePosition = rScale(maxValue * cfg.labelFactor * 1.10) * Math.sin(angle) - 20;
             // Position relativ zur Gesamtzahl der Achsen bestimmen
             const normalizedPosition = (i / total) * 2 * Math.PI;
             // Vertikale Position basierend auf der normalisierten Position
-            // Debug-Ausgaben für die vertikale Positionierung
-            if (Math.abs(normalizedPosition - Math.PI) < 0.1) return basePosition + 2;     // unten
-            if (Math.abs(normalizedPosition) < 0.1) return basePosition - 5;               // oben
+            if (Math.abs(normalizedPosition - Math.PI) < 0.1) return basePosition + 10;     // unten - mehr Abstand
+            if (Math.abs(normalizedPosition) < 0.1) return basePosition - 10;               // oben - mehr Abstand
             // Für seitliche Labels: Position basierend auf dem Winkel anpassen
-            const verticalOffset = Math.abs(Math.sin(normalizedPosition)) * -8;
-            return basePosition + verticalOffset;                                                       // seiten
+            const verticalOffset = Math.abs(Math.sin(normalizedPosition)) * -5;
+            return basePosition + verticalOffset;
         })
         .attr("class", "legend")
         .text(d => {
