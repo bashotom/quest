@@ -345,20 +345,7 @@ function RadarChart(id, data, options) {
             if (Math.abs(Math.cos(angle)) < 0.1) return "middle";
             return Math.cos(angle) > 0 ? "start" : "end";
         })
-        .attr("dy", (d,i) => {
-            // Position relativ zur Gesamtzahl der Achsen bestimmen
-            const normalizedPosition = (i / total) * 2 * Math.PI;
-            const isNarrowScreen = window.innerWidth < 650;
-            
-            // 0 = oben, PI = unten, PI/2 = rechts, 3PI/2 = links
-            if (Math.abs(normalizedPosition - Math.PI) < 0.1) {
-                return "0em";     // unten
-            }
-            if (Math.abs(normalizedPosition) < 0.1) {
-                return isNarrowScreen ? "2.5em" : "0.3em";  // oben: Key weiter unten, volles Label noch höher
-            }
-            return "1.4em";     // seiten
-        })
+        .attr("dy", "0.3em")
         .attr("x", (d,i) => {
             const angle = angleSlice * i - Math.PI/2;
             // Erhöhe die Position für alle Labels, um sie außerhalb der Kreisfläche zu positionieren
@@ -370,7 +357,7 @@ function RadarChart(id, data, options) {
         .attr("y", (d,i) => {
             const angle = angleSlice * i - Math.PI/2;
             // Erhöhe die Position für alle Labels, um sie außerhalb der Kreisfläche zu positionieren
-            const basePosition = rScale(maxValue * cfg.labelFactor * 1.10) * Math.sin(angle) - 20;
+            const basePosition = rScale(maxValue * cfg.labelFactor * 1.10) * Math.sin(angle) - 20 + 20; // +20px nach unten verschoben
             // Position relativ zur Gesamtzahl der Achsen bestimmen
             const normalizedPosition = (i / total) * 2 * Math.PI;
             // Vertikale Position basierend auf der normalisierten Position
