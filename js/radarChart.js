@@ -28,7 +28,7 @@ function RadarChart(id, data, options) {
     const maxValue = Math.max(cfg.maxValue, d3.max(data, i => d3.max(i.map(o => o.value))));
 
     // Parse die Kategorien-Daten korrekt
-    const processedData = data.map(dataset => 
+    let processedData = data.map(dataset => 
         dataset.map(d => {
             const axisValue = d.axis;
             
@@ -55,8 +55,31 @@ function RadarChart(id, data, options) {
         })
     );
     
-    const allAxis = processedData[0].map(i => i.axis),
-          total = allAxis.length,
+    // Get the initial axis order
+    let allAxis = processedData[0].map(i => i.axis);
+    
+    // Reorder axes if topaxis is specified
+    if (cfg.config && cfg.config.chart && cfg.config.chart.topaxis) {
+        const topAxisKey = cfg.config.chart.topaxis;
+        const topAxisIndex = allAxis.findIndex(axis => axis.key === topAxisKey);
+        
+        if (topAxisIndex !== -1) {
+            // Reorder the axes so that topaxis comes first (12 o'clock position)
+            const reorderedAxis = [
+                ...allAxis.slice(topAxisIndex),
+                ...allAxis.slice(0, topAxisIndex)
+            ];
+            allAxis = reorderedAxis;
+            
+            // Also reorder the data accordingly
+            processedData = processedData.map(dataset => [
+                ...dataset.slice(topAxisIndex),
+                ...dataset.slice(0, topAxisIndex)
+            ]);
+        }
+    }
+    
+    const total = allAxis.length,
           radius = Math.min(cfg.w/2, cfg.h/2),
           angleSlice = Math.PI * 2 / total;
 
