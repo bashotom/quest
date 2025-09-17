@@ -357,27 +357,39 @@
             const fewAnswers = config.answers?.length === 2;
             const frageThClass = fewAnswers ? 'w-3/4' : 'w-1/2';
             const answerThClass = fewAnswers ? 'w-1/8' : 'w-1/' + (config.answers?.length || 4);
+            const headerRepeatRows = config.input?.header_repeating_rows || 0;
+
+            // Header-Template erstellen
+            const headerTemplate = `
+                <tr class="bg-gray-50">
+                    <th class="${frageThClass} px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Frage</th>
+                    ${config.answers?.map(answer => {
+                        const label = answer.label || Object.keys(answer)[0]; // Try label field first, then key
+                        return `<th class="${answerThClass} px-2 py-2 sm:px-4 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">${label}</th>`;
+                    }).join('')}
+                </tr>
+            `;
 
             let html = `
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
-                        <tr>
-                            <th class="${frageThClass} px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Frage</th>
+                        ${headerTemplate}
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
             `;
 
-            config.answers?.forEach(answer => {
-                html += `<th class="${answerThClass} px-2 py-2 sm:px-4 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">${answer.label}</th>`;
-            });
+            questions.forEach((question, index) => {
+                // Header wiederholen, wenn headerRepeatRows konfiguriert ist
+                if (headerRepeatRows > 0 && index > 0 && index % headerRepeatRows === 0) {
+                    html += `</tbody><thead class="bg-gray-50">${headerTemplate}</thead><tbody class="bg-white divide-y divide-gray-200">`;
+                }
 
-            html += `</tr></thead><tbody class="bg-white divide-y divide-gray-200">`;
-
-            questions.forEach(question => {
                 html += `<tr class="hover:bg-gray-50"><td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm text-gray-900">${question.text}</td>`;
                 
-                config.answers?.forEach((answer, index) => {
+                config.answers?.forEach((answer, answerIndex) => {
                     html += `
-                        <td class="px-2 py-2 sm:px-4 sm:py-4 text-center cursor-pointer" onclick="selectRadio('${question.id}', '${index}')">
-                            <input type="radio" name="question-${question.id}" value="${index}" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 mx-auto">
+                        <td class="px-2 py-2 sm:px-4 sm:py-4 text-center cursor-pointer" onclick="selectRadio('${question.id}', '${answerIndex}')">
+                            <input type="radio" name="question-${question.id}" value="${answerIndex}" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 mx-auto">
                         </td>
                     `;
                 });
@@ -400,10 +412,11 @@
                 `;
 
                 config.answers?.forEach((answer, index) => {
+                    const label = answer.label || Object.keys(answer)[0]; // Try label field first, then key
                     html += `
                         <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-50 transition-colors">
                             <input type="radio" name="question-${question.id}" value="${index}" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                            <span class="text-sm sm:text-base">${answer.label}</span>
+                            <span class="text-sm sm:text-base">${label}</span>
                         </label>
                     `;
                 });

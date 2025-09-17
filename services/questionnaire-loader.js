@@ -12,14 +12,19 @@ export class QuestionnaireLoader {
      */
     static async loadQuestionnaire(folder) {
         const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
-        const questionsUrl = new URL(`quests/${folder}/questions.txt`, base).toString();
-        const configUrl = new URL(`quests/${folder}/config.json`, base).toString();
+        const cacheBuster = '?v=' + Date.now(); // Cache-Busting
+        const questionsUrl = new URL(`quests/${folder}/questions.txt${cacheBuster}`, base).toString();
+        const configUrl = new URL(`quests/${folder}/config.json${cacheBuster}`, base).toString();
 
         try {
-            const [questionsText, configData] = await Promise.all([
-                fetch(questionsUrl).then(r => r.text()),
-                fetch(configUrl).then(r => r.json())
+            const [questionsResponse, configResponse] = await Promise.all([
+                fetch(questionsUrl),
+                fetch(configUrl)
             ]);
+
+            const questionsText = await questionsResponse.text();
+            const configText = await configResponse.text();
+            const configData = JSON.parse(configText);
 
             return {
                 questions: this.parseQuestions(questionsText),

@@ -52,13 +52,15 @@ export class ConfigParser {
             result.input = {
                 element: jsonData.input.element || 'radiobox',
                 size: jsonData.input.size || 5,
-                display: jsonData.input.display || 'column'
+                display: jsonData.input.display || 'column',
+                header_repeating_rows: parseInt(jsonData.input.header_repeating_rows) || 0
             };
         } else {
             result.input = {
                 element: 'radiobox',
                 size: 5,
-                display: 'column'
+                display: 'column',
+                header_repeating_rows: 0
             };
         }
         

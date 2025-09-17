@@ -26,6 +26,7 @@
   },
   "input": {
     "element": "radiobox",
-    "display": "column"
+    "display": "column",
+    "header_repeating_rows": 5
   }
 }
