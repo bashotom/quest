@@ -217,6 +217,26 @@
             appContentElement.style.display = 'block';
         }
 
+        function collectCurrentAnswers() {
+            const answers = {};
+            questions.forEach(question => {
+                const radioInputs = document.querySelectorAll(`input[name="question-${question.id}"]:checked`);
+                if (radioInputs.length > 0) {
+                    answers[question.id] = parseInt(radioInputs[0].value);
+                }
+            });
+            return answers;
+        }
+
+        function setAnswers(answers) {
+            Object.entries(answers).forEach(([questionId, answerIndex]) => {
+                const radio = document.querySelector(`input[name="question-${questionId}"][value="${answerIndex}"]`);
+                if (radio) {
+                    radio.checked = true;
+                }
+            });
+        }
+
         function showForm() {
             questionnaireForm.classList.remove('hidden');
             evaluationPage.classList.add('hidden');
@@ -314,6 +334,9 @@
             const container = document.getElementById('questions-container');
             const displayMode = localStorage.getItem('displayMode') || 'column';
 
+            // Speichere aktuelle Antworten vor dem Neu-Rendern
+            const currentAnswers = collectCurrentAnswers();
+
             if (displayMode === 'column') {
                 renderTableMode(container);
             } else {
@@ -321,7 +344,13 @@
             }
 
             updateButtonStyles();
-            URLHashManager.setAnswersFromHash(questions);
+            
+            // Setze gespeicherte Antworten wieder ein
+            if (Object.keys(currentAnswers).length > 0) {
+                setAnswers(currentAnswers);
+            } else {
+                URLHashManager.setAnswersFromHash(questions);
+            }
         }
 
         function renderTableMode(container) {
