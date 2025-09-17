@@ -11,6 +11,7 @@ function RadarChart(id, data, options) {
         opacityCircles: 0.1,
         strokeWidth: 2,
         roundStrokes: true,
+        dotRadius: 4,
         color: d3.scaleOrdinal(d3.schemeCategory10)
     };
 
