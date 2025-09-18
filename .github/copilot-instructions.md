@@ -162,6 +162,7 @@ handler.handleSubmit(event, onSuccessCallback);
 - **Role**: Form submission, validation, error highlighting
 - **Features**: Visual error marking, smooth scroll to errors
 - **Manages**: Radio button change listeners, validation state
+- **Critical**: Handles questions/config parameter separation correctly
 ## Data Flow (Modular Version)
 - **Bootstrap**: `index.html` loads `QuestionnaireApp` via ES6 import
 - **Initialization**: QuestionnaireApp coordinates all services and components  
@@ -397,21 +398,27 @@ console.log('RadarChart modules:', {
 
 ## Chart Interference Prevention - Critical Lessons Learned (Sep 2025)
 
-### Problem: Chart Rendering Conflicts
-When multiple chart types (RadarChart, GaugeChart) are rendered in the same DOM container, persistent event listeners and D3.js selections can cause chart interference, where one chart type overwrites another unexpectedly.
+### Problem: Chart Rendering Conflicts and Race Conditions
+When multiple chart types (RadarChart, GaugeChart) are rendered or when charts are updated after form submissions, persistent event listeners, D3.js selections, and asynchronous timeouts can cause chart interference and race conditions where:
+- Charts appear briefly with new data but get overwritten by old data
+- One chart type overwrites another unexpectedly
+- Form submissions don't update charts properly
 
 ### Root Cause Analysis
 1. **Global Event Listeners**: RadarChart adds `window.addEventListener('resize', handleResize)` that persists across navigation
 2. **Shared Container**: Using same DOM element (`#radarChart`) for different chart types creates race conditions
 3. **D3.js State Persistence**: D3 selections and event handlers remain active even after navigating away from chart
+4. **Race Conditions**: Multiple setTimeout calls from rapid navigation create competing render processes
+5. **Form Data Structure Mismatch**: Code expected `config.questions` but questions are loaded separately
 
 ### ❌ Failed Solutions (Avoid These Approaches)
 - **Complex Event Listener Management**: Trying to cleanup/track global event listeners is error-prone
 - **MutationObserver Protection**: DOM watching adds complexity without solving root cause
 - **Chart Rendering IDs**: Tracking render states is fragile and doesn't prevent interference
 - **Shadow DOM Isolation**: Adds architectural complexity for D3.js charts
+- **Debugging Config Pipeline**: Fixing data corruption instead of architecture
 
-### ✅ Proven Solution: Separate Container Architecture
+### ✅ Proven Solution: Complete DOM Recreation + Race Prevention
 ```html
 <!-- Each chart type gets its own dedicated container -->
 <div id="radar-chart-container" class="chart-type-container hidden">
@@ -426,32 +433,91 @@ When multiple chart types (RadarChart, GaugeChart) are rendered in the same DOM 
 ```
 
 ```javascript
-// Show/hide containers based on chart type
-function renderChart(chartType) {
-    // Hide all containers
-    document.querySelectorAll('.chart-type-container').forEach(c => c.classList.add('hidden'));
-    
-    // Show only needed container
-    const targetContainer = document.getElementById(`${chartType}-chart-container`);
-    if (targetContainer) {
-        targetContainer.classList.remove('hidden');
-        // Render chart in dedicated container - no interference possible!
-    }
+// 1. COMPLETE DOM RECREATION for each chart update
+const oldChartElement = document.getElementById('radarChart');
+if (oldChartElement) {
+    oldChartElement.remove(); // Complete removal
 }
+const newChartElement = document.createElement('div');
+newChartElement.id = 'radarChart';
+newChartElement.className = 'w-full h-full';
+radarContainer.appendChild(newChartElement);
+
+// 2. TIMEOUT MANAGEMENT to prevent race conditions
+static activeTimeouts = new Set();
+static render(chartType, scores, questions, config) {
+    // Cancel all previous timeouts
+    ChartRenderer.activeTimeouts.forEach(timeoutId => {
+        clearTimeout(timeoutId);
+    });
+    ChartRenderer.activeTimeouts.clear();
+    // ... render logic
+}
+
+// 3. DISABLE RESPONSIVE HANDLERS to prevent interference
+// RadarResponsive.setup() DISABLED - causes race conditions
+// Complete recreation makes resize handling unnecessary
+
+// 4. CORRECT DATA STRUCTURE HANDLING
+URLHashManager.collectAnswersFromForm(questions, config) // Not config.questions!
+URLHashManager.calculateScores(answers, questions, config) // Separate parameters
 ```
 
-### Key Benefits of Separate Containers
+### Key Benefits of This Solution
 1. **Mathematical Impossibility of Interference**: Different DOM elements cannot overwrite each other
-2. **Event Listener Isolation**: Resize events remain contained to their specific chart containers
+2. **Race Condition Prevention**: Timeout cancellation + event listener cleanup
 3. **Architectural Simplicity**: No complex state management or cleanup logic needed
 4. **Performance**: No DOM watchers or protection mechanisms required
 5. **Maintainability**: Clear separation of concerns, easy to debug
+6. **Data Structure Clarity**: Explicit separation of questions and config parameters
 
 ### Architecture Principle
-**"Solve interference through isolation, not through protection"**
+**"Solve interference through isolation and recreation, not through protection"**
 - Prevention via architecture > Detection via monitoring
 - Simple container separation > Complex event management
+- Complete DOM recreation > Partial cleanup attempts
 - DOM isolation > JavaScript state tracking
+- Timeout cancellation > Race condition detection
+
+### Form Submission Data Flow (Fixed)
+```javascript
+// CORRECT flow with proper data structures
+FormHandler.handleSubmit(event, onSuccess)
+  → URLHashManager.collectAnswersFromForm(this.questions, this.config) // Separate params!
+  → Convert answers array to object for validation
+  → URLHashManager.calculateScores(answersArray, this.questions, this.config)
+  → QuestionnaireApp.showEvaluation()
+  → requestAnimationFrame → QuestionnaireApp.renderEvaluation()
+  → ChartRenderer.render() → Complete DOM recreation + timeout management
+```
+
+### Critical Form Handler Fixes
+```javascript
+// WRONG: config.questions doesn't exist
+const answers = URLHashManager.collectAnswersFromForm(this.config);
+
+// CORRECT: Pass questions and config separately  
+const answersArray = URLHashManager.collectAnswersFromForm(this.questions, this.config);
+
+// WRONG: Array/Object mismatch
+const incomplete = this.questions.filter(q => !(q.id in answersArray));
+
+// CORRECT: Convert array to object for validation
+const answersObject = {};
+answersArray.forEach(answer => {
+    answersObject[answer.questionId] = answer.value;
+});
+const incomplete = this.questions.filter(q => !(q.id in answersObject));
+```
+
+### Debug Checklist for Chart Update Issues
+1. ✅ DOM element completely recreated (not just innerHTML cleared)
+2. ✅ All previous timeouts cancelled before new render
+3. ✅ Responsive event listeners disabled or properly cleaned up
+4. ✅ Data structure parameters correct (questions vs config separation)
+5. ✅ Array/Object conversions handled explicitly
+6. ✅ RenderingId checks prevent outdated renders
+7. ✅ No mixing of chart containers between chart types
 
 ## Key Files/Dirs
 - `index.html` — main entry point (~160 lines), module bootstrap

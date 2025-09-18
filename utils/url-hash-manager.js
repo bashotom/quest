@@ -89,14 +89,47 @@ export class URLHashManager {
      * @param {Array} questions - Die verfügbaren Fragen
      * @returns {Object} Antworten als Key-Value-Paare
      */
-    static collectAnswersFromForm(questions) {
-        const answers = {};
-        questions.forEach(question => {
-            const selectedRadio = document.querySelector(`input[name="question-${question.id}"]:checked`);
-            if (selectedRadio) {
-                answers[question.id] = selectedRadio.value;
+    static collectAnswersFromForm(questions, config) {
+        const form = document.getElementById('quiz-form');
+        if (!form) {
+            console.error('Form with id "quiz-form" not found!');
+            return [];
+        }
+
+        if (!questions || !Array.isArray(questions)) {
+            console.error('Invalid questions array:', questions);
+            return [];
+        }
+
+        if (!config || !config.answers || !Array.isArray(config.answers)) {
+            console.error('Invalid config.answers array:', config?.answers);
+            return [];
+        }
+
+        const answers = [];
+        const formData = new FormData(form);
+        
+        // Process each form field in order
+        for (let i = 0; i < questions.length; i++) {
+            const questionId = questions[i].id;
+            const fieldName = `question-${questionId}`;
+            const selectedValue = formData.get(fieldName);
+            
+            if (selectedValue !== null) {
+                // selectedValue is the answerIndex, convert to actual answer
+                const answerIndex = parseInt(selectedValue);
+                const answerOption = config.answers[answerIndex];
+                
+                if (answerOption) {
+                    answers.push({
+                        questionId: questionId,
+                        label: answerOption.label,
+                        value: answerOption.value
+                    });
+                }
             }
-        });
+        }
+
         return answers;
     }
 
@@ -107,20 +140,26 @@ export class URLHashManager {
      * @param {Array} answerOptions - Die verfügbaren Antwortoptionen mit Werten
      * @returns {Object} Scores nach Kategorien
      */
-    static calculateScores(answers, questions, answerOptions) {
+    static calculateScores(answers, questions, config) {
         const scores = {};
         
-        Object.entries(answers).forEach(([questionId, answerIndex]) => {
-            const question = questions.find(q => q.id === questionId);
-            const answerOption = answerOptions[parseInt(answerIndex, 10)];
-            
-            if (question && answerOption) {
+        // Initialize all categories with 0
+        Object.keys(config.categories).forEach(category => {
+            scores[category] = 0;
+        });
+
+        // Process each answer
+        answers.forEach((answer) => {
+            // Find the question data based on questionId
+            const question = questions.find(q => q.id === answer.questionId);
+            if (question && answer.value !== undefined) {
                 const category = question.category;
-                const score = answerOption.value;
-                scores[category] = (scores[category] || 0) + score;
+                if (scores.hasOwnProperty(category)) {
+                    scores[category] += answer.value;
+                }
             }
         });
-        
+
         return scores;
     }
 

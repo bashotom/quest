@@ -11,8 +11,12 @@ export class RadarGrid {
      * @returns {Object} SVG and g elements
      */
     static initializeSVG(containerId, config) {
+        console.log('RadarGrid.initializeSVG called with:', containerId, 'existing content:', d3.select(containerId).node()?.innerHTML?.length || 0);
+        
         // Remove any existing chart
         d3.select(containerId).select("svg").remove();
+        
+        console.log('RadarGrid.initializeSVG after removal:', d3.select(containerId).node()?.innerHTML?.length || 0);
 
         // Create SVG
         const svg = d3.select(containerId).append("svg")

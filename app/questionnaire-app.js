@@ -165,10 +165,14 @@ export class QuestionnaireApp {
             this.elements.shareLinkInput.value = window.location.href;
         }
         
-        // Chart rendern mit kurzer Verzögerung
-        setTimeout(() => {
-            ChartRenderer.render(chartType, scores, this.questions, this.config);
-        }, 50);
+        // Ensure evaluation page is visible before rendering chart
+        const evaluationPage = this.elements.evaluationPage;
+        if (evaluationPage.classList.contains('hidden')) {
+            setTimeout(() => this.renderEvaluation(scores), 100);
+            return;
+        }
+        
+        ChartRenderer.render(chartType, scores, this.questions, this.config);
     }
     
     // Event Handlers
@@ -197,7 +201,13 @@ export class QuestionnaireApp {
         document.getElementById('quiz-form')?.addEventListener('submit', (event) => {
             this.formHandler.handleSubmit(event, (scores) => {
                 this.showEvaluation();
-                setTimeout(() => this.renderEvaluation(scores), 50);
+                
+                // Wait for UI transition to complete
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        this.renderEvaluation(scores);
+                    });
+                });
             });
         });
 

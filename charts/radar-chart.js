@@ -62,10 +62,11 @@ export class RadarChart {
         // Render legend for mobile
         RadarLegend.render(id, finalConfig);
         
-        // Setup responsive handling
-        RadarResponsive.setup(id, data, options, (containerId, chartData, chartOptions) => {
-            new RadarChart(this.container, this.config).render(containerId, chartData, chartOptions);
-        });
+        // DISABLED: Responsive handling to prevent race conditions
+        // Since we recreate charts completely on each update, resize handling is not needed
+        // RadarResponsive.setup(id, data, options, (containerId, chartData, chartOptions) => {
+        //     new RadarChart(this.container, this.config).render(containerId, chartData, chartOptions);
+        // });
         
         // Store reference to grid update function for responsive updates
         this.gridUpdate = gridResult;

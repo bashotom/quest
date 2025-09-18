@@ -7,12 +7,19 @@ import { RadarChart } from './radar-chart.js';
  */
 export class ChartRenderer {
     static currentRenderingId = 0;
+    static activeTimeouts = new Set();
     
     /**
      * Main chart rendering method with interference prevention
      */
     static render(chartType, scores, questions, config) {
         const renderingId = ++ChartRenderer.currentRenderingId;
+        
+        // Cancel all previous timeouts to prevent race conditions
+        ChartRenderer.activeTimeouts.forEach(timeoutId => {
+            clearTimeout(timeoutId);
+        });
+        ChartRenderer.activeTimeouts.clear();
         
         // Hide all containers to prevent interference
         ChartRenderer.hideAllContainers();
@@ -37,18 +44,31 @@ export class ChartRenderer {
     }
     
     /**
-     * Render Radar Chart in dedicated container
+     * Render Radar Chart in dedicated container with complete DOM recreation
      */
     static renderRadarChart(scores, renderingId, questions, config) {
         const radarContainer = document.getElementById('radar-chart-container');
         if (!radarContainer) return;
         
         radarContainer.classList.remove('hidden');
-        const chartElement = document.getElementById('radarChart');
-        if (!chartElement) return;
         
-        // Wait for DOM update
-        setTimeout(() => {
+        // COMPLETE DOM RECREATION: Remove and recreate the entire chart element
+        const oldChartElement = document.getElementById('radarChart');
+        if (oldChartElement) {
+            oldChartElement.remove();
+        }
+        
+        // Create completely new chart element
+        const newChartElement = document.createElement('div');
+        newChartElement.id = 'radarChart';
+        newChartElement.className = 'w-full h-full';
+        radarContainer.appendChild(newChartElement);
+        
+        // Use managed timeout to prevent race conditions
+        const timeoutId = setTimeout(() => {
+            // Remove from active timeouts
+            ChartRenderer.activeTimeouts.delete(timeoutId);
+            
             if (renderingId !== ChartRenderer.currentRenderingId) {
                 return;
             }
@@ -76,8 +96,8 @@ export class ChartRenderer {
             ];
 
             const screenWidth = window.innerWidth;
-            const containerWidth = chartElement.offsetWidth || 600;
-            const containerHeight = chartElement.offsetHeight || 400;
+            const containerWidth = newChartElement.offsetWidth || 600;
+            const containerHeight = newChartElement.offsetHeight || 400;
 
             const options = {
                 margin: screenWidth < 640 ? 
@@ -95,14 +115,16 @@ export class ChartRenderer {
             };
 
             try {
-                const radarChart = new RadarChart(chartElement, config);
-                chartElement.innerHTML = ''; // Clear container
+                const radarChart = new RadarChart(newChartElement, config);
                 radarChart.render('#radarChart', chartData, options);
             } catch (error) {
                 console.error('Error creating radar chart:', error);
                 ChartRenderer.renderFallbackChart(scores, renderingId, config);
             }
-        }, 100);
+        }, 50);
+        
+        // Track the timeout so it can be cancelled
+        ChartRenderer.activeTimeouts.add(timeoutId);
     }
     
     /**

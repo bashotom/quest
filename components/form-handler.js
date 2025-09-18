@@ -12,8 +12,24 @@ export class FormHandler {
     handleSubmit(event, onSuccess) {
         event.preventDefault();
         
-        const answers = URLHashManager.collectAnswersFromForm(this.questions);
-        const incomplete = this.questions.filter(q => !(q.id in answers));
+        // Pass both questions and config to collectAnswersFromForm
+        const answersArray = URLHashManager.collectAnswersFromForm(this.questions, this.config);
+        
+        // Safety check
+        if (!Array.isArray(answersArray)) {
+            console.error('answersArray is not an array:', answersArray);
+            return false;
+        }
+        
+        // Convert array to object for validation
+        const answersObject = {};
+        answersArray.forEach(answer => {
+            if (answer && answer.questionId && answer.value !== undefined) {
+                answersObject[answer.questionId] = answer.value;
+            }
+        });
+        
+        const incomplete = this.questions.filter(q => !(q.id in answersObject));
         
         if (incomplete.length > 0) {
             this.showValidationErrors(incomplete);
@@ -21,8 +37,9 @@ export class FormHandler {
         }
         
         this.clearValidationErrors();
-        const scores = URLHashManager.calculateScores(answers, this.questions, this.config.answers);
-        URLHashManager.updateHash(answers);
+        
+        const scores = URLHashManager.calculateScores(answersArray, this.questions, this.config);
+        URLHashManager.updateHash(answersObject);
         
         if (onSuccess) {
             onSuccess(scores);
