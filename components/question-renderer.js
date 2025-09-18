@@ -26,12 +26,16 @@ export class QuestionRenderer {
             QuestionRenderer.setAnswers(currentAnswers);
         }
         
-        // Apply colors to already selected answers in table mode
+        // Apply colors to already selected answers based on effective mode
         const effectiveMode = QuestionRenderer.getEffectiveDisplayMode(displayMode);
         if (effectiveMode === 'column') {
             QuestionRenderer.applyAnswerColors(config);
         } else {
-            // Apply colors in inline mode (done automatically in setupInlineChangeListeners)
+            // Apply colors in inline mode for existing selections
+            // Use a longer timeout to ensure DOM is fully rendered
+            setTimeout(() => {
+                QuestionRenderer.applyInlineAnswerColors(config);
+            }, 50);
         }
     }
     
@@ -51,6 +55,8 @@ export class QuestionRenderer {
             const radio = document.querySelector(`input[name="question-${questionId}"][value="${answerIndex}"]`);
             if (radio) {
                 radio.checked = true;
+                // Trigger change event for inline mode color application
+                radio.dispatchEvent(new Event('change', { bubbles: true }));
             }
         });
     }
@@ -231,11 +237,10 @@ export class QuestionRenderer {
                     if (newMode === 'column') {
                         QuestionRenderer.applyAnswerColors(config);
                     } else {
-                        // For inline mode, the setupInlineChangeListeners is already called in renderInlineMode
-                        // But we need to apply colors for restored answers
+                        // For inline mode, ensure colors are applied with proper timing
                         setTimeout(() => {
                             QuestionRenderer.applyInlineAnswerColors(config);
-                        }, 10);
+                        }, 50);
                     }
                 }
             }, 150); // 150ms throttle
