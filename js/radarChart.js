@@ -16,7 +16,7 @@ function RadarChart(id, data, options) {
     };
 
     // Adjust dimensions for critical screen widths to prevent label clipping
-    if (window.innerWidth >= 650 && window.innerWidth <= 750) {
+    if (window.innerWidth >= 650 && window.innerWidth <= 766) {
         cfg.w = 700; // Increase width for better label visibility
         cfg.h = 700; // Keep proportional
         cfg.margin.left = 70;
