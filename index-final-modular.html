@@ -83,6 +83,37 @@
         .radar-chart .radarArea {
             filter: url(#glow);
         }
+
+        /* Gauge Chart Styles */
+        .gauge-chart {
+            background: white;
+            border-radius: 0.5rem;
+        }
+        
+        .gauge-chart text {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gauge-needle {
+            stroke: #1f2937;
+            stroke-width: 3px;
+            stroke-linecap: round;
+        }
+        
+        .gauge-center {
+            fill: #1f2937;
+        }
+        
+        .gauge-track {
+            fill: #e5e7eb;
+            stroke: #d1d5db;
+            stroke-width: 1px;
+        }
+        
+        .gauge-fill {
+            fill: #3b82f6;
+            filter: url(#glow-gauge);
+        }
     </style>
 </head>
 <body>
@@ -641,8 +672,175 @@
         }
 
         function renderGaugeChart(scores, container) {
-            // Implementierung für Gauge Chart
-            renderFallbackChart(scores, container);
+            // Container leeren
+            container.innerHTML = '';
+            
+            // Erste Kategorie für Gauge verwenden
+            const firstCategoryKey = Object.keys(config.categories)[0];
+            const value = scores[firstCategoryKey] || 0;
+            const categoryLabel = config.categories[firstCategoryKey];
+            
+            // Berechne Maximalwert für diese Kategorie
+            const categoryQuestions = questions.filter(q => q.category === firstCategoryKey);
+            const maxAnswer = Math.max(...config.answers.map(a => a.value));
+            const maxScore = categoryQuestions.length * maxAnswer;
+            
+            // Container-Dimensionen
+            const containerWidth = container.offsetWidth;
+            const containerHeight = container.offsetHeight;
+            const size = Math.min(containerWidth, containerHeight);
+            const radius = (size / 2) - 60;
+            
+            // SVG erstellen
+            const svg = d3.select(container)
+                .append("svg")
+                .attr("width", containerWidth)
+                .attr("height", containerHeight);
+            
+            const g = svg.append("g")
+                .attr("transform", `translate(${containerWidth/2},${containerHeight/2 + 20})`);
+            
+            // EINFACHE GAUGE - wie ein Tachometer
+            // Start bei 225° (links unten), Ende bei 315° (rechts unten)
+            // Das ergibt einen oberen Halbkreis + etwas mehr
+            const startAngleDeg = 225; // Links unten
+            const endAngleDeg = 315;   // Rechts unten  
+            const totalAngleDeg = endAngleDeg - startAngleDeg; // 90°
+            
+            // In Radiant umrechnen
+            const startAngle = (startAngleDeg * Math.PI) / 180;
+            const endAngle = (endAngleDeg * Math.PI) / 180;
+            
+            // Wert-Position berechnen
+            const valueRatio = Math.min(value / maxScore, 1);
+            const valueAngleDeg = startAngleDeg + valueRatio * totalAngleDeg;
+            const valueAngle = (valueAngleDeg * Math.PI) / 180;
+            
+            // TEST: Zeige einzelne Bögen zur Überprüfung
+            console.log(`VALUE: ${value} von ${maxScore} (${(value/maxScore*100).toFixed(1)}%)`);
+            console.log(`Background arc: from ${startAngleDeg}° to ${endAngleDeg}°`);
+            console.log(`Value arc: from ${startAngleDeg}° to ${valueAngleDeg}°`);
+            console.log(`Start angle (rad): ${startAngle}, End angle (rad): ${endAngle}, Value angle (rad): ${valueAngle}`);
+            
+            // Hintergrund-Arc (grau) - mit Transformation um die Winkel zu korrigieren
+            const backgroundArc = d3.arc()
+                .innerRadius(radius * 0.7)
+                .outerRadius(radius * 0.9)
+                .startAngle(startAngle)
+                .endAngle(endAngle);
+            
+            g.append("path")
+                .attr("d", backgroundArc)
+                .attr("transform", "rotate(90)") // 90° drehen um mit Tickmarks zu synchronisieren
+                .style("fill", "#e5e7eb");
+            
+            // Wert-Arc (blau)
+            if (valueRatio > 0) {
+                const valueArc = d3.arc()
+                    .innerRadius(radius * 0.7)
+                    .outerRadius(radius * 0.9)
+                    .startAngle(startAngle)
+                    .endAngle(valueAngle);
+                
+                console.log(`Blue arc: from ${startAngleDeg}° to ${valueAngleDeg}° (${(valueAngleDeg - startAngleDeg).toFixed(1)}° span)`);
+                
+                g.append("path")
+                    .attr("d", valueArc)
+                    .attr("transform", "rotate(90)") // 90° drehen um mit Zeiger zu synchronisieren
+                    .style("fill", "#3b82f6");
+            }
+            
+            // Skala-Markierungen: 0, 5, 10
+            const scaleAngles = [225, 270, 315]; // Links unten, oben, rechts unten
+            const scaleValues = [0, Math.round(maxScore/2), maxScore];
+            
+            scaleAngles.forEach((angleDeg, i) => {
+                const angle = (angleDeg * Math.PI) / 180;
+                const x = Math.cos(angle) * (radius * 0.6);
+                const y = Math.sin(angle) * (radius * 0.6);
+                
+                // Tick-Linie
+                g.append("line")
+                    .attr("x1", Math.cos(angle) * (radius * 0.68))
+                    .attr("y1", Math.sin(angle) * (radius * 0.68))
+                    .attr("x2", Math.cos(angle) * (radius * 0.92))
+                    .attr("y2", Math.sin(angle) * (radius * 0.92))
+                    .style("stroke", "#374151")
+                    .style("stroke-width", "2px");
+                
+                // Label
+                g.append("text")
+                    .attr("x", x)
+                    .attr("y", y)
+                    .attr("text-anchor", "middle")
+                    .attr("dominant-baseline", "central")
+                    .style("font-size", "14px")
+                    .style("font-weight", "600")
+                    .style("font-family", "Inter, sans-serif")
+                    .style("fill", "#1f2937")
+                    .text(scaleValues[i]);
+            });
+            
+            // Zeiger (Nadel)
+            const needleX = Math.cos(valueAngle) * (radius * 0.8);
+            const needleY = Math.sin(valueAngle) * (radius * 0.8);
+            
+            g.append("line")
+                .attr("x1", 0)
+                .attr("y1", 0)
+                .attr("x2", needleX)
+                .attr("y2", needleY)
+                .style("stroke", "#1f2937")
+                .style("stroke-width", "3px")
+                .style("stroke-linecap", "round");
+            
+            // Mittelpunkt
+            g.append("circle")
+                .attr("cx", 0)
+                .attr("cy", 0)
+                .attr("r", 8)
+                .style("fill", "#1f2937");
+            
+            // Wert-Anzeige
+            g.append("text")
+                .attr("x", 0)
+                .attr("y", radius * 0.4)
+                .attr("text-anchor", "middle")
+                .style("font-size", "2.5rem")
+                .style("font-weight", "bold")
+                .style("font-family", "Inter, sans-serif")
+                .style("fill", "#3b82f6")
+                .text(value);
+            
+            g.append("text")
+                .attr("x", 0)
+                .attr("y", radius * 0.4 + 30)
+                .attr("text-anchor", "middle")
+                .style("font-size", "1rem")
+                .style("font-family", "Inter, sans-serif")
+                .style("fill", "#6b7280")
+                .text(`von ${maxScore}`);
+            
+            // Kategorie-Label
+            g.append("text")
+                .attr("x", 0)
+                .attr("y", radius * 0.6)
+                .attr("text-anchor", "middle")
+                .style("font-size", "1.1rem")
+                .style("font-family", "Inter, sans-serif")
+                .style("fill", "#374151")
+                .text(categoryLabel);
+            
+            // Prozentsatz
+            const percentage = Math.round((value / maxScore) * 100);
+            g.append("text")
+                .attr("x", 0)
+                .attr("y", radius * 0.6 + 25)
+                .attr("text-anchor", "middle")
+                .style("font-size", "1rem")
+                .style("font-family", "Inter, sans-serif")
+                .style("fill", "#6b7280")
+                .text(`${percentage}%`);
         }
 
         function renderBarChart(scores, container) {
