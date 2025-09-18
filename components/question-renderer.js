@@ -41,9 +41,19 @@ export class QuestionRenderer {
     }
     
     static renderTableMode(questions, config, container) {
-        const fewAnswers = config.answers?.length === 2;
+        const numAnswers = config.answers?.length || 4;
+        const fewAnswers = numAnswers === 2;
+        
+        // Calculate equal widths for answer columns
+        let answerThClass;
+        if (fewAnswers) {
+            answerThClass = 'w-1/8'; // For 2 answers, keep existing behavior
+        } else {
+            // For 3+ answers, ensure equal column widths using flexbox approach
+            answerThClass = 'flex-1 min-w-0'; // Equal flex columns with minimum width
+        }
+        
         const frageThClass = fewAnswers ? 'w-3/4' : 'w-1/2';
-        const answerThClass = fewAnswers ? 'w-1/8' : 'w-1/' + (config.answers?.length || 4);
         const headerRepeatRows = config.input?.header_repeating_rows || 0;
 
         // Header-Template erstellen
@@ -71,15 +81,27 @@ export class QuestionRenderer {
                 html += `</tbody><thead class="bg-gray-50">${headerTemplate}</thead><tbody class="bg-white divide-y divide-gray-200">`;
             }
 
-            html += `<tr class="hover:bg-gray-50"><td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm text-gray-900">${question.text}</td>`;
+            html += `<tr class="hover:bg-gray-50"><td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${question.text}</td>`;
             
-            config.answers?.forEach((answer, answerIndex) => {
-                html += `
-                    <td class="px-2 py-2 sm:px-4 sm:py-4 text-center cursor-pointer" onclick="selectRadio('${question.id}', '${answerIndex}')">
-                        <input type="radio" name="question-${question.id}" value="${answerIndex}" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 mx-auto">
-                    </td>
-                `;
-            });
+            if (fewAnswers) {
+                // For 2 answers, use separate cells
+                config.answers?.forEach((answer, answerIndex) => {
+                    html += `
+                        <td class="px-2 py-2 sm:px-4 sm:py-4 text-center cursor-pointer hover:bg-blue-50 transition-colors duration-150" onclick="selectRadio('${question.id}', '${answerIndex}')">
+                            <input type="radio" name="question-${question.id}" value="${answerIndex}" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 mx-auto">
+                        </td>
+                    `;
+                });
+            } else {
+                // For 3+ answers, use flexbox within single cell for equal spacing
+                config.answers?.forEach((answer, answerIndex) => {
+                    html += `
+                        <td class="px-2 py-2 sm:px-4 sm:py-4 text-center cursor-pointer hover:bg-blue-50 transition-colors duration-150" onclick="selectRadio('${question.id}', '${answerIndex}')">
+                            <input type="radio" name="question-${question.id}" value="${answerIndex}" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 mx-auto">
+                        </td>
+                    `;
+                });
+            }
             
             html += '</tr>';
         });
