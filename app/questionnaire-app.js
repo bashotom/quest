@@ -1,0 +1,301 @@
+import { QuestionnaireLoader } from '../services/questionnaire-loader.js';
+import { URLHashManager } from '../utils/url-hash-manager.js';
+import { ChartRenderer } from '../charts/chart-renderer.js';
+import { QuestionRenderer } from '../components/question-renderer.js';
+import { FormHandler } from '../components/form-handler.js';
+
+/**
+ * QuestionnaireApp - Main application class
+ * Manages the entire questionnaire application lifecycle
+ */
+export class QuestionnaireApp {
+    constructor() {
+        this.questions = [];
+        this.config = {};
+        this.currentFolder = '';
+        this.formHandler = null;
+        
+        this.initializeElements();
+        this.setupEventListeners();
+    }
+    
+    initializeElements() {
+        this.elements = {
+            loading: document.getElementById('loading'),
+            error: document.getElementById('error'),
+            errorMessage: document.getElementById('error-message'),
+            appContent: document.getElementById('app-content'),
+            questionnaireForm: document.getElementById('questionnaire-form'),
+            evaluationPage: document.getElementById('evaluation-page'),
+            shareLinkInput: document.getElementById('share-link'),
+            copyButton: document.getElementById('copy-button'),
+            backButton: document.getElementById('back-button'),
+            backButtonTop: document.getElementById('back-button-top'),
+            questionnaireTitle: document.getElementById('questionnaire-title'),
+            questionnaireDescription: document.getElementById('questionnaire-description'),
+            questionnaireMenu: document.getElementById('questionnaire-menu')
+        };
+    }
+    
+    setupEventListeners() {
+        // Hash change listener
+        URLHashManager.onHashChange(() => this.handleHashChange());
+        
+        // Global error handlers
+        window.addEventListener('error', (event) => {
+            console.error('Global Error:', event.error);
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Unhandled Promise Rejection:', event.reason);
+        });
+    }
+    
+    // Utility Methods
+    showError(message) {
+        this.elements.loading.style.display = 'none';
+        this.elements.appContent.style.display = 'none';
+        this.elements.error.style.display = 'block';
+        this.elements.errorMessage.textContent = message;
+    }
+
+    showContent() {
+        this.elements.loading.style.display = 'none';
+        this.elements.error.style.display = 'none';
+        this.elements.appContent.style.display = 'block';
+    }
+    
+    showForm() {
+        this.elements.questionnaireForm.classList.remove('hidden');
+        this.elements.evaluationPage.classList.add('hidden');
+        
+        // Buttons wieder anzeigen
+        ['min-answers-btn', 'random-answers-btn', 'max-answers-btn'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.style.display = '';
+        });
+        
+        // Navigation Menu wieder anzeigen
+        if (this.elements.questionnaireMenu && this.elements.questionnaireMenu.parentElement) {
+            this.elements.questionnaireMenu.parentElement.style.display = '';
+        }
+    }
+
+    showEvaluation() {
+        this.elements.questionnaireForm.classList.add('hidden');
+        this.elements.evaluationPage.classList.remove('hidden');
+        
+        // Buttons ausblenden
+        ['min-answers-btn', 'random-answers-btn', 'max-answers-btn'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.style.display = 'none';
+        });
+        
+        // Navigation Menu ausblenden
+        if (this.elements.questionnaireMenu && this.elements.questionnaireMenu.parentElement) {
+            this.elements.questionnaireMenu.parentElement.style.display = 'none';
+        }
+        
+        // DOM-Update abwarten
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                window.dispatchEvent(new Event('resize'));
+            });
+        });
+    }
+    
+    // UI Rendering
+    renderMenu() {
+        this.elements.questionnaireMenu.innerHTML = '';
+        const folders = QuestionnaireLoader.getQuestionnaireFolders();
+        
+        folders.forEach(folder => {
+            const li = document.createElement('li');
+            const link = document.createElement('a');
+            link.href = `?q=${folder.folder}`;
+            link.textContent = folder.name;
+            link.className = `px-4 py-2 rounded-lg ${folder.folder === this.currentFolder ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-blue-100'}`;
+            link.addEventListener('click', (e) => this.handleMenuNavigation(e, folder.folder));
+            li.appendChild(link);
+            this.elements.questionnaireMenu.appendChild(li);
+        });
+    }
+    
+    renderForm() {
+        this.elements.questionnaireForm.innerHTML = `
+            <div class="mb-4 flex justify-center gap-4">
+                <button type="button" id="btn-column" class="border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Tabellen-Modus</button>
+                <button type="button" id="btn-inline" class="border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Karten-Modus</button>
+            </div>
+            <p id="error-message" class="text-red-600 text-sm mb-4 hidden"></p>
+            <form id="quiz-form">
+                <div class="mb-6 sm:mb-8 flex justify-center">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 text-sm sm:text-base">
+                        Fragebogen auswerten
+                    </button>
+                </div>
+                <div class="questionnaire-table-scroll overflow-x-auto rounded-lg border border-gray-200 -mx-4 sm:mx-0">
+                    <div id="questions-container"></div>
+                </div>
+                <div class="mt-6 sm:mt-8 flex justify-center">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 text-sm sm:text-base">
+                        Fragebogen auswerten
+                    </button>
+                </div>
+            </form>
+        `;
+
+        this.renderQuestions();
+        this.setupFormEvents();
+    }
+    
+    renderQuestions() {
+        const container = document.getElementById('questions-container');
+        QuestionRenderer.render(this.questions, this.config, container);
+        
+        URLHashManager.setAnswersFromHash(this.questions);
+    }
+    
+    renderEvaluation(scores) {
+        console.log(`🎨 Chart rendering started - Type: ${this.config.chart?.type || 'radar'}`);
+        
+        const chartType = this.config.chart?.type || 'radar';
+        
+        // Share link aktualisieren
+        if (this.elements.shareLinkInput) {
+            this.elements.shareLinkInput.value = window.location.href;
+        }
+        
+        // Chart rendern mit kurzer Verzögerung
+        setTimeout(() => {
+            ChartRenderer.render(chartType, scores, this.questions, this.config);
+        }, 50);
+    }
+    
+    // Event Handlers
+    setupFormEvents() {
+        // Display mode buttons
+        document.getElementById('btn-column')?.addEventListener('click', () => {
+            localStorage.setItem('displayMode', 'column');
+            this.renderQuestions();
+        });
+
+        document.getElementById('btn-inline')?.addEventListener('click', () => {
+            localStorage.setItem('displayMode', 'inline');
+            this.renderQuestions();
+        });
+
+        // Form handler
+        this.formHandler = new FormHandler(this.questions, this.config);
+        this.formHandler.setupRadioChangeListeners();
+        
+        // Form submission
+        document.getElementById('quiz-form')?.addEventListener('submit', (event) => {
+            this.formHandler.handleSubmit(event, (scores) => {
+                this.showEvaluation();
+                setTimeout(() => this.renderEvaluation(scores), 50);
+            });
+        });
+
+        // Answer buttons
+        document.getElementById('min-answers-btn')?.addEventListener('click', () => 
+            QuestionRenderer.setAllAnswers(this.questions, 'min'));
+        document.getElementById('random-answers-btn')?.addEventListener('click', () => 
+            QuestionRenderer.setAllAnswers(this.questions, 'random'));
+        document.getElementById('max-answers-btn')?.addEventListener('click', () => 
+            QuestionRenderer.setAllAnswers(this.questions, 'max'));
+
+        // Back and copy buttons
+        this.elements.backButton?.addEventListener('click', () => {
+            this.showForm();
+            window.history.replaceState(null, null, window.location.pathname + window.location.search);
+        });
+
+        this.elements.backButtonTop?.addEventListener('click', () => {
+            this.showForm();
+            window.history.replaceState(null, null, window.location.pathname + window.location.search);
+        });
+
+        this.elements.copyButton?.addEventListener('click', () => {
+            this.elements.shareLinkInput.select();
+            navigator.clipboard.writeText(this.elements.shareLinkInput.value).then(() => {
+                this.elements.copyButton.textContent = 'Kopiert!';
+                setTimeout(() => this.elements.copyButton.textContent = 'Kopieren', 2000);
+            }).catch(err => console.error('Fehler beim Kopieren:', err));
+        });
+    }
+    
+    handleMenuNavigation(event, folder) {
+        event.preventDefault();
+        
+        const url = new URL(window.location);
+        url.searchParams.set('q', folder);
+        url.hash = '';
+        window.history.pushState(null, null, url);
+        
+        this.currentFolder = folder;
+        this.loadQuestionnaire();
+    }
+
+    handleHashChange() {
+        if (!this.questions || this.questions.length === 0 || !this.config) {
+            return;
+        }
+        
+        const scores = URLHashManager.parseScoresFromHash(this.questions);
+        if (scores) {
+            this.renderEvaluation(scores);
+            this.showEvaluation();
+        } else {
+            this.showForm();
+            URLHashManager.setAnswersFromHash(this.questions);
+        }
+    }
+    
+    // Main Application Methods
+    async loadQuestionnaire() {
+        try {
+            this.currentFolder = QuestionnaireLoader.getActiveQuestionnaire();
+            const data = await QuestionnaireLoader.loadQuestionnaire(this.currentFolder);
+            
+            this.questions = data.questions;
+            this.config = data.config;
+            
+            // Update meta info
+            this.elements.questionnaireTitle.textContent = this.config.title;
+            this.elements.questionnaireDescription.textContent = this.config.description;
+            
+            this.renderMenu();
+            this.renderForm();
+            
+            // Check for existing answers in hash
+            const scores = URLHashManager.parseScoresFromHash(this.questions);
+            if (scores) {
+                this.renderEvaluation(scores);
+                this.showEvaluation();
+            } else {
+                this.showForm();
+            }
+            
+            this.showContent();
+            
+        } catch (error) {
+            console.error('Error loading questionnaire:', error);
+            this.showError(error.message);
+        }
+    }
+    
+    // Initialize application
+    async init() {
+        await this.loadQuestionnaire();
+    }
+}
+
+// Global function for table mode (backward compatibility)
+window.selectRadio = function(qid, aval) {
+    const radio = document.querySelector(`input[name='question-${qid}'][value='${aval}']`);
+    if (radio) {
+        radio.checked = true;
+        radio.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+};

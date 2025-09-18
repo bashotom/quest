@@ -2,25 +2,107 @@
 
 ## Project Overview
 - **Type:** Dynamic questionnaire web app (single-page, no build step)
-- **Main UI/Logic:** `index.html` (HTML, JS, TailwindCSS, Chart.js)
+- **Architecture:** Modular ES6 structure with dedicated modules (Sep 2025 refactor)
+- **Main Entry:** `index.html` (~160 lines) + `app/questionnaire-app.js` (main orchestrator)
 - **Questionnaires:** Located in `quests/<name>/` (each with `questions.txt` and `config.json`)
 - **No backend/server**: All logic is client-side, fetches static files
 
-## Key Components
-- `index.html`: Contains all JavaScript for loading, rendering, evaluating, and charting questionnaires. No external JS files.
-- `quests/`: Each subfolder (e.g. `autonomie`, `ace`) is a questionnaire with:
-  - `questions.txt`: Pipe-separated lines (`<ID>|<Fragetext>`) for each question
-  - `config.json`: JSON with `title`, `description`, `answers`, `categories`, `chart`, and `input` options
+## Modular Architecture (Version 2.0 - Sep 2025)
 
-## Data Flow
-- On load, JS fetches `questions.txt` and `config.json` for the selected questionnaire
-- Questions and config are parsed in JS, then rendered as a table with radio buttons
-- User answers are stored in the URL hash for persistence/sharing
-- On submit, results are evaluated and shown as a chart (radar/bar/gauge via Chart.js)
+### Key Modules
+- **`index.html`**: HTML structure + ES6 module bootstrapping (no inline JS logic)
+- **`app/questionnaire-app.js`**: Main application class, orchestrates all modules
+- **`components/question-renderer.js`**: UI rendering (table/card mode)
+- **`components/form-handler.js`**: Form validation, error handling
+- **`charts/chart-renderer.js`**: Chart management with container isolation
+- **`charts/gauge-chart.js`**: D3.js gauge chart implementation
+- **`css/styles.css`**: All styles (extracted from index.html)
+- **`services/questionnaire-loader.js`**: Data loading service
+- **`utils/url-hash-manager.js`**: URL hash persistence
+
+### Module Responsibilities
+
+#### QuestionnaireApp (Main Orchestrator)
+```javascript
+import { QuestionnaireApp } from './app/questionnaire-app.js';
+const app = new QuestionnaireApp();
+app.init();
+```
+- **Role**: Central application state management
+- **Coordinates**: All other modules, event listeners, navigation
+- **Owns**: Application lifecycle, DOM element references
+
+#### ChartRenderer (Chart Management)
+```javascript
+ChartRenderer.render(chartType, scores, questions, config);
+```
+- **Role**: Chart rendering with interference prevention
+- **Implements**: Container isolation pattern (radar/gauge/bar containers)
+- **Manages**: Chart-specific rendering logic, DOM cleanup
+
+#### QuestionRenderer (UI Components)
+```javascript
+QuestionRenderer.render(questions, config, container);
+```
+- **Role**: Form UI generation (table mode vs. card mode)
+- **Handles**: Display mode switching, answer persistence
+- **Supports**: Both table and inline card layouts
+
+#### FormHandler (Validation & Errors)
+```javascript
+const handler = new FormHandler(questions, config);
+handler.handleSubmit(event, onSuccessCallback);
+```
+- **Role**: Form submission, validation, error highlighting
+- **Features**: Visual error marking, smooth scroll to errors
+- **Manages**: Radio button change listeners, validation state
+
+## Data Flow (Modular Version)
+- **Bootstrap**: `index.html` loads `QuestionnaireApp` via ES6 import
+- **Initialization**: QuestionnaireApp coordinates all services and components  
+- **Data Loading**: QuestionnaireLoader fetches `questions.txt` and `config.json`
+- **UI Rendering**: QuestionRenderer generates form based on display mode
+- **Form Handling**: FormHandler manages validation and submission
+- **Chart Rendering**: ChartRenderer selects appropriate chart type and container
+- **Persistence**: URLHashManager handles URL hash for sharing/bookmarking
 
 ## Patterns & Conventions
+
+### ES6 Module Pattern
+```javascript
+// Module exports
+export class ChartRenderer { ... }
+export { QuestionRenderer };
+
+// Module imports  
+import { QuestionnaireApp } from './app/questionnaire-app.js';
+import { ChartRenderer } from '../charts/chart-renderer.js';
+```
+
+### Container Isolation Pattern (Chart Interference Prevention)
+```javascript
+// Each chart type has dedicated container
+document.getElementById('radar-chart-container');
+document.getElementById('gauge-chart-container'); 
+document.getElementById('bar-chart-container');
+
+// ChartRenderer automatically manages container visibility
+ChartRenderer.render(chartType, scores, questions, config);
+```
+
+### Consistent Module Structure
+```javascript
+export class ModuleName {
+    constructor(dependencies) { ... }           // Dependency injection
+    static render(data, container) { ... }      // Static rendering methods
+    handleEvent(event) { ... }                  // Instance event handlers
+    static setupEventListeners() { ... }        // Static setup methods
+}
+```
+
+### Legacy Compatibility
 - **Dynamic menu**: Top menu is generated from available folders in `quests/`
-- **JSON parsing**: Native JSON.parse() in `index.html` (no external library)
+- **JSON parsing**: Native JSON.parse() (no external library needed)
 - **Answer mapping**: `answers` in JSON define both label and value (e.g. `{"Ja": 1}`)
 - **Categories**: Each question's ID prefix (e.g. `A1`) maps to a category in JSON
 - **Chart type**: Controlled by `chart.type` in JSON (`radar`, `bar`, `gauge`)
@@ -99,10 +181,59 @@ scaleAngles.forEach((angleDeg) => {
 4. ✅ Tick marks use SAME coordinate system as arcs/pointer
 5. ✅ No mixing of SVG transforms with mathematical rotations
 
-## Examples
-- To add a new questionnaire: create a new folder in `quests/` with `questions.txt` and `config.json`
-- To change answer options or chart type: edit the relevant `config.json`
-- To change UI logic: edit JS in `index.html` (all logic is inline)
+## Examples (Modular Approach)
+
+### Adding a New Questionnaire
+```bash
+# Create new questionnaire folder
+mkdir quests/new-questionnaire
+echo "A1|Sample question text" > quests/new-questionnaire/questions.txt
+# Create config.json with same structure as existing questionnaires
+```
+
+### Adding a New Chart Type
+```javascript
+// 1. Create new chart module: charts/new-chart.js
+export class NewChart {
+    constructor(container, config) { ... }
+    render(data) { ... }
+}
+
+// 2. Extend ChartRenderer in charts/chart-renderer.js  
+import { NewChart } from './new-chart.js';
+// Add case 'newtype': return ChartRenderer.renderNewChart(...)
+
+// 3. Add container in index.html
+<div id="new-chart-container" class="chart-type-container w-full h-full hidden">
+    <div id="newChart" class="w-full h-full"></div>
+</div>
+```
+
+### Extending Components
+```javascript
+// Extend QuestionRenderer for new display mode
+static renderCustomMode(questions, config, container) {
+    // Custom rendering logic
+}
+
+// Extend FormHandler for new validation
+validateCustomLogic(questions) {
+    // Custom validation
+}
+```
+
+### Debugging Module Issues
+```javascript
+// Check module loading
+console.log('Module loaded:', typeof QuestionnaireApp);
+
+// Check component initialization  
+const app = new QuestionnaireApp();
+console.log('App initialized:', app);
+
+// Check chart rendering
+ChartRenderer.currentRenderingId // Should increment on each render
+```
 
 ## External Dependencies
 - [TailwindCSS](https://cdn.tailwindcss.com) (CDN)
@@ -111,11 +242,14 @@ scaleAngles.forEach((angleDeg) => {
 
 ## Project-Specific Advice
 - Do not add a build step or server logic
-- Keep all questionnaire logic in `index.html` (no splitting into modules)
-- When adding config options, update both the JSON parser and the render logic
-- Use only static file fetches for data (no dynamic API calls)
 - Maintain compatibility with existing JSON/question formats
 - For gauge charts: ALWAYS use the proven D3.js pattern above to avoid coordinate system conflicts
+
+## Legacy Compatibility (Version 1.x)
+- Pre-September 2025: All logic was in `index.html` (800+ lines)
+- Post-refactor: Logic split into modules, `index.html` only ~160 lines
+- **Migration**: Existing questionnaires work without changes
+- **Global functions**: `window.selectRadio()` preserved for backward compatibility
 
 ## Chart Interference Prevention - Critical Lessons Learned (Sep 2025)
 
@@ -176,7 +310,11 @@ function renderChart(chartType) {
 - DOM isolation > JavaScript state tracking
 
 ## Key Files/Dirs
-- `index.html` — main app logic, UI, and data flow
+- `index.html` — main entry point (~160 lines), module bootstrap
+- `app/questionnaire-app.js` — main application orchestrator
+- `components/` — UI components (question-renderer, form-handler)
+- `charts/` — chart modules (chart-renderer, gauge-chart)
+- `services/` — data services (questionnaire-loader, config-parser)
 - `quests/` — all questionnaire data
 - Example: `quests/autonomie/config.json`, `quests/autonomie/questions.txt`
 
