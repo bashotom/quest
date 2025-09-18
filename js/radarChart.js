@@ -15,6 +15,14 @@ function RadarChart(id, data, options) {
         color: d3.scaleOrdinal(d3.schemeCategory10)
     };
 
+    // Adjust dimensions for critical screen widths to prevent label clipping
+    if (window.innerWidth >= 650 && window.innerWidth <= 750) {
+        cfg.w = 700; // Increase width for better label visibility
+        cfg.h = 700; // Keep proportional
+        cfg.margin.left = 70;
+        cfg.margin.right = 70;
+    }
+
     //Put all of the options into a variable called cfg
     if ('undefined' !== typeof options) {
         for (var i in options) {
@@ -188,10 +196,6 @@ function RadarChart(id, data, options) {
     tickmarkAxes.forEach(({ axis, index }) => {
         const angle = angleSlice * index - Math.PI/2;
         const isInverseAxis = chartConfig.inverseradiusvector.includes(axis.key);
-        
-        // Debug: Log axis information
-        console.log(`Debug Tickmarks: Axis ${axis.key}, Index ${index}, Angle ${angle}, AngleInDegrees ${angle * 180 / Math.PI}`);
-        console.log(`Math.cos(angle): ${Math.cos(angle)}, Math.sin(angle): ${Math.sin(angle)}`);
         
         // Für jeden Level-Wert
         d3.range(1, cfg.levels + 1).forEach(levelIndex => {
