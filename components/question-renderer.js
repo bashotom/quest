@@ -1,13 +1,20 @@
 /**
  * QuestionRenderer - Handles rendering of questionnaire forms
- * Supports both table mode and inline (card) mode
+ * Supports table mode, inline (card) mode, and responsive mode
  */
 export class QuestionRenderer {
     static render(questions, config, container) {
         const displayMode = localStorage.getItem('displayMode') || 'column';
         const currentAnswers = QuestionRenderer.collectCurrentAnswers(questions);
 
-        if (displayMode === 'column') {
+        // Clean up previous responsive listener if not in responsive mode
+        if (displayMode !== 'responsive') {
+            QuestionRenderer.cleanupResponsiveListener();
+        }
+
+        if (displayMode === 'responsive') {
+            QuestionRenderer.renderResponsiveMode(questions, config, container);
+        } else if (displayMode === 'column') {
             QuestionRenderer.renderTableMode(questions, config, container);
         } else {
             QuestionRenderer.renderInlineMode(questions, config, container);
@@ -20,7 +27,8 @@ export class QuestionRenderer {
         }
         
         // Apply colors to already selected answers in table mode
-        if (displayMode === 'column') {
+        const effectiveMode = QuestionRenderer.getEffectiveDisplayMode(displayMode);
+        if (effectiveMode === 'column') {
             QuestionRenderer.applyAnswerColors(config);
         } else {
             // Apply colors in inline mode (done automatically in setupInlineChangeListeners)
@@ -88,7 +96,7 @@ export class QuestionRenderer {
                 html += `</tbody><thead class="bg-gray-50">${headerTemplate}</thead><tbody class="bg-white divide-y divide-gray-200">`;
             }
 
-            html += `<tr class="hover:bg-gray-50"><td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${question.text}</td>`;
+            html += `<tr class="hover:bg-gray-50"><td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${index + 1}. ${question.text}</td>`;
             
             if (fewAnswers) {
                 // For 2 answers, use separate cells
@@ -129,10 +137,10 @@ export class QuestionRenderer {
     static renderInlineMode(questions, config, container) {
         let html = '<div class="space-y-4 sm:space-y-6">';
 
-        questions.forEach(question => {
+        questions.forEach((question, index) => {
             html += `
                 <div class="border border-gray-200 rounded-lg p-4 sm:p-6 bg-white">
-                    <div class="font-medium mb-3 sm:mb-4 text-sm sm:text-base text-gray-900">${question.text}</div>
+                    <div class="font-medium mb-3 sm:mb-4 text-sm sm:text-base text-gray-900">${index + 1}. ${question.text}</div>
                     <div class="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4">
             `;
 
@@ -159,18 +167,99 @@ export class QuestionRenderer {
         QuestionRenderer.setupInlineChangeListeners(config);
     }
     
+    static renderResponsiveMode(questions, config, container) {
+        // Initially render based on current screen size
+        const isLargeScreen = window.innerWidth > 900;
+        
+        if (isLargeScreen) {
+            QuestionRenderer.renderTableMode(questions, config, container);
+        } else {
+            QuestionRenderer.renderInlineMode(questions, config, container);
+        }
+        
+        // Set up resize listener for responsive behavior
+        QuestionRenderer.setupResponsiveListener(questions, config, container);
+    }
+    
+    static setupResponsiveListener(questions, config, container) {
+        // Remove existing listener if any
+        if (QuestionRenderer.resizeListener) {
+            window.removeEventListener('resize', QuestionRenderer.resizeListener);
+        }
+        
+        QuestionRenderer.resizeListener = () => {
+            const displayMode = localStorage.getItem('displayMode');
+            if (displayMode !== 'responsive') return; // Only act in responsive mode
+            
+            const currentMode = QuestionRenderer.getCurrentResponsiveMode();
+            const newMode = window.innerWidth > 900 ? 'column' : 'inline';
+            
+            if (currentMode !== newMode) {
+                // Collect current answers before re-rendering
+                const currentAnswers = QuestionRenderer.collectCurrentAnswers(questions);
+                
+                // Re-render with new mode
+                if (newMode === 'column') {
+                    QuestionRenderer.renderTableMode(questions, config, container);
+                } else {
+                    QuestionRenderer.renderInlineMode(questions, config, container);
+                }
+                
+                // Restore answers
+                if (Object.keys(currentAnswers).length > 0) {
+                    QuestionRenderer.setAnswers(currentAnswers);
+                }
+                
+                // Apply colors appropriately
+                if (newMode === 'column') {
+                    QuestionRenderer.applyAnswerColors(config);
+                }
+            }
+        };
+        
+        window.addEventListener('resize', QuestionRenderer.resizeListener);
+    }
+    
+    static getCurrentResponsiveMode() {
+        return window.innerWidth > 900 ? 'column' : 'inline';
+    }
+    
+    static getEffectiveDisplayMode(displayMode) {
+        if (displayMode === 'responsive') {
+            return QuestionRenderer.getCurrentResponsiveMode();
+        }
+        return displayMode;
+    }
+    
+    static cleanupResponsiveListener() {
+        if (QuestionRenderer.resizeListener) {
+            window.removeEventListener('resize', QuestionRenderer.resizeListener);
+            QuestionRenderer.resizeListener = null;
+        }
+    }
+    
     static updateButtonStyles() {
         const mode = localStorage.getItem('displayMode') || 'column';
         const btnColumn = document.getElementById('btn-column');
         const btnInline = document.getElementById('btn-inline');
+        const btnResponsive = document.getElementById('btn-responsive');
 
-        if (btnColumn && btnInline) {
+        if (btnColumn && btnInline && btnResponsive) {
+            // Reset all buttons to inactive state
+            const inactiveClass = 'border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm';
+            const activeClass = 'border border-blue-300 bg-blue-600 text-white font-medium py-1 px-3 rounded transition duration-150 text-sm';
+            
+            btnColumn.className = inactiveClass;
+            btnInline.className = inactiveClass;
+            btnResponsive.className = inactiveClass;
+            
+            // Set active button based on mode
             if (mode === 'column') {
-                btnColumn.className = 'border border-blue-300 bg-blue-600 text-white font-medium py-1 px-3 rounded transition duration-150 text-sm';
-                btnInline.className = 'border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm';
-            } else {
-                btnColumn.className = 'border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm';
-                btnInline.className = 'border border-blue-300 bg-blue-600 text-white font-medium py-1 px-3 rounded transition duration-150 text-sm';
+                btnColumn.className = activeClass;
+            } else if (mode === 'inline') {
+                btnInline.className = activeClass;
+            } else if (mode === 'responsive') {
+                btnResponsive.className = activeClass;
             }
         }
     }

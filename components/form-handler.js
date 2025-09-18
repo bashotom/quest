@@ -67,8 +67,9 @@ export class FormHandler {
 
     markQuestionAsIncomplete(questionId) {
         const displayMode = localStorage.getItem('displayMode') || 'column';
+        const effectiveMode = this.getEffectiveDisplayMode(displayMode);
         
-        if (displayMode === 'column') {
+        if (effectiveMode === 'column') {
             // Tabellen-Modus: Markiere die Tabellenzeile
             const row = document.querySelector(`input[name="question-${questionId}"]`)?.closest('tr');
             if (row) {
@@ -90,8 +91,9 @@ export class FormHandler {
 
     clearQuestionErrorMarking(questionId) {
         const displayMode = localStorage.getItem('displayMode') || 'column';
+        const effectiveMode = this.getEffectiveDisplayMode(displayMode);
         
-        if (displayMode === 'column') {
+        if (effectiveMode === 'column') {
             // Tabellen-Modus: Entferne Markierung von der Tabellenzeile
             const row = document.querySelector(`input[name="question-${questionId}"]`)?.closest('tr');
             if (row) {
@@ -126,5 +128,12 @@ export class FormHandler {
                 this.clearQuestionErrorMarking(questionId);
             }
         });
+    }
+    
+    getEffectiveDisplayMode(displayMode) {
+        if (displayMode === 'responsive') {
+            return window.innerWidth > 900 ? 'column' : 'inline';
+        }
+        return displayMode;
     }
 }

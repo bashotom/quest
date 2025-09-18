@@ -115,7 +115,7 @@ export class ConfigParser {
         }
 
         // Validiere Display-Modus
-        const validDisplayModes = ['column', 'inline'];
+        const validDisplayModes = ['column', 'inline', 'responsive'];
         if (config.input.display && !validDisplayModes.includes(config.input.display)) {
             errors.push(`Ungültiger Display-Modus: ${config.input.display}. Erlaubt: ${validDisplayModes.join(', ')}`);
         }

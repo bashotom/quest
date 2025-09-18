@@ -123,9 +123,10 @@ export class QuestionnaireApp {
     
     renderForm() {
         this.elements.questionnaireForm.innerHTML = `
-            <div class="mb-4 flex justify-center gap-4">
+            <div class="mb-4 flex justify-center gap-2 flex-wrap">
                 <button type="button" id="btn-column" class="border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Tabellen-Modus</button>
                 <button type="button" id="btn-inline" class="border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Karten-Modus</button>
+                <button type="button" id="btn-responsive" class="border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Responsive-Modus</button>
             </div>
             <p id="error-message" class="text-red-600 text-sm mb-4 hidden"></p>
             <form id="quiz-form">
@@ -183,6 +184,11 @@ export class QuestionnaireApp {
             this.renderQuestions();
         });
 
+        document.getElementById('btn-responsive')?.addEventListener('click', () => {
+            localStorage.setItem('displayMode', 'responsive');
+            this.renderQuestions();
+        });
+
         // Form handler
         this.formHandler = new FormHandler(this.questions, this.config);
         this.formHandler.setupRadioChangeListeners();
@@ -200,7 +206,8 @@ export class QuestionnaireApp {
             QuestionRenderer.setAllAnswers(this.questions, 'min');
             // Apply colors after setting answers
             const displayMode = localStorage.getItem('displayMode') || 'column';
-            if (displayMode === 'column') {
+            const effectiveMode = this.getEffectiveDisplayMode(displayMode);
+            if (effectiveMode === 'column') {
                 QuestionRenderer.applyAnswerColors(this.config);
             } else {
                 QuestionRenderer.applyInlineAnswerColors(this.config);
@@ -210,7 +217,8 @@ export class QuestionnaireApp {
             QuestionRenderer.setAllAnswers(this.questions, 'random');
             // Apply colors after setting answers
             const displayMode = localStorage.getItem('displayMode') || 'column';
-            if (displayMode === 'column') {
+            const effectiveMode = this.getEffectiveDisplayMode(displayMode);
+            if (effectiveMode === 'column') {
                 QuestionRenderer.applyAnswerColors(this.config);
             } else {
                 QuestionRenderer.applyInlineAnswerColors(this.config);
@@ -220,7 +228,8 @@ export class QuestionnaireApp {
             QuestionRenderer.setAllAnswers(this.questions, 'max');
             // Apply colors after setting answers
             const displayMode = localStorage.getItem('displayMode') || 'column';
-            if (displayMode === 'column') {
+            const effectiveMode = this.getEffectiveDisplayMode(displayMode);
+            if (effectiveMode === 'column') {
                 QuestionRenderer.applyAnswerColors(this.config);
             } else {
                 QuestionRenderer.applyInlineAnswerColors(this.config);
@@ -310,6 +319,13 @@ export class QuestionnaireApp {
     // Initialize application
     async init() {
         await this.loadQuestionnaire();
+    }
+    
+    getEffectiveDisplayMode(displayMode) {
+        if (displayMode === 'responsive') {
+            return window.innerWidth > 900 ? 'column' : 'inline';
+        }
+        return displayMode;
     }
 }
 
