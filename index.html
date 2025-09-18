@@ -391,6 +391,55 @@
             setupFormEvents();
         }
 
+        // Event Handlers
+        function setupFormEvents() {
+            // Display mode buttons
+            document.getElementById('btn-column')?.addEventListener('click', () => {
+                localStorage.setItem('displayMode', 'column');
+                renderQuestions();
+            });
+
+            document.getElementById('btn-inline')?.addEventListener('click', () => {
+                localStorage.setItem('displayMode', 'inline');
+                renderQuestions();
+            });
+
+            // Form submission
+            document.getElementById('quiz-form')?.addEventListener('submit', handleFormSubmit);
+
+            // Answer buttons
+            document.getElementById('min-answers-btn')?.addEventListener('click', () => setAllAnswers('min'));
+            document.getElementById('random-answers-btn')?.addEventListener('click', () => setAllAnswers('random'));
+            document.getElementById('max-answers-btn')?.addEventListener('click', () => setAllAnswers('max'));
+
+            // Back and copy buttons
+            backButton?.addEventListener('click', () => {
+                showForm();
+                window.history.replaceState(null, null, window.location.pathname + window.location.search);
+            });
+
+            backButtonTop?.addEventListener('click', () => {
+                showForm();
+                window.history.replaceState(null, null, window.location.pathname + window.location.search);
+            });
+
+            copyButton?.addEventListener('click', () => {
+                shareLinkInput.select();
+                navigator.clipboard.writeText(shareLinkInput.value).then(() => {
+                    copyButton.textContent = 'Kopiert!';
+                    setTimeout(() => copyButton.textContent = 'Kopieren', 2000);
+                }).catch(err => console.error('Fehler beim Kopieren:', err));
+            });
+
+            // Event-Listener für Radio-Buttons hinzufügen (Entfernung der Fehler-Markierung)
+            document.addEventListener('change', (event) => {
+                if (event.target.type === 'radio' && event.target.name.startsWith('question-')) {
+                    const questionId = event.target.name.replace('question-', '');
+                    clearQuestionErrorMarking(questionId);
+                }
+            });
+        }
+
         function renderQuestions() {
             const container = document.getElementById('questions-container');
             const displayMode = localStorage.getItem('displayMode') || 'column';
@@ -487,55 +536,6 @@
 
             html += '</div>';
             container.innerHTML = html;
-        }
-
-        // Event Handlers
-        function setupFormEvents() {
-            // Display mode buttons
-            document.getElementById('btn-column')?.addEventListener('click', () => {
-                localStorage.setItem('displayMode', 'column');
-                renderQuestions();
-            });
-
-            document.getElementById('btn-inline')?.addEventListener('click', () => {
-                localStorage.setItem('displayMode', 'inline');
-                renderQuestions();
-            });
-
-            // Form submission
-            document.getElementById('quiz-form')?.addEventListener('submit', handleFormSubmit);
-
-            // Answer buttons
-            document.getElementById('min-answers-btn')?.addEventListener('click', () => setAllAnswers('min'));
-            document.getElementById('random-answers-btn')?.addEventListener('click', () => setAllAnswers('random'));
-            document.getElementById('max-answers-btn')?.addEventListener('click', () => setAllAnswers('max'));
-
-            // Back and copy buttons
-            backButton?.addEventListener('click', () => {
-                showForm();
-                window.history.replaceState(null, null, window.location.pathname + window.location.search);
-            });
-
-            backButtonTop?.addEventListener('click', () => {
-                showForm();
-                window.history.replaceState(null, null, window.location.pathname + window.location.search);
-            });
-
-            copyButton?.addEventListener('click', () => {
-                shareLinkInput.select();
-                navigator.clipboard.writeText(shareLinkInput.value).then(() => {
-                    copyButton.textContent = 'Kopiert!';
-                    setTimeout(() => copyButton.textContent = 'Kopieren', 2000);
-                }).catch(err => console.error('Fehler beim Kopieren:', err));
-            });
-
-            // Event-Listener für Radio-Buttons hinzufügen (Entfernung der Fehler-Markierung)
-            document.addEventListener('change', (event) => {
-                if (event.target.type === 'radio' && event.target.name.startsWith('question-')) {
-                    const questionId = event.target.name.replace('question-', '');
-                    clearQuestionErrorMarking(questionId);
-                }
-            });
         }
 
         function updateButtonStyles() {
@@ -955,9 +955,6 @@
         function handleMenuNavigation(event, folder) {
             event.preventDefault();
             
-            // Temporär den hashchange-Event-Listener deaktivieren
-            URLHashManager.offHashChange(handleHashChange);
-            
             const url = new URL(window.location);
             url.searchParams.set('q', folder);
             // Hash löschen beim Fragebogen-Wechsel
@@ -966,13 +963,8 @@
             
             currentFolder = folder;
             
-            // Nach dem Fragebogen-Laden den Event-Listener wieder aktivieren
-            loadQuestionnaire().then(() => {
-                // Kurze Verzögerung, um sicherzustellen, dass alle DOM-Updates abgeschlossen sind
-                setTimeout(() => {
-                    URLHashManager.onHashChange(handleHashChange);
-                }, 100);
-            });
+            // Lade den neuen Fragebogen
+            loadQuestionnaire();
         }
 
         function handleHashChange() {
@@ -1115,11 +1107,10 @@
             }
         }
 
-        // Event Listeners
+        // Event Listeners - notwendig für Hash-Navigation und Form-Funktionalität
         URLHashManager.onHashChange(handleHashChange);
-        window.addEventListener('popstate', loadQuestionnaire);
 
-        // Error Handlers
+        // Error Handlers (global - bleiben bestehen)
         window.addEventListener('error', (event) => {
             console.error('Global Error:', event.error);
         });
