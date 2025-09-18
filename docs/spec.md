@@ -1,5 +1,8 @@
 
-# Produktspezifikation: Dynamischer Fragebogen (Webanwendung)
+# Produktspezifikation: Dynamischer Fragebogen
+
+**Datum:** September 2025  
+**Version:** 2.0 (Modulare Architektur)
 
 ## 1. Zielsetzung
 Die Anwendung ermöglicht das browserbasierte Ausfüllen, Auswerten und Visualisieren von beliebigen Fragebögen, die rein aus statischen Dateien bestehen. Sie ist vollständig clientseitig, benötigt keinen Build-Schritt und keinen Server. Mit Version 2.0 (September 2025) wurde eine modulare ES6-Architektur eingeführt, die bessere Wartbarkeit und Erweiterbarkeit bietet.
@@ -31,7 +34,7 @@ Die Anwendung ermöglicht das browserbasierte Ausfüllen, Auswerten und Visualis
   - `index.html` (~160 Zeilen): HTML-Struktur und Module-Bootstrap
   - `app/questionnaire-app.js`: Zentrale Anwendungslogik und Orchestrierung
   - `components/`: UI-Komponenten (QuestionRenderer, FormHandler)
-  - `charts/`: Chart-Module (ChartRenderer, GaugeChart)
+  - `charts/`: Chart-Module (ChartRenderer, GaugeChart, RadarChart)
   - `services/`: Datenverarbeitung (QuestionnaireLoader, ConfigParser)
   - `utils/`: Hilfsfunktionen (URLHashManager)
   - `css/styles.css`: Alle Styles (ausgelagert aus index.html)
@@ -55,8 +58,6 @@ quest/
 │   └── config-parser.js          # JSON-Parsing
 ├── utils/                        # Hilfsfunktionen
 │   └── url-hash-manager.js       # URL-Hash-Management
-├── js/                          # Legacy Chart-Libraries
-│   └── radarChart.js            # RadarChart-Rendering (D3.js)
 └── quests/                      # Fragebogen-Daten
     ├── <name>/questions.txt     # Fragen (Format: <ID>|<Fragetext>)
     └── <name>/config.json       # JSON-Konfiguration

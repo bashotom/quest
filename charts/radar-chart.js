@@ -1,4 +1,14 @@
-function RadarChart(id, data, options) {
+/**
+ * RadarChart - D3.js Radar Chart Implementation
+ * Renders radar charts for multi-category score visualization
+ */
+export class RadarChart {
+    constructor(container, config) {
+        this.container = container;
+        this.config = config;
+    }
+
+    render(id, data, options) {
     const cfg = {
         w: 600,
         h: 600,
@@ -665,4 +675,5 @@ function RadarChart(id, data, options) {
             }
         });
     }
-}
+    } // End of render method
+} // End of RadarChart class

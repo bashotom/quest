@@ -21,7 +21,8 @@ quest/
 │   └── form-handler.js           # Form-Validation & Fehlerbehandlung
 ├── charts/                       # Chart-Module
 │   ├── chart-renderer.js         # Chart-Management mit Container-Isolation
-│   └── gauge-chart.js            # D3.js Gauge-Chart-Implementierung
+│   ├── gauge-chart.js            # D3.js Gauge-Chart-Implementierung
+│   └── radar-chart.js            # D3.js Radar-Chart-Implementierung (ES6)
 ├── css/
 │   └── styles.css                # Alle Styles (ausgelagert aus index.html)
 ├── services/                     # Backend-Services
@@ -29,8 +30,6 @@ quest/
 │   └── config-parser.js          # JSON-Parsing
 ├── utils/                        # Hilfsfunktionen
 │   └── url-hash-manager.js       # URL-Hash-Management
-├── js/                          # Legacy Chart-Libraries
-│   └── radarChart.js            # Custom D3.js Radar-Chart
 └── quests/                      # Fragebogen-Daten
     ├── autonomie/               # Autonomie-Fragebogen
     │   ├── questions.txt        # Fragen (ID|Text Format)

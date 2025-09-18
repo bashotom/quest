@@ -1,4 +1,5 @@
 import { GaugeChart } from './gauge-chart.js';
+import { RadarChart } from './radar-chart.js';
 
 /**
  * ChartRenderer - Manages all chart rendering with container isolation
@@ -94,12 +95,9 @@ export class ChartRenderer {
             };
 
             try {
-                if (typeof window.RadarChart === 'function') {
-                    chartElement.innerHTML = ''; // Clear container
-                    window.RadarChart('#radarChart', chartData, options);
-                } else {
-                    ChartRenderer.renderFallbackChart(scores, renderingId, config);
-                }
+                const radarChart = new RadarChart(chartElement, config);
+                chartElement.innerHTML = ''; // Clear container
+                radarChart.render('#radarChart', chartData, options);
             } catch (error) {
                 console.error('Error creating radar chart:', error);
                 ChartRenderer.renderFallbackChart(scores, renderingId, config);
