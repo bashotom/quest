@@ -16,11 +16,116 @@
 - **`components/form-handler.js`**: Form validation, error handling
 - **`charts/chart-renderer.js`**: Chart management with container isolation
 - **`charts/gauge-chart.js`**: D3.js gauge chart implementation
+- **`charts/radar-chart.js`**: Modular radar chart orchestrator (uses radar/ modules)
 - **`css/styles.css`**: All styles (extracted from index.html)
 - **`services/questionnaire-loader.js`**: Data loading service
 - **`utils/url-hash-manager.js`**: URL hash persistence
 
-### Module Responsibilities
+### Radar Chart Modular Structure (Sep 2025)
+The radar chart has been fully modularized into specialized components:
+
+```
+charts/radar/
+├── radar-config-parser.js     # Configuration parsing and setup
+├── radar-data-processor.js    # Data processing & axis reordering
+├── radar-grid.js             # Grid, axes, tickmarks, labels rendering
+├── radar-arrows.js           # Arrow rendering (radiusvector/inverseradiusvector)
+├── radar-data-renderer.js    # Data paths, areas, and points
+├── radar-interactions.js     # Tooltips and hover effects
+├── radar-legend.js          # Mobile legend rendering
+├── radar-responsive.js      # Responsive handling and resize logic
+└── utils/
+    └── radar-math-utils.js   # Mathematical calculations and utilities
+```
+
+#### Radar Module Responsibilities
+
+**RadarChart (Main Orchestrator)**
+```javascript
+import { RadarChart } from './charts/radar-chart.js';
+const chart = new RadarChart(container, config);
+chart.render(id, data, options);
+```
+- **Role**: Central radar chart coordination
+- **Coordinates**: All radar modules, maintains API compatibility
+- **Maintains**: Original API for backward compatibility
+
+**RadarConfigParser (Configuration Management)**
+```javascript
+const cfg = RadarConfigParser.parseConfig(options);
+const chartConfig = RadarConfigParser.parseChartConfig(cfg.config);
+```
+- **Role**: Parse user options and chart-specific configuration
+- **Handles**: Responsive adjustments, option merging, chart config parsing
+- **Features**: Arrow directions, tickmarks, horizontal lines, topaxis
+
+**RadarDataProcessor (Data Management)**
+```javascript
+const processed = RadarDataProcessor.process(data, cfg.config);
+const { data: processedData, axes: allAxis, maxValue } = processed;
+```
+- **Role**: Data normalization and axis management
+- **Handles**: Axis object normalization, topaxis reordering, max value calculation
+- **Features**: Category mapping, data structure validation
+
+**RadarGrid (Grid & Axes Rendering)**
+```javascript
+const gridResult = RadarGrid.render(g, allAxis, finalConfig, chartConfig, rScale, maxValue, angleSlice);
+```
+- **Role**: SVG setup, background circles, axes, tickmarks, labels
+- **Features**: Responsive label switching, text wrapping, tickmark positioning
+- **Manages**: SVG initialization, glow filters, axis line rendering
+
+**RadarArrows (Arrow Rendering)**
+```javascript
+RadarArrows.render(gridResult.axis, allAxis, chartConfig, rScale, maxValue, angleSlice);
+```
+- **Role**: Render directional arrows on axes
+- **Supports**: radiusvector (outward), inverseradiusvector (inward)
+- **Features**: Consistent arrow sizing, configurable directions
+
+**RadarDataRenderer (Data Visualization)**
+```javascript
+const dataResult = RadarDataRenderer.render(g, processedData, allAxis, chartConfig, rScale, maxValue, angleSlice, finalConfig);
+```
+- **Role**: Render data paths, areas, and points
+- **Features**: Inverse axis support, curved/linear paths, data point circles
+- **Handles**: D3 line/area generators with radius calculations
+
+**RadarInteractions (User Interactions)**
+```javascript
+RadarInteractions.setup(g, processedData, allAxis, chartConfig, rScale, maxValue, angleSlice, finalConfig);
+```
+- **Role**: Tooltip system and hover effects
+- **Features**: Invisible interaction circles, position-aware tooltips
+- **Manages**: Mouse events, tooltip positioning, fade transitions
+
+**RadarLegend (Mobile Legend)**
+```javascript
+RadarLegend.render(id, finalConfig);
+```
+- **Role**: Mobile legend for narrow screens (<650px)
+- **Features**: Category list with key-value pairs, responsive visibility
+- **Manages**: DOM legend creation, styling, cleanup
+
+**RadarResponsive (Responsive Handling)**
+```javascript
+RadarResponsive.setup(id, data, options, renderFunction);
+```
+- **Role**: Window resize handling and container validation
+- **Features**: Debounced resize (250ms), container context checking
+- **Prevents**: Chart interference, memory leaks, invalid re-renders
+
+**RadarMathUtils (Mathematical Utilities)**
+```javascript
+const angleSlice = RadarMathUtils.calculateAngleSlice(total);
+const rScale = RadarMathUtils.createRadiusScale(radius, maxValue);
+```
+- **Role**: Mathematical calculations and D3 utilities
+- **Features**: Coordinate calculations, text wrapping, scale creation
+- **Utilities**: Angle calculations, text anchoring, label positioning
+
+### Module Responsibilities (Non-Radar Components)
 
 #### QuestionnaireApp (Main Orchestrator)
 ```javascript
@@ -57,7 +162,6 @@ handler.handleSubmit(event, onSuccessCallback);
 - **Role**: Form submission, validation, error highlighting
 - **Features**: Visual error marking, smooth scroll to errors
 - **Manages**: Radio button change listeners, validation state
-
 ## Data Flow (Modular Version)
 - **Bootstrap**: `index.html` loads `QuestionnaireApp` via ES6 import
 - **Initialization**: QuestionnaireApp coordinates all services and components  
@@ -65,6 +169,7 @@ handler.handleSubmit(event, onSuccessCallback);
 - **UI Rendering**: QuestionRenderer generates form based on display mode
 - **Form Handling**: FormHandler manages validation and submission
 - **Chart Rendering**: ChartRenderer selects appropriate chart type and container
+- **Radar Chart Flow**: RadarChart orchestrates all radar modules for rendering
 - **Persistence**: URLHashManager handles URL hash for sharing/bookmarking
 
 ## Patterns & Conventions
@@ -217,6 +322,24 @@ import { NewChart } from './new-chart.js';
 </div>
 ```
 
+### Extending Radar Chart Components
+```javascript
+// Extend RadarGrid for new grid features
+static renderCustomGrid(g, axes, config) {
+    // Custom grid rendering logic
+}
+
+// Extend RadarDataRenderer for new visualization types
+static renderCustomVisualization(g, data, config) {
+    // Custom data rendering
+}
+
+// Extend RadarInteractions for new interaction types
+static setupCustomInteractions(g, data, config) {
+    // Custom interaction handling
+}
+```
+
 ### Extending Components
 ```javascript
 // Extend QuestionRenderer for new display mode
@@ -246,6 +369,14 @@ console.log('App initialized:', app);
 
 // Check chart rendering
 ChartRenderer.currentRenderingId // Should increment on each render
+
+// Check radar chart modules
+console.log('RadarChart modules:', {
+    ConfigParser: typeof RadarConfigParser,
+    DataProcessor: typeof RadarDataProcessor,
+    Grid: typeof RadarGrid,
+    Arrows: typeof RadarArrows
+});
 ```
 
 ## External Dependencies
@@ -326,7 +457,8 @@ function renderChart(chartType) {
 - `index.html` — main entry point (~160 lines), module bootstrap
 - `app/questionnaire-app.js` — main application orchestrator
 - `components/` — UI components (question-renderer, form-handler)
-- `charts/` — chart modules (chart-renderer, gauge-chart)
+- `charts/` — chart modules (chart-renderer, gauge-chart, radar-chart)
+- `charts/radar/` — modular radar chart components (Sep 2025)
 - `services/` — data services (questionnaire-loader, config-parser)
 - `quests/` — all questionnaire data
 - Example: `quests/autonomie/config.json`, `quests/autonomie/questions.txt`
