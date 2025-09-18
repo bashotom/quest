@@ -5,27 +5,27 @@
     {
       "label": "Trifft voll und ganz zu", 
       "value": 4,
-      "color": "#059669"
+      "color": "#86efac"
     },
     {
       "label": "Trifft eher zu", 
       "value": 3,
-      "color": "#22c55e"
+      "color": "#bbf7d0"
     },
     {
       "label": "Unentschieden", 
       "value": 2,
-      "color": "#eab308"
+      "color": "#fef3c7"
     },
     {
       "label": "Trifft eher nicht zu", 
       "value": 1,
-      "color": "#f97316"
+      "color": "#fed7aa"
     },
     {
       "label": "Trifft überhaupt nicht zu", 
       "value": 0,
-      "color": "#ef4444"
+      "color": "#fecaca"
     }
   ],
   "categories": [

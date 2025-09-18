@@ -18,6 +18,11 @@ export class QuestionRenderer {
         if (Object.keys(currentAnswers).length > 0) {
             QuestionRenderer.setAnswers(currentAnswers);
         }
+        
+        // Apply colors to already selected answers in table mode
+        if (displayMode === 'column') {
+            QuestionRenderer.applyAnswerColors(config);
+        }
     }
     
     static collectCurrentAnswers(questions) {
@@ -87,7 +92,10 @@ export class QuestionRenderer {
                 // For 2 answers, use separate cells
                 config.answers?.forEach((answer, answerIndex) => {
                     html += `
-                        <td class="px-2 py-2 sm:px-4 sm:py-4 text-center cursor-pointer hover:bg-blue-50 transition-colors duration-150" onclick="selectRadio('${question.id}', '${answerIndex}')">
+                        <td class="answer-cell px-2 py-2 sm:px-4 sm:py-4 text-center cursor-pointer hover:bg-blue-50 transition-colors duration-150" 
+                            onclick="selectRadio('${question.id}', '${answerIndex}')"
+                            data-answer-color="${answer.color || ''}"
+                            data-answer-index="${answerIndex}">
                             <input type="radio" name="question-${question.id}" value="${answerIndex}" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 mx-auto">
                         </td>
                     `;
@@ -96,7 +104,10 @@ export class QuestionRenderer {
                 // For 3+ answers, use flexbox within single cell for equal spacing
                 config.answers?.forEach((answer, answerIndex) => {
                     html += `
-                        <td class="px-2 py-2 sm:px-4 sm:py-4 text-center cursor-pointer hover:bg-blue-50 transition-colors duration-150" onclick="selectRadio('${question.id}', '${answerIndex}')">
+                        <td class="answer-cell px-2 py-2 sm:px-4 sm:py-4 text-center cursor-pointer hover:bg-blue-50 transition-colors duration-150" 
+                            onclick="selectRadio('${question.id}', '${answerIndex}')"
+                            data-answer-color="${answer.color || ''}"
+                            data-answer-index="${answerIndex}">
                             <input type="radio" name="question-${question.id}" value="${answerIndex}" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 mx-auto">
                         </td>
                     `;
@@ -108,6 +119,9 @@ export class QuestionRenderer {
 
         html += '</tbody></table>';
         container.innerHTML = html;
+        
+        // Add hover event listeners after rendering
+        QuestionRenderer.setupHoverEffects();
     }
     
     static renderInlineMode(questions, config, container) {
@@ -154,6 +168,18 @@ export class QuestionRenderer {
     }
     
     static setAllAnswers(questions, mode) {
+        // First reset all cell colors
+        const allRadios = document.querySelectorAll('input[type="radio"]');
+        allRadios.forEach(radio => {
+            const cell = radio.closest('td');
+            if (cell) {
+                cell.style.backgroundColor = '';
+                cell.style.color = '';
+                cell.classList.remove('font-medium');
+            }
+        });
+        
+        // Then set the new answers
         questions.forEach(question => {
             const radios = document.querySelectorAll(`input[name="question-${question.id}"]`);
             if (radios.length === 0) return;
@@ -166,6 +192,68 @@ export class QuestionRenderer {
             }
 
             if (targetRadio) targetRadio.checked = true;
+        });
+    }
+    
+    static applyAnswerColors(config) {
+        // Apply colors to all checked radio buttons in table mode
+        const checkedRadios = document.querySelectorAll('input[type="radio"]:checked');
+        checkedRadios.forEach(radio => {
+            const answerIndex = parseInt(radio.value);
+            const answer = config.answers[answerIndex];
+            if (answer && answer.color) {
+                const cell = radio.closest('td');
+                if (cell) {
+                    cell.style.backgroundColor = answer.color;
+                    cell.style.color = '#374151'; // Dark gray text for pastel colors
+                    cell.classList.add('font-medium');
+                }
+            }
+        });
+    }
+    
+    static showColorPreview(cell) {
+        // Don't show preview if already selected
+        const radio = cell.querySelector('input[type="radio"]');
+        if (radio && radio.checked) return;
+        
+        const answerColor = cell.dataset.answerColor;
+        if (answerColor) {
+            // Create a lighter version of the color for preview
+            const lighterColor = QuestionRenderer.lightenColor(answerColor, 0.7);
+            cell.style.backgroundColor = lighterColor;
+        }
+    }
+    
+    static hideColorPreview(cell) {
+        // Don't hide if already selected
+        const radio = cell.querySelector('input[type="radio"]');
+        if (radio && radio.checked) return;
+        
+        // Reset to default hover color
+        cell.style.backgroundColor = '';
+    }
+    
+    static lightenColor(hex, opacity) {
+        // Convert hex to RGB, then apply opacity by blending with white
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        
+        // Blend with white background
+        const newR = Math.round(r + (255 - r) * (1 - opacity));
+        const newG = Math.round(g + (255 - g) * (1 - opacity));
+        const newB = Math.round(b + (255 - b) * (1 - opacity));
+        
+        return `rgb(${newR}, ${newG}, ${newB})`;
+    }
+    
+    static setupHoverEffects() {
+        // Add event listeners to all answer cells
+        const answerCells = document.querySelectorAll('.answer-cell');
+        answerCells.forEach(cell => {
+            cell.addEventListener('mouseenter', () => QuestionRenderer.showColorPreview(cell));
+            cell.addEventListener('mouseleave', () => QuestionRenderer.hideColorPreview(cell));
         });
     }
 }

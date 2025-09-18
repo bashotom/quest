@@ -5,12 +5,12 @@
     {
       "label": "Nein", 
       "value": 0,
-      "color": "#22c55e"
+      "color": "#bbf7d0"
     },
     {
       "label": "Ja", 
       "value": 1,
-      "color": "#ef4444"
+      "color": "#fecaca"
     }
   ],
   "categories": [

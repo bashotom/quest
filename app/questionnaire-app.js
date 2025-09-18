@@ -196,12 +196,30 @@ export class QuestionnaireApp {
         });
 
         // Answer buttons
-        document.getElementById('min-answers-btn')?.addEventListener('click', () => 
-            QuestionRenderer.setAllAnswers(this.questions, 'min'));
-        document.getElementById('random-answers-btn')?.addEventListener('click', () => 
-            QuestionRenderer.setAllAnswers(this.questions, 'random'));
-        document.getElementById('max-answers-btn')?.addEventListener('click', () => 
-            QuestionRenderer.setAllAnswers(this.questions, 'max'));
+        document.getElementById('min-answers-btn')?.addEventListener('click', () => {
+            QuestionRenderer.setAllAnswers(this.questions, 'min');
+            // Apply colors after setting answers
+            const displayMode = localStorage.getItem('displayMode') || 'column';
+            if (displayMode === 'column') {
+                QuestionRenderer.applyAnswerColors(this.config);
+            }
+        });
+        document.getElementById('random-answers-btn')?.addEventListener('click', () => {
+            QuestionRenderer.setAllAnswers(this.questions, 'random');
+            // Apply colors after setting answers
+            const displayMode = localStorage.getItem('displayMode') || 'column';
+            if (displayMode === 'column') {
+                QuestionRenderer.applyAnswerColors(this.config);
+            }
+        });
+        document.getElementById('max-answers-btn')?.addEventListener('click', () => {
+            QuestionRenderer.setAllAnswers(this.questions, 'max');
+            // Apply colors after setting answers
+            const displayMode = localStorage.getItem('displayMode') || 'column';
+            if (displayMode === 'column') {
+                QuestionRenderer.applyAnswerColors(this.config);
+            }
+        });
 
         // Back and copy buttons
         this.elements.backButton?.addEventListener('click', () => {
@@ -293,7 +311,32 @@ export class QuestionnaireApp {
 window.selectRadio = function(qid, aval) {
     const radio = document.querySelector(`input[name='question-${qid}'][value='${aval}']`);
     if (radio) {
+        // First, reset all cells in this question row to default colors
+        const allRadiosInQuestion = document.querySelectorAll(`input[name='question-${qid}']`);
+        allRadiosInQuestion.forEach(r => {
+            const cell = r.closest('td');
+            if (cell) {
+                cell.style.backgroundColor = '';
+                cell.style.color = '';
+                cell.classList.remove('font-medium');
+            }
+        });
+        
         radio.checked = true;
         radio.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        // Update cell background color based on answer color
+        const app = window.questionnaireApp;
+        if (app && app.config && app.config.answers) {
+            const answer = app.config.answers[parseInt(aval)];
+            if (answer && answer.color) {
+                const cell = radio.closest('td');
+                if (cell) {
+                    cell.style.backgroundColor = answer.color;
+                    cell.style.color = '#374151'; // Dark gray text for better contrast with pastel colors
+                    cell.classList.add('font-medium'); // Make selected text bold
+                }
+            }
+        }
     }
 };
