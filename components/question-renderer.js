@@ -187,34 +187,58 @@ export class QuestionRenderer {
             window.removeEventListener('resize', QuestionRenderer.resizeListener);
         }
         
+        // Throttle mechanism to prevent excessive re-rendering
+        let resizeTimeout;
+        
         QuestionRenderer.resizeListener = () => {
             const displayMode = localStorage.getItem('displayMode');
             if (displayMode !== 'responsive') return; // Only act in responsive mode
             
-            const currentMode = QuestionRenderer.getCurrentResponsiveMode();
-            const newMode = window.innerWidth > 900 ? 'column' : 'inline';
-            
-            if (currentMode !== newMode) {
-                // Collect current answers before re-rendering
-                const currentAnswers = QuestionRenderer.collectCurrentAnswers(questions);
-                
-                // Re-render with new mode
-                if (newMode === 'column') {
-                    QuestionRenderer.renderTableMode(questions, config, container);
-                } else {
-                    QuestionRenderer.renderInlineMode(questions, config, container);
-                }
-                
-                // Restore answers
-                if (Object.keys(currentAnswers).length > 0) {
-                    QuestionRenderer.setAnswers(currentAnswers);
-                }
-                
-                // Apply colors appropriately
-                if (newMode === 'column') {
-                    QuestionRenderer.applyAnswerColors(config);
-                }
+            // Clear previous timeout
+            if (resizeTimeout) {
+                clearTimeout(resizeTimeout);
             }
+            
+            // Throttle resize events
+            resizeTimeout = setTimeout(() => {
+                const newMode = window.innerWidth > 900 ? 'column' : 'inline';
+                
+                // Check if we need to re-render by checking the current DOM structure
+                const hasTable = container.querySelector('table') !== null;
+                const hasCards = container.querySelector('.space-y-4') !== null;
+                
+                const currentMode = hasTable ? 'column' : (hasCards ? 'inline' : null);
+                
+                if (currentMode && currentMode !== newMode) {
+                    console.log(`Responsive switch: ${currentMode} -> ${newMode} (width: ${window.innerWidth}px)`);
+                    
+                    // Collect current answers before re-rendering
+                    const currentAnswers = QuestionRenderer.collectCurrentAnswers(questions);
+                    
+                    // Re-render with new mode
+                    if (newMode === 'column') {
+                        QuestionRenderer.renderTableMode(questions, config, container);
+                    } else {
+                        QuestionRenderer.renderInlineMode(questions, config, container);
+                    }
+                    
+                    // Restore answers
+                    if (Object.keys(currentAnswers).length > 0) {
+                        QuestionRenderer.setAnswers(currentAnswers);
+                    }
+                    
+                    // Apply colors and setup events appropriately
+                    if (newMode === 'column') {
+                        QuestionRenderer.applyAnswerColors(config);
+                    } else {
+                        // For inline mode, the setupInlineChangeListeners is already called in renderInlineMode
+                        // But we need to apply colors for restored answers
+                        setTimeout(() => {
+                            QuestionRenderer.applyInlineAnswerColors(config);
+                        }, 10);
+                    }
+                }
+            }, 150); // 150ms throttle
         };
         
         window.addEventListener('resize', QuestionRenderer.resizeListener);
