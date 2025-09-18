@@ -2,8 +2,6 @@
 
 // Diese Funktion überschreibt problematische Event-Listener
 function fixRadarChartEventListeners() {
-    console.log('Applying RadarChart Event Listener Fix...');
-    
     // Alle resize Event-Listener entfernen
     const newWindow = document.defaultView;
     const oldEventListeners = [];
@@ -18,14 +16,11 @@ function fixRadarChartEventListeners() {
             // Prüfen ob es ein RadarChart-Listener ist
             const listenerString = listener.toString();
             if (listenerString.includes('RadarChart') || listenerString.includes('d3.select')) {
-                console.log('Blocking RadarChart resize listener');
                 return; // Blockiere den Listener
             }
         }
         return originalAddEventListener.call(this, type, listener, options);
     };
-    
-    console.log('RadarChart Event Listener Fix applied');
 }
 
 // Fix sofort anwenden wenn verfügbar

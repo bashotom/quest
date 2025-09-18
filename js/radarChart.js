@@ -1,7 +1,4 @@
 function RadarChart(id, data, options) {
-    console.log(`🎯 RADAR CHART CALLED - Container: ${id}, Time: ${new Date().toISOString()}`);
-    console.log(`🎯 Data length: ${data?.length}, Options:`, options);
-    
     const cfg = {
         w: 600,
         h: 600,
@@ -410,16 +407,11 @@ function RadarChart(id, data, options) {
     // Debounced resize handler for chart rebuild
     let resizeTimeout;
     const handleResize = () => {
-        console.log(`🚨 RADAR CHART RESIZE EVENT TRIGGERED!`);
-        console.log(`🚨 Container: ${id}, Current time: ${new Date().toISOString()}`);
-        console.log(`🚨 Window dimensions: ${window.innerWidth}x${window.innerHeight}`);
-        
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => {
             // Check if container still exists
             const container = d3.select(id);
             if (container.empty()) {
-                console.log(`🚨 Container ${id} no longer exists - REMOVING LISTENER`);
                 window.removeEventListener('resize', handleResize);
                 return;
             }
@@ -440,12 +432,9 @@ function RadarChart(id, data, options) {
             );
             
             if (isGaugeContext || !isRadarContainer) {
-                console.log(`🚨 Container ${id} is no longer for RadarChart (gauge context: ${isGaugeContext}) - REMOVING LISTENER`);
                 window.removeEventListener('resize', handleResize);
                 return;
             }
-            
-            console.log(`🚨 Rebuilding RadarChart for container: ${id}`);
             
             // Clear the current chart
             d3.select(id).select("svg").remove();

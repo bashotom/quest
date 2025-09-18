@@ -649,6 +649,7 @@ class QuestionnaireApp extends HTMLElement {
         
         // Alle Event-Listener entfernen durch Neuerstellen des Event-Target
         // Das ist drastisch aber effektiv
+        console.log('🗑️  Cleared all resize event listeners');
         
         // Nutze die globale Cleanup-Funktion falls verfügbar
         if (typeof window.cleanupRadarChartListeners === 'function') {
@@ -667,9 +668,12 @@ class QuestionnaireApp extends HTMLElement {
         // Daten für RadarChart vorbereiten
         // Sortiere die Kategorien basierend auf dem topaxis-Attribut
         let categoryKeys = Object.keys(this.config.categories);
+        console.log('🔵 Original categoryKeys:', categoryKeys);
+        console.log('🔵 Config chart:', this.config.chart);
         
         if (this.config.chart && this.config.chart.topaxis) {
             const topAxisKey = this.config.chart.topaxis;
+            console.log('TopAxis key:', topAxisKey);
             
             // Finde den Index der topaxis in der ursprünglichen Reihenfolge
             const topAxisIndex = categoryKeys.indexOf(topAxisKey);
@@ -679,6 +683,7 @@ class QuestionnaireApp extends HTMLElement {
                 const beforeTopAxis = categoryKeys.slice(0, topAxisIndex);
                 categoryKeys = [topAxisKey, ...afterTopAxis, ...beforeTopAxis];
             }
+            console.log('Sorted categoryKeys:', categoryKeys);
         }
         
         const data = categoryKeys.map(key => {
@@ -703,6 +708,8 @@ class QuestionnaireApp extends HTMLElement {
             })
         ];
         
+        console.log('Final chartData:', finalChartData);
+
         // Zusätzliche Validierung der finalChartData
         const isValidData = finalChartData[0] && Array.isArray(finalChartData[0]) && 
                            finalChartData[0].length > 0 &&

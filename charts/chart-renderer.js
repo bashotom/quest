@@ -12,7 +12,6 @@ export class ChartRenderer {
      */
     static render(chartType, scores, questions, config) {
         const renderingId = ++ChartRenderer.currentRenderingId;
-        console.log(`🎨 Chart rendering started - Type: ${chartType}, ID: ${renderingId}`);
         
         // Hide all containers to prevent interference
         ChartRenderer.hideAllContainers();
@@ -50,7 +49,6 @@ export class ChartRenderer {
         // Wait for DOM update
         setTimeout(() => {
             if (renderingId !== ChartRenderer.currentRenderingId) {
-                console.log('Radar chart rendering cancelled - newer request exists');
                 return;
             }
             
@@ -100,7 +98,6 @@ export class ChartRenderer {
                     chartElement.innerHTML = ''; // Clear container
                     window.RadarChart('#radarChart', chartData, options);
                 } else {
-                    console.warn('RadarChart function not available, using fallback');
                     ChartRenderer.renderFallbackChart(scores, renderingId, config);
                 }
             } catch (error) {
@@ -123,7 +120,6 @@ export class ChartRenderer {
         
         // Check if rendering is still current
         if (renderingId !== ChartRenderer.currentRenderingId) {
-            console.log('Gauge chart rendering cancelled - newer request exists');
             return;
         }
         
@@ -161,7 +157,6 @@ export class ChartRenderer {
      */
     static renderFallbackChart(scores, renderingId, config, container = null) {
         if (renderingId !== ChartRenderer.currentRenderingId) {
-            console.log('Fallback chart rendering cancelled - newer request exists');
             return;
         }
         

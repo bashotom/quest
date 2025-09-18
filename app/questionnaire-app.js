@@ -157,8 +157,6 @@ export class QuestionnaireApp {
     }
     
     renderEvaluation(scores) {
-        console.log(`🎨 Chart rendering started - Type: ${this.config.chart?.type || 'radar'}`);
-        
         const chartType = this.config.chart?.type || 'radar';
         
         // Share link aktualisieren
