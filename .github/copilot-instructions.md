@@ -12,7 +12,7 @@
 ### Key Modules
 - **`index.html`**: HTML structure + ES6 module bootstrapping (no inline JS logic)
 - **`app/questionnaire-app.js`**: Main application class, orchestrates all modules
-- **`components/question-renderer.js`**: UI rendering (table/card mode)
+- **`components/question-renderer.js`**: UI rendering (table/card/responsive mode)
 - **`components/form-handler.js`**: Form validation, error handling
 - **`charts/chart-renderer.js`**: Chart management with container isolation
 - **`charts/gauge-chart.js`**: D3.js gauge chart implementation
@@ -44,9 +44,10 @@ ChartRenderer.render(chartType, scores, questions, config);
 ```javascript
 QuestionRenderer.render(questions, config, container);
 ```
-- **Role**: Form UI generation (table mode vs. card mode)
+- **Role**: Form UI generation (table/card/responsive mode)
 - **Handles**: Display mode switching, answer persistence
-- **Supports**: Both table and inline card layouts
+- **Supports**: Table, inline card, and responsive layouts (auto-switch at 900px)
+- **Features**: Live responsive switching with answer preservation
 
 #### FormHandler (Validation & Errors)
 ```javascript
@@ -106,7 +107,14 @@ export class ModuleName {
 - **Answer mapping**: `answers` in JSON define both label and value (e.g. `{"Ja": 1}`)
 - **Categories**: Each question's ID prefix (e.g. `A1`) maps to a category in JSON
 - **Chart type**: Controlled by `chart.type` in JSON (`radar`, `bar`, `gauge`)
+- **Display modes**: Supports `column`, `inline`, and `responsive` modes in `input.display`
 - **No build/test scripts**: All development is direct file editing; reload browser to test
+
+### Responsive Mode (Version 2.0)
+- **Automatic switching**: >900px = table mode, ≤900px = card mode
+- **Live responsiveness**: Real-time adaptation during window resize
+- **Answer preservation**: Selected answers persist during mode switches
+- **Event management**: Throttled resize events (150ms) with proper cleanup
 
 ## D3.js Gauge Chart Implementation Guide
 
@@ -214,6 +222,11 @@ import { NewChart } from './new-chart.js';
 // Extend QuestionRenderer for new display mode
 static renderCustomMode(questions, config, container) {
     // Custom rendering logic
+}
+
+// Add responsive behavior to existing components
+static setupResponsiveListener(questions, config, container) {
+    // Responsive switching logic with cleanup
 }
 
 // Extend FormHandler for new validation

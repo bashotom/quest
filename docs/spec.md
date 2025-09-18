@@ -13,13 +13,14 @@ Die Anwendung ermöglicht das browserbasierte Ausfüllen, Auswerten und Visualis
 - **Kategorien**: Jede Frage ist per ID-Präfix einer Kategorie zugeordnet, Kategorien werden in der Auswertung aggregiert.
 - **Diagramm-Auswertung**: Die Auswertung erfolgt als Radar-, Balken- oder Gauge-Chart (D3.js/Chart.js), gesteuert durch die JSON-Konfiguration.
 - **Antwort-Persistenz & Teilen**: Antworten werden im URL-Hash gespeichert, sodass sie beim Reload oder Teilen des Links erhalten bleiben.
-- **Responsive UI**: Zwei Darstellungsmodi (Tabellen- und Kartenmodus), automatische Umschaltung auf kleinen Bildschirmen, moderne Optik mit TailwindCSS.
+- **Responsive UI**: Drei Darstellungsmodi (Tabellen-, Karten- und Responsive-Modus), automatische Umschaltung bei 900px Breakpoint, moderne Optik mit TailwindCSS.
 
 ### 2.2 Erweiterte Features (Version 2.0)
 - **Modulare Architektur**: ES6-Module für bessere Code-Organisation und Wartbarkeit
 - **Chart-Interferenz-Schutz**: Container-Isolation verhindert Rendering-Konflikte zwischen verschiedenen Chart-Typen
 - **Form-Validation**: Intelligente Fehlermarkierung mit Scroll-Navigation zu unvollständigen Fragen
 - **Gauge-Chart-Optimierung**: Präzise D3.js-Implementierung mit konsistentem Koordinatensystem
+- **Responsive-Modus**: Automatische UI-Anpassung basierend auf Bildschirmbreite (>900px = Tabelle, ≤900px = Karten)
 - **Entwicklungsfreundlich**: Modulare Struktur ermöglicht einfaches Testing und Debugging einzelner Komponenten
 
 ## 3. Technische Details
@@ -67,7 +68,10 @@ quest/
 - `answers`: Array von Antwortoptionen (`[{"Label": Wert}]`)
 - `categories`: Array von Kategorien (`[{"A": "Autonomie"}]`)
 - `chart`: Chart-Objekt (`{"type": "radar|bar|gauge"}`, optional `"top": "<Kategorie>"`)
-- `input`: (optional) UI-Optionen (`{"display": "inline|column", "size": N, "header_repeating_rows": N}`)
+- `input`: (optional) UI-Optionen (`{"display": "inline|column|responsive", "size": N, "header_repeating_rows": N}`)
+  - `"column"`: Immer Tabellen-Modus
+  - `"inline"`: Immer Karten-Modus
+  - `"responsive"`: Automatische Umschaltung bei 900px Breakpoint
 
 ### 3.4 Datenfluss (Modular)
 1. **Bootstrap**: `index.html` lädt `QuestionnaireApp` via ES6-Import
@@ -137,6 +141,12 @@ quest/
 - **Code-Reduktion**: Von 800+ auf ~160 Zeilen in der Hauptdatei
 - **Modularisierung**: 7 spezialisierte Module mit klaren Verantwortlichkeiten
 - **Memory-Optimierung**: Bessere Garbage Collection durch modulare Event-Handler
+
+### 7.4 Responsive-Modus-Implementation
+- **Automatische Erkennung**: DOM-basierte Erkennung des aktuellen Rendering-Modus
+- **Throttled Resize Events**: 150ms Verzögerung verhindert excessive Re-Rendering
+- **State-Erhaltung**: Antworten bleiben beim Modus-Wechsel vollständig erhalten
+- **Event-Cleanup**: Intelligente Bereinigung von Resize-Listenern beim Modus-Wechsel
 
 ## 8. Migration & Kompatibilität
 

@@ -45,6 +45,7 @@ quest/
 - **Von 800+ Zeilen auf ~160 Zeilen** in der `index.html` reduziert
 - **Vollständige Modularisierung** mit ES6-Modulen
 - **Chart-Interferenz-Schutz** durch Container-Isolation
+- **Responsive-Modus** mit automatischer Umschaltung bei 900px Breakpoint
 - **Trennung der Verantwortlichkeiten** nach Single-Responsibility-Prinzip
 
 ### 📦 Modul-Übersicht
@@ -85,10 +86,11 @@ chart.render(value, maxScore, categoryLabel);
 ```
 
 ### QuestionRenderer (`components/question-renderer.js`)
-**UI-Rendering** - Unterstützt Tabellen- und Karten-Modus
+**UI-Rendering** - Unterstützt Tabellen-, Karten- und Responsive-Modus
 ```javascript
 QuestionRenderer.render(questions, config, container);
-// Automatische Modus-Erkennung: localStorage.getItem('displayMode')
+// Unterstützte Modi: 'column', 'inline', 'responsive'
+// Responsive-Modus: >900px = Tabelle, ≤900px = Karten
 ```
 
 ### FormHandler (`components/form-handler.js`)
@@ -115,6 +117,12 @@ handler.handleSubmit(event, onSuccessCallback);
 - **Import/Export:** Native ES6-Module ohne Build-Tools
 - **Tree-Shaking ready:** Modulare Struktur für zukünftige Optimierungen
 - **Type-Safety ready:** Vorbereitet für TypeScript-Migration
+
+#### Responsive-Modus (Version 2.0)
+- **Automatische Umschaltung:** >900px = Tabellen-Modus, ≤900px = Karten-Modus
+- **Live-Responsivität:** Dynamische Anpassung bei Fenstergrößenänderung
+- **Antwort-Erhaltung:** Ausgewählte Antworten bleiben beim Modus-Wechsel erhalten
+- **Event-Management:** Intelligente Cleanup-Mechanismen für Resize-Listener
 
 ## 🚀 Verwendung
 
@@ -204,9 +212,18 @@ Format: `<Kategorie-ID>|<Fragetext>`
   "chart": {
     "type": "radar",
     "title": "Autonomie-Profil"
+  },
+  "input": {
+    "display": "responsive",
+    "header_repeating_rows": 5
   }
 }
 ```
+
+**Display-Modi:**
+- `"column"`: Immer Tabellen-Modus
+- `"inline"`: Immer Karten-Modus  
+- `"responsive"`: Automatische Umschaltung bei 900px Breakpoint
 
 ## 🎨 Chart-Typen
 
