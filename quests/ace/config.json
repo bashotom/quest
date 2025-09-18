@@ -3,13 +3,13 @@
   "description": "Adverse Childhood Experiences (ACE) Fragebogen",
   "answers": [
     {
-      "label": "Nein", 
-      "value": 0,
+      "label": "Ja", 
+      "value": 1,
       "color": "#bbf7d0"
     },
     {
-      "label": "Ja", 
-      "value": 1,
+      "label": "Nein", 
+      "value": 0,
       "color": "#fecaca"
     }
   ],
