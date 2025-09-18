@@ -189,6 +189,10 @@ function RadarChart(id, data, options) {
         const angle = angleSlice * index - Math.PI/2;
         const isInverseAxis = chartConfig.inverseradiusvector.includes(axis.key);
         
+        // Debug: Log axis information
+        console.log(`Debug Tickmarks: Axis ${axis.key}, Index ${index}, Angle ${angle}, AngleInDegrees ${angle * 180 / Math.PI}`);
+        console.log(`Math.cos(angle): ${Math.cos(angle)}, Math.sin(angle): ${Math.sin(angle)}`);
+        
         // Für jeden Level-Wert
         d3.range(1, cfg.levels + 1).forEach(levelIndex => {
             let levelValue, radiusAtLevel;
@@ -215,6 +219,7 @@ function RadarChart(id, data, options) {
                 .attr("class", "tickmark")
                 .attr("x", tickX + (Math.cos(angle) > 0 ? 5 : Math.cos(angle) < 0 ? -5 : 0))
                 .attr("y", tickY + (Math.sin(angle) > 0 ? 5 : Math.sin(angle) < 0 ? -5 : 0) - (isBottomVerticalAxis ? 9 : 0))
+                .attr("y", tickY + (Math.sin(angle) > 0 ? 5 : Math.sin(angle) < 0 ? -5 : 0) - (isBottomVerticalAxis ? 9 : 0))
                 .style("font-size", "10px")
                 .style("fill", "#000000")
                 .style("text-anchor", Math.cos(angle) > 0 ? "start" : Math.cos(angle) < 0 ? "end" : "middle")
@@ -239,9 +244,6 @@ function RadarChart(id, data, options) {
         })
         .call(wrap, cfg.wrapWidth);
     };
-
-    // Add resize listener
-    window.addEventListener('resize', updateLabels);
 
     //Append the lines
     axis.append("line")
@@ -352,7 +354,10 @@ function RadarChart(id, data, options) {
             let position = rScale(maxValue * cfg.labelFactor * 1.10) * Math.cos(angle);
             // Zusätzlicher Abstand für bessere Lesbarkeit
             const offset = 10;
-            return position + (Math.cos(angle) > 0 ? offset : Math.cos(angle) < 0 ? -offset : 0);
+            // Prüfe ob es eine vertikale Achse ist (B oder E) - zentriert positionieren
+            const isVerticalAxis = Math.abs(Math.cos(angle)) < 0.1;
+            const horizontalOffset = isVerticalAxis ? 0 : (Math.cos(angle) > 0 ? offset : Math.cos(angle) < 0 ? -offset : 0);
+            return position + horizontalOffset;
         })
         .attr("y", (d,i) => {
             const angle = angleSlice * i - Math.PI/2;
@@ -360,12 +365,18 @@ function RadarChart(id, data, options) {
             const basePosition = rScale(maxValue * cfg.labelFactor * 1.10) * Math.sin(angle) - 20 + 20; // +20px nach unten verschoben
             // Position relativ zur Gesamtzahl der Achsen bestimmen
             const normalizedPosition = (i / total) * 2 * Math.PI;
+            
+            // Prüfe ob es eine vertikale Achse ist (B oder E) und ob es sich um Namen-Labels handelt
+            const isVerticalAxis = Math.abs(Math.cos(angle)) < 0.1;
+            const useShortLabels = window.innerWidth < 650;
+            const verticalAdjustment = (isVerticalAxis && !useShortLabels) ? -25 : 0; // Nur Namen-Labels (nicht Buchstaben) 25px nach oben
+            
             // Vertikale Position basierend auf der normalisierten Position
-            if (Math.abs(normalizedPosition - Math.PI) < 0.1) return basePosition + 10;     // unten - mehr Abstand
-            if (Math.abs(normalizedPosition) < 0.1) return basePosition - 10;               // oben - mehr Abstand
+            if (Math.abs(normalizedPosition - Math.PI) < 0.1) return basePosition + 10 + verticalAdjustment;     // unten - mehr Abstand
+            if (Math.abs(normalizedPosition) < 0.1) return basePosition - 10 + verticalAdjustment;               // oben - mehr Abstand
             // Für seitliche Labels: Position basierend auf dem Winkel anpassen
             const verticalOffset = Math.abs(Math.sin(normalizedPosition)) * -5;
-            return basePosition + verticalOffset;
+            return basePosition + verticalOffset + verticalAdjustment;
         })
         .attr("class", "legend")
         .text(d => {
@@ -389,10 +400,25 @@ function RadarChart(id, data, options) {
     // Initial update of labels
     updateLabels();
     
-    // Log when resize event occurs
-    window.addEventListener('resize', () => {
-        updateLabels();
-    });    //The radial line function with support for inverse radius vectors
+    // Debounced resize handler for chart rebuild
+    let resizeTimeout;
+    const handleResize = () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            // Clear the current chart
+            d3.select(id).select("svg").remove();
+            d3.selectAll(".radar-legend").remove();
+            
+            // Rebuild the chart with the same parameters
+            RadarChart(id, data, options);
+        }, 250); // 250ms delay to avoid too frequent rebuilds
+    };
+    
+    // Remove any existing resize listeners for this chart
+    window.removeEventListener('resize', updateLabels);
+    
+    // Add new resize listener
+    window.addEventListener('resize', handleResize);    //The radial line function with support for inverse radius vectors
     const radarLine = d3.lineRadial()
         .curve(d3.curveLinearClosed)
         .radius((d, i) => {
