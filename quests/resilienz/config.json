@@ -2,11 +2,31 @@
   "title": "Resilienz-Fragebogen",
   "description": "Fragebogen zur Stabilität des psychischen Immunsystems (ACEstooHigh.com)",
   "answers": [
-    {"Trifft voll und ganz zu": 4},
-    {"Trifft eher zu": 3},
-    {"Unentschieden": 2},
-    {"Trifft eher nicht zu": 1},
-    {"Trifft überhaupt nicht zu": 0}
+    {
+      "label": "Trifft voll und ganz zu", 
+      "value": 4,
+      "color": "#059669"
+    },
+    {
+      "label": "Trifft eher zu", 
+      "value": 3,
+      "color": "#22c55e"
+    },
+    {
+      "label": "Unentschieden", 
+      "value": 2,
+      "color": "#eab308"
+    },
+    {
+      "label": "Trifft eher nicht zu", 
+      "value": 1,
+      "color": "#f97316"
+    },
+    {
+      "label": "Trifft überhaupt nicht zu", 
+      "value": 0,
+      "color": "#ef4444"
+    }
   ],
   "categories": [
     {"A": "Resilienz-Wert"}

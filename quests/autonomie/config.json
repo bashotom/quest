@@ -2,11 +2,31 @@
   "title": "Autonomie",
   "description": "Autonomie-Fragebogen von Dr. Langlotz",
   "answers": [
-    {"trifft nicht zu": 0},
-    {"stimmt selten": 1},
-    {"manchmal": 2},
-    {"stimmt häufig": 3},
-    {"stimmt fast immer": 4}
+    {
+      "label": "trifft nicht zu", 
+      "value": 0,
+      "color": "#ef4444"
+    },
+    {
+      "label": "stimmt selten", 
+      "value": 1,
+      "color": "#f97316"
+    },
+    {
+      "label": "manchmal", 
+      "value": 2,
+      "color": "#eab308"
+    },
+    {
+      "label": "stimmt häufig", 
+      "value": 3,
+      "color": "#22c55e"
+    },
+    {
+      "label": "stimmt fast immer", 
+      "value": 4,
+      "color": "#059669"
+    }
   ],
   "categories": [
     {"A": "gesunde Abgrenzung"},

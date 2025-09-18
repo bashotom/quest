@@ -23,12 +23,27 @@ export class ConfigParser {
         result.title = jsonData.title || '';
         result.description = jsonData.description || '';
         
-        // Answers verarbeiten - aus Array von Objekten zu Array mit label/value
+        // Answers verarbeiten - unterstützt beide Strukturen
         if (jsonData.answers && Array.isArray(jsonData.answers)) {
             result.answers = jsonData.answers.map(answerObj => {
-                const key = Object.keys(answerObj)[0];
-                const value = answerObj[key];
-                return { label: key, value: value };
+                // Neue Struktur: {label: "...", value: X, color: "..."}
+                if (answerObj.label !== undefined && answerObj.value !== undefined) {
+                    return {
+                        label: answerObj.label,
+                        value: answerObj.value,
+                        color: answerObj.color || null
+                    };
+                }
+                // Alte Struktur: {"Text": value}
+                else {
+                    const key = Object.keys(answerObj)[0];
+                    const value = answerObj[key];
+                    return { 
+                        label: key, 
+                        value: value,
+                        color: null
+                    };
+                }
             });
         }
         
