@@ -16,24 +16,26 @@ export class RadarDataRenderer {
      * @param {Object} config - Chart configuration
      * @returns {Object} Blob wrapper and circles for interactions
      */
-    static render(g, data, axes, chartConfig, rScale, maxValue, angleSlice, config) {
+    static render(context) {
+        const { g, processedData, allAxis, chartConfig, rScale, maxValue, angleSlice, finalConfig } = context;
+
         // Create line generator with support for inverse radius vectors
-        const radarLine = this.createRadarLine(axes, chartConfig, rScale, maxValue, angleSlice, config);
+        const radarLine = this.createRadarLine(allAxis, chartConfig, rScale, maxValue, angleSlice, finalConfig);
         
         // Create wrapper for data blobs
         const blobWrapper = g.selectAll(".radarWrapper")
-            .data(data)
+            .data(processedData)
             .enter().append("g")
             .attr("class", "radarWrapper");
 
         // Render areas
-        this.renderAreas(blobWrapper, radarLine, config);
+        this.renderAreas(blobWrapper, radarLine, finalConfig);
         
         // Render strokes
-        this.renderStrokes(blobWrapper, radarLine, config);
+        this.renderStrokes(blobWrapper, radarLine, finalConfig);
         
         // Render data points
-        const circles = this.renderDataPoints(blobWrapper, axes, chartConfig, rScale, maxValue, angleSlice, config);
+        const circles = this.renderDataPoints(blobWrapper, allAxis, chartConfig, rScale, maxValue, angleSlice, finalConfig);
         
         return { blobWrapper, circles };
     }

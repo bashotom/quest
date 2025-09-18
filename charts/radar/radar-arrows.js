@@ -13,7 +13,10 @@ export class RadarArrows {
      * @param {number} maxValue - Maximum value
      * @param {number} angleSlice - Angle slice in radians
      */
-    static render(axis, axes, chartConfig, rScale, maxValue, angleSlice) {
+    static render(context) {
+        const { allAxis, chartConfig, rScale, maxValue, angleSlice, gridResult } = context;
+        const { axis } = gridResult;
+
         axis.each(function(d, i) {
             // Check axis key for compatibility with different data formats
             const axisKey = d.key || d;

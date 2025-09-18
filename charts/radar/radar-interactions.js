@@ -13,12 +13,14 @@ export class RadarInteractions {
      * @param {number} angleSlice - Angle slice in radians
      * @param {Object} config - Chart configuration
      */
-    static setup(g, data, axes, chartConfig, rScale, maxValue, angleSlice, config) {
+    static setup(context) {
+        const { g, processedData, allAxis, chartConfig, rScale, maxValue, angleSlice, finalConfig } = context;
+
         // Create tooltip
         const tooltip = this.createTooltip(g);
         
         // Create invisible circles for mouse interactions
-        this.createInteractionCircles(g, data, axes, chartConfig, rScale, maxValue, angleSlice, config, tooltip);
+        this.createInteractionCircles(g, processedData, allAxis, chartConfig, rScale, maxValue, angleSlice, finalConfig, tooltip);
     }
 
     /**

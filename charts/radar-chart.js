@@ -47,17 +47,32 @@ export class RadarChart {
         // Initialize SVG
         const { svg, g } = RadarGrid.initializeSVG(id, finalConfig);
         
+        // Create a shared render context object to simplify parameter passing
+        const renderContext = {
+            g,
+            allAxis,
+            processedData,
+            finalConfig,
+            chartConfig,
+            rScale,
+            angleSlice,
+            maxValue: finalConfig.maxValue
+        };
+        
         // Render grid (background circles, axes, tickmarks, labels)
-        const gridResult = RadarGrid.render(g, allAxis, finalConfig, chartConfig, rScale, finalConfig.maxValue, angleSlice);
+        const gridResult = RadarGrid.render(renderContext);
+        
+        // Add grid result to context for subsequent modules
+        renderContext.gridResult = gridResult;
         
         // Render arrows on axes
-        RadarArrows.render(gridResult.axis, allAxis, chartConfig, rScale, finalConfig.maxValue, angleSlice);
+        RadarArrows.render(renderContext);
         
         // Render data visualization (areas, strokes, points)
-        const dataResult = RadarDataRenderer.render(g, processedData, allAxis, chartConfig, rScale, finalConfig.maxValue, angleSlice, finalConfig);
+        const dataResult = RadarDataRenderer.render(renderContext);
         
         // Setup interactions (tooltips, hover effects)
-        RadarInteractions.setup(g, processedData, allAxis, chartConfig, rScale, finalConfig.maxValue, angleSlice, finalConfig);
+        RadarInteractions.setup(renderContext);
         
         // Render legend for mobile
         RadarLegend.render(id, finalConfig);

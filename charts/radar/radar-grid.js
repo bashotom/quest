@@ -263,25 +263,27 @@ export class RadarGrid {
      * @param {number} angleSlice - Angle slice in radians
      * @returns {Object} Axis selection and update function
      */
-    static render(g, axes, config, chartConfig, rScale, maxValue, angleSlice) {
+    static render(context) {
+        const { g, allAxis, finalConfig, chartConfig, rScale, maxValue, angleSlice } = context;
+
         // Render background circles
-        const axisGrid = this.renderBackgroundCircles(g, config);
+        const axisGrid = this.renderBackgroundCircles(g, finalConfig);
         
         // Render axis lines
-        const axis = this.renderAxisLines(axisGrid, axes, rScale, maxValue, angleSlice);
+        const axis = this.renderAxisLines(axisGrid, allAxis, rScale, maxValue, angleSlice);
         
         // Render tickmarks
-        this.renderTickmarks(axisGrid, axes, chartConfig, config, maxValue, angleSlice);
+        this.renderTickmarks(axisGrid, allAxis, chartConfig, finalConfig, maxValue, angleSlice);
         
         // Add horizontal line if configured
-        this.addHorizontalLine(axisGrid, chartConfig, config.radius);
+        this.addHorizontalLine(axisGrid, chartConfig, finalConfig.radius);
         
         // Render axis labels
-        this.renderAxisLabels(axis, axes, config, rScale, maxValue, angleSlice);
+        this.renderAxisLabels(axis, allAxis, finalConfig, rScale, maxValue, angleSlice);
         
         return {
             axis,
-            updateLabels: () => this.updateLabels(axis, config)
+            updateLabels: () => this.updateLabels(axis, finalConfig)
         };
     }
 }
