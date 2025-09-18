@@ -114,6 +114,19 @@
             fill: #3b82f6;
             filter: url(#glow-gauge);
         }
+        
+        /* Chart Container Styles */
+        .chart-type-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .chart-type-container.hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -182,7 +195,24 @@
                 
                 <div class="flex justify-center">
                     <div class="flex justify-center w-full">
-                        <div class="w-full sm:w-[92%] md:w-[88%] lg:w-[85%] xl:w-[82%] radar-chart min-h-[200px] max-h-[700px] h-[min(400px,80vh)] flex justify-center items-center" id="radarChart">
+                        <!-- Chart Container mit separaten DIVs für jeden Chart-Typ -->
+                        <div class="w-full sm:w-[92%] md:w-[88%] lg:w-[85%] xl:w-[82%] min-h-[200px] max-h-[700px] h-[min(400px,80vh)] flex justify-center items-center">
+                            
+                            <!-- Radar Chart Container -->
+                            <div id="radar-chart-container" class="chart-type-container w-full h-full hidden">
+                                <div id="radarChart" class="w-full h-full radar-chart flex justify-center items-center"></div>
+                            </div>
+                            
+                            <!-- Gauge Chart Container -->
+                            <div id="gauge-chart-container" class="chart-type-container w-full h-full hidden">
+                                <div id="gaugeChart" class="w-full h-full gauge-chart flex justify-center items-center"></div>
+                            </div>
+                            
+                            <!-- Bar Chart Container -->
+                            <div id="bar-chart-container" class="chart-type-container w-full h-full hidden">
+                                <div id="barChart" class="w-full h-full bar-chart flex justify-center items-center"></div>
+                            </div>
+                            
                         </div>
                     </div>
                 </div>
@@ -578,42 +608,94 @@
             }, 50);
         }
 
+        // Chart-Rendering-State um Race-Conditions zu vermeiden
+        let currentChartRenderingId = 0;
+
         function renderEvaluation(scores) {
-            const container = document.getElementById('radarChart');
+            console.log(`🎨 Chart rendering started - Type: ${config.chart?.type || 'radar'}`);
             
-            // Container leeren und sicherstellen, dass er sichtbar ist
-            container.innerHTML = '';
-            container.style.visibility = 'visible';
+            // Eindeutige ID für diesen Rendering-Vorgang
+            const renderingId = ++currentChartRenderingId;
             
-            // Stelle sicher, dass der Container Dimensionen hat
-            if (container.offsetWidth === 0 || container.offsetHeight === 0) {
-                // Fallback-Dimensionen setzen, falls Container noch nicht gerendert
-                container.style.minWidth = '400px';
-                container.style.minHeight = '400px';
-            }
+            // ALLE Chart-Container referenzieren
+            const radarContainer = document.getElementById('radar-chart-container');
+            const gaugeContainer = document.getElementById('gauge-chart-container');
+            const barContainer = document.getElementById('bar-chart-container');
+            
+            // ALLE Container verstecken
+            if (radarContainer) radarContainer.classList.add('hidden');
+            if (gaugeContainer) gaugeContainer.classList.add('hidden');
+            if (barContainer) barContainer.classList.add('hidden');
+            
+            // Chart-Typ aus Konfiguration bestimmen
+            const chartType = config.chart?.type || 'radar';
+            console.log(`🎨 Chart type determined: ${chartType}`);
 
             // Share link aktualisieren
             if (shareLinkInput) {
                 shareLinkInput.value = window.location.href;
             }
 
-            // Chart-Typ aus Konfiguration
-            const chartType = config.chart?.type || 'radar';
+            // Prüfen ob dieser Rendering-Vorgang noch aktuell ist
+            if (renderingId !== currentChartRenderingId) {
+                console.log('Chart rendering cancelled - newer request exists');
+                return;
+            }
 
+            // Je nach Chart-Typ den entsprechenden Container anzeigen und Chart rendern
             if (chartType === 'radar' && typeof window.RadarChart === 'function') {
-                renderRadarChart(scores, container);
+                if (radarContainer) {
+                    radarContainer.classList.remove('hidden');
+                    const chartElement = document.getElementById('radarChart');
+                    if (chartElement) {
+                        chartElement.innerHTML = ''; // Container bereinigen
+                        console.log(`🔵 Rendering RadarChart in dedicated container`);
+                        renderRadarChart(scores, chartElement, renderingId);
+                    }
+                }
             } else if (chartType === 'gauge') {
-                renderGaugeChart(scores, container);
+                if (gaugeContainer) {
+                    gaugeContainer.classList.remove('hidden');
+                    const chartElement = document.getElementById('gaugeChart');
+                    if (chartElement) {
+                        chartElement.innerHTML = ''; // Container bereinigen
+                        console.log(`🔶 Rendering GaugeChart in dedicated container`);
+                        renderGaugeChart(scores, chartElement, renderingId);
+                    }
+                }
             } else if (chartType === 'bar') {
-                renderBarChart(scores, container);
+                if (barContainer) {
+                    barContainer.classList.remove('hidden');
+                    const chartElement = document.getElementById('barChart');
+                    if (chartElement) {
+                        chartElement.innerHTML = ''; // Container bereinigen
+                        console.log(`🟡 Rendering BarChart in dedicated container`);
+                        renderBarChart(scores, chartElement, renderingId);
+                    }
+                }
             } else {
-                renderFallbackChart(scores, container);
+                console.log(`❌ Unknown chart type: ${chartType} or RadarChart function not available`);
+                // Fallback auf RadarChart
+                if (radarContainer) {
+                    radarContainer.classList.remove('hidden');
+                    const chartElement = document.getElementById('radarChart');
+                    if (chartElement) {
+                        chartElement.innerHTML = '';
+                        renderFallbackChart(scores, chartElement, renderingId);
+                    }
+                }
             }
         }
 
-        function renderRadarChart(scores, container) {
+        function renderRadarChart(scores, container, renderingId) {
             // Warte auf DOM-Update und stelle sicher, dass Container sichtbar ist
             setTimeout(() => {
+                // Prüfen ob dieser Rendering-Vorgang noch aktuell ist
+                if (renderingId !== currentChartRenderingId) {
+                    console.log('Radar chart rendering cancelled - newer request exists');
+                    return;
+                }
+                
                 // Berechne Maximalwerte pro Kategorie
                 const categoryMaxScores = {};
                 Object.keys(config.categories).forEach(category => {
@@ -671,7 +753,13 @@
             }, 100); // Kurze Verzögerung für DOM-Update
         }
 
-        function renderGaugeChart(scores, container) {
+        function renderGaugeChart(scores, container, renderingId) {
+            // Prüfen ob dieser Rendering-Vorgang noch aktuell ist
+            if (renderingId !== currentChartRenderingId) {
+                console.log('Gauge chart rendering cancelled - newer request exists');
+                return;
+            }
+            
             // Container leeren
             container.innerHTML = '';
             
@@ -843,12 +931,18 @@
                 .text(`${percentage}%`);
         }
 
-        function renderBarChart(scores, container) {
+        function renderBarChart(scores, container, renderingId) {
             // Implementierung für Bar Chart
-            renderFallbackChart(scores, container);
+            renderFallbackChart(scores, container, renderingId);
         }
 
-        function renderFallbackChart(scores, container) {
+        function renderFallbackChart(scores, container, renderingId) {
+            // Prüfen ob dieser Rendering-Vorgang noch aktuell ist
+            if (renderingId !== currentChartRenderingId) {
+                console.log('Fallback chart rendering cancelled - newer request exists');
+                return;
+            }
+            
             let html = '<div class="bg-white border rounded-lg p-6"><h3 class="text-lg font-bold mb-4">Ergebnisse:</h3><ul class="space-y-2">';
             Object.entries(scores).forEach(([category, score]) => {
                 const categoryName = config.categories[category] || category;
@@ -861,15 +955,32 @@
         function handleMenuNavigation(event, folder) {
             event.preventDefault();
             
+            // Temporär den hashchange-Event-Listener deaktivieren
+            URLHashManager.offHashChange(handleHashChange);
+            
             const url = new URL(window.location);
             url.searchParams.set('q', folder);
+            // Hash löschen beim Fragebogen-Wechsel
+            url.hash = '';
             window.history.pushState(null, null, url);
             
             currentFolder = folder;
-            loadQuestionnaire();
+            
+            // Nach dem Fragebogen-Laden den Event-Listener wieder aktivieren
+            loadQuestionnaire().then(() => {
+                // Kurze Verzögerung, um sicherzustellen, dass alle DOM-Updates abgeschlossen sind
+                setTimeout(() => {
+                    URLHashManager.onHashChange(handleHashChange);
+                }, 100);
+            });
         }
 
         function handleHashChange() {
+            // Nur reagieren wenn questions und config geladen sind
+            if (!questions || questions.length === 0 || !config) {
+                return;
+            }
+            
             const scores = URLHashManager.parseScoresFromHash(questions);
             if (scores) {
                 renderEvaluation(scores);
@@ -883,6 +994,13 @@
         // Main Application Functions
         async function loadQuestionnaire() {
             try {
+                // Chart-Rendering zurücksetzen
+                currentChartRenderingId = 0;
+                const chartContainer = document.getElementById('radarChart');
+                if (chartContainer) {
+                    chartContainer.innerHTML = '';
+                }
+                
                 currentFolder = QuestionnaireLoader.getActiveQuestionnaire();
                 const data = await QuestionnaireLoader.loadQuestionnaire(currentFolder);
                 

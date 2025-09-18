@@ -15,6 +15,7 @@ export class URLHashManager {
         const scores = {};
         const params = new URLSearchParams(hash);
         let hasIncompleteData = false;
+        let hasValidData = false;
         
         for (const [key, value] of params.entries()) {
             const question = questions.find(q => q.id === key);
@@ -23,13 +24,28 @@ export class URLHashManager {
                 if (!isNaN(score)) {
                     const category = question.category;
                     scores[category] = (scores[category] || 0) + score;
+                    hasValidData = true;
                 } else {
                     hasIncompleteData = true;
                 }
             }
+            // Ignoriere Hash-Parameter, die nicht zu aktuellen Fragen gehören
         }
 
-        if (hasIncompleteData) {
+        // Nur gültige Scores zurückgeben wenn:
+        // 1. Es gibt gültige Daten UND
+        // 2. Keine unvollständigen Daten UND 
+        // 3. Alle aktuellen Fragen sind im Hash enthalten
+        if (!hasValidData || hasIncompleteData) {
+            return null;
+        }
+        
+        // Prüfe, ob alle Fragen beantwortet sind
+        const answeredQuestions = Array.from(params.keys()).filter(key => 
+            questions.find(q => q.id === key)
+        );
+        
+        if (answeredQuestions.length !== questions.length) {
             return null;
         }
 

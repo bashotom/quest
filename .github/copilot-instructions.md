@@ -117,6 +117,64 @@ scaleAngles.forEach((angleDeg) => {
 - Maintain compatibility with existing JSON/question formats
 - For gauge charts: ALWAYS use the proven D3.js pattern above to avoid coordinate system conflicts
 
+## Chart Interference Prevention - Critical Lessons Learned (Sep 2025)
+
+### Problem: Chart Rendering Conflicts
+When multiple chart types (RadarChart, GaugeChart) are rendered in the same DOM container, persistent event listeners and D3.js selections can cause chart interference, where one chart type overwrites another unexpectedly.
+
+### Root Cause Analysis
+1. **Global Event Listeners**: RadarChart adds `window.addEventListener('resize', handleResize)` that persists across navigation
+2. **Shared Container**: Using same DOM element (`#radarChart`) for different chart types creates race conditions
+3. **D3.js State Persistence**: D3 selections and event handlers remain active even after navigating away from chart
+
+### ❌ Failed Solutions (Avoid These Approaches)
+- **Complex Event Listener Management**: Trying to cleanup/track global event listeners is error-prone
+- **MutationObserver Protection**: DOM watching adds complexity without solving root cause
+- **Chart Rendering IDs**: Tracking render states is fragile and doesn't prevent interference
+- **Shadow DOM Isolation**: Adds architectural complexity for D3.js charts
+
+### ✅ Proven Solution: Separate Container Architecture
+```html
+<!-- Each chart type gets its own dedicated container -->
+<div id="radar-chart-container" class="chart-type-container hidden">
+    <div id="radarChart"></div>
+</div>
+<div id="gauge-chart-container" class="chart-type-container hidden">  
+    <div id="gaugeChart"></div>
+</div>
+<div id="bar-chart-container" class="chart-type-container hidden">
+    <div id="barChart"></div>
+</div>
+```
+
+```javascript
+// Show/hide containers based on chart type
+function renderChart(chartType) {
+    // Hide all containers
+    document.querySelectorAll('.chart-type-container').forEach(c => c.classList.add('hidden'));
+    
+    // Show only needed container
+    const targetContainer = document.getElementById(`${chartType}-chart-container`);
+    if (targetContainer) {
+        targetContainer.classList.remove('hidden');
+        // Render chart in dedicated container - no interference possible!
+    }
+}
+```
+
+### Key Benefits of Separate Containers
+1. **Mathematical Impossibility of Interference**: Different DOM elements cannot overwrite each other
+2. **Event Listener Isolation**: Resize events remain contained to their specific chart containers
+3. **Architectural Simplicity**: No complex state management or cleanup logic needed
+4. **Performance**: No DOM watchers or protection mechanisms required
+5. **Maintainability**: Clear separation of concerns, easy to debug
+
+### Architecture Principle
+**"Solve interference through isolation, not through protection"**
+- Prevention via architecture > Detection via monitoring
+- Simple container separation > Complex event management
+- DOM isolation > JavaScript state tracking
+
 ## Key Files/Dirs
 - `index.html` — main app logic, UI, and data flow
 - `quests/` — all questionnaire data

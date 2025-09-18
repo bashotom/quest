@@ -15,6 +15,10 @@ class QuestionnaireApp extends HTMLElement {
         this.config = {};
         this.currentFolder = '';
         
+        // Chart rendering state
+        this.currentChartRenderingId = 0;
+        this.activeTemporaryContainers = new Set();
+        
         // Bind methods
         this.handleHashChange = this.handleHashChange.bind(this);
         this.handleFormSubmit = this.handleFormSubmit.bind(this);
@@ -363,6 +367,12 @@ class QuestionnaireApp extends HTMLElement {
     }
 
     renderChart(scores) {
+        // Neue Chart-Rendering-ID generieren
+        const renderingId = ++this.currentChartRenderingId;
+        
+        // Alle vorherigen temporären Container bereinigen
+        this.cleanupTemporaryContainers();
+        
         // Scores für andere Methoden speichern
         this.currentScores = scores;
         
@@ -375,11 +385,15 @@ class QuestionnaireApp extends HTMLElement {
             chartType = this.config.chart.type;
         }
 
+        console.log(`🎨 Starting chart rendering (ID: ${renderingId}, Type: ${chartType}, Folder: ${this.currentFolder})`);
+        console.log('📊 Chart scores:', scores);
+        console.log('⚙️ Chart config:', this.config);
+
         // Container leeren
         chartContainer.innerHTML = '';
         
-        // Chart-Container erstellen
-        chartContainer.innerHTML = '<div id="chart-element" style="width: 100%; height: 400px;"></div>';
+        // Chart-Container erstellen mit Chart-Typ-Markierung
+        chartContainer.innerHTML = `<div id="chart-element" style="width: 100%; height: 400px;" data-chart-type="${chartType}" data-rendering-id="${renderingId}"></div>`;
         const chartElement = chartContainer.querySelector('#chart-element');
 
         // Container-Größe ermitteln
@@ -419,24 +433,277 @@ class QuestionnaireApp extends HTMLElement {
                 config: this.config
             };
             
+            // Chart-Typ global setzen
+            if (typeof window.setCurrentChartType === 'function') {
+                window.setCurrentChartType('#chart-element', 'radar');
+            }
+            
+            // Container für RadarChart markieren
+            chartElement.setAttribute('data-chart-context', 'radar');
+            chartElement.classList.add('radar-chart-container');
+            
             // Für RadarChart verwenden wir den Container aus dem Light DOM
             // da die RadarChart-Funktion D3-Selektoren verwendet
-            this.renderRadarChartInLightDOM(null, responsiveOptions, chartElement);
+            this.renderRadarChartInLightDOM(null, responsiveOptions, chartElement, renderingId);
 
         } else if (chartType === 'gauge') {
-            this.renderGaugeChart(scores, chartElement, containerWidth, containerHeight);
+            // Chart-Typ global setzen BEVOR das GaugeChart gerendert wird
+            if (typeof window.setCurrentChartType === 'function') {
+                window.setCurrentChartType('#chart-element', 'gauge');
+            }
+            
+            // Container für GaugeChart markieren
+            chartElement.setAttribute('data-chart-context', 'gauge');
+            chartElement.classList.add('gauge-chart-container');
+            
+            // Prüfen ob dieser Rendering-Vorgang noch aktuell ist
+            if (renderingId === this.currentChartRenderingId) {
+                console.log(`🔶 Rendering Gauge chart (ID: ${renderingId})`);
+                this.renderGaugeChart(scores, chartElement, containerWidth, containerHeight, renderingId);
+                
+                // WICHTIG: Chart-Container gegen Überschreibung schützen
+                this.protectGaugeChartFromRadarChart(chartElement, renderingId);
+            } else {
+                console.log(`❌ Gauge chart rendering cancelled (ID: ${renderingId})`);
+            }
             
         } else if (chartType === 'bar') {
-            this.renderBarChart(scores, chartElement, containerWidth, containerHeight, maxScore);
+            // Chart-Typ global setzen
+            if (typeof window.setCurrentChartType === 'function') {
+                window.setCurrentChartType('#chart-element', 'bar');
+            }
+            
+            // Prüfen ob dieser Rendering-Vorgang noch aktuell ist
+            if (renderingId === this.currentChartRenderingId) {
+                console.log(`📊 Rendering Bar chart (ID: ${renderingId})`);
+                this.renderBarChart(scores, chartElement, containerWidth, containerHeight, maxScore, renderingId);
+            } else {
+                console.log(`❌ Bar chart rendering cancelled (ID: ${renderingId})`);
+            }
         }
     }
 
-    renderRadarChartInLightDOM(chartData, inputResponsiveOptions, shadowChartElement) {
+    protectGaugeChartFromRadarChart(chartElement, renderingId) {
+        // Schutz speziell für GaugeChart gegen RadarChart-Interferenz
+        console.log(`🛡️ Setting up GaugeChart protection (ID: ${renderingId})`);
+        console.log(`🛡️ Chart element:`, chartElement);
+        console.log(`🛡️ Current time: ${new Date().toISOString()}`);
+        
+        // Observer für DOM-Änderungen
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                console.log(`🔍 DOM Mutation detected:`, mutation.type, mutation);
+                
+                // Prüfen ob unser Chart noch aktuell ist
+                if (renderingId !== this.currentChartRenderingId) {
+                    console.log(`🔍 Chart no longer current (${renderingId} vs ${this.currentChartRenderingId})`);
+                    observer.disconnect();
+                    return;
+                }
+                
+                if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.tagName === 'SVG') {
+                            const nodeChartType = node.getAttribute('data-chart-type');
+                            console.log(`🚨 SVG ADDED! Chart type: ${nodeChartType || 'UNKNOWN'}`);
+                            console.log(`🚨 SVG element:`, node);
+                            console.log(`🚨 Expected: gauge, Found: ${nodeChartType || 'unknown'}`);
+                            
+                            // Wenn ein SVG ohne Gauge-Markierung hinzugefügt wird, entferne es
+                            if (!nodeChartType || nodeChartType !== 'gauge') {
+                                console.log(`⚠️ REMOVING unauthorized SVG (expected gauge, found: ${nodeChartType || 'unknown'})`);
+                                node.remove();
+                                
+                                // GaugeChart erneut rendern
+                                setTimeout(() => {
+                                    if (renderingId === this.currentChartRenderingId) {
+                                        console.log(`🔄 Re-rendering GaugeChart after interference`);
+                                        this.renderGaugeChart(this.currentScores, chartElement, chartElement.offsetWidth, chartElement.offsetHeight, renderingId);
+                                    }
+                                }, 10);
+                            } else {
+                                console.log(`✅ Authorized Gauge SVG - keeping it`);
+                            }
+                        }
+                    });
+                }
+            });
+        });
+        
+        // Observer aktivieren
+        observer.observe(chartElement, { 
+            childList: true, 
+            subtree: true 
+        });
+        
+        // Observer nach 15 Sekunden deaktivieren
+        setTimeout(() => {
+            observer.disconnect();
+            console.log(`🛡️ GaugeChart protection disabled (ID: ${renderingId})`);
+        }, 15000);
+        
+        // Zusätzlicher Schutz: Event-Listener für unauthorized DOM-Änderungen
+        const protectContainer = () => {
+            // Überwache innerHTML-Änderungen
+            const originalInnerHTML = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML') || 
+                                    Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'innerHTML');
+            
+            if (originalInnerHTML && chartElement.tagName) {
+                let isProtected = true;
+                
+                Object.defineProperty(chartElement, 'innerHTML', {
+                    configurable: true,
+                    set: function(value) {
+                        if (isProtected && renderingId === this.currentChartRenderingId) {
+                            console.log(`🛡️ Blocked innerHTML change on protected GaugeChart`);
+                            return;
+                        }
+                        originalInnerHTML.set.call(this, value);
+                    },
+                    get: function() {
+                        return originalInnerHTML.get.call(this);
+                    }
+                });
+                
+                // Schutz nach 15 Sekunden aufheben
+                setTimeout(() => {
+                    isProtected = false;
+                    if (originalInnerHTML) {
+                        Object.defineProperty(chartElement, 'innerHTML', originalInnerHTML);
+                    }
+                }, 15000);
+            }
+        };
+        
+        protectContainer();
+    }
+
+    protectChartFromInterference(chartElement, renderingId, chartType) {
+        // Observer erstellen, der unerwünschte DOM-Änderungen überwacht
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                // Prüfen ob unser Chart noch aktuell ist
+                if (renderingId !== this.currentChartRenderingId) {
+                    observer.disconnect();
+                    return;
+                }
+                
+                // Prüfen ob jemand anderes den Chart-Container verändert hat
+                if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.tagName === 'SVG') {
+                            const nodeChartType = node.getAttribute('data-chart-type');
+                            const nodeRenderingId = node.getAttribute('data-rendering-id');
+                            
+                            // Erlauben nur SVGs die zu unserem Chart gehören
+                            if (nodeChartType !== chartType || nodeRenderingId != renderingId) {
+                                console.log(`⚠️  Unauthorized SVG detected! Expected: ${chartType}(${renderingId}), Found: ${nodeChartType}(${nodeRenderingId}). Removing...`);
+                                node.remove();
+                            } else {
+                                console.log(`✅ Authorized ${chartType} SVG confirmed (ID: ${renderingId})`);
+                            }
+                        }
+                    });
+                }
+            });
+        });
+        
+        // Observer auf Chart-Container anwenden
+        observer.observe(chartElement, { 
+            childList: true, 
+            subtree: true 
+        });
+        
+        // Observer nach 10 Sekunden automatisch deaktivieren
+        setTimeout(() => {
+            observer.disconnect();
+            console.log(`🛡️  Chart protection disabled for ${chartType} (ID: ${renderingId})`);
+        }, 10000);
+        
+        console.log(`🛡️  Chart protection enabled for ${chartType} (ID: ${renderingId})`);
+    }
+
+    cleanupTemporaryContainers() {
+        // Container-Markierungen bereinigen
+        const chartElement = this.shadowRoot.getElementById('chart-element');
+        if (chartElement) {
+            chartElement.removeAttribute('data-chart-context');
+            chartElement.classList.remove('radar-chart-container', 'gauge-chart-container');
+            console.log(`🧹 Cleaned up chart container markings`);
+        }
+        
+        // Alle vorherigen temporären Container entfernen
+        this.activeTemporaryContainers.forEach(containerId => {
+            const container = document.getElementById(containerId);
+            if (container && document.body.contains(container)) {
+                document.body.removeChild(container);
+                console.log(`🧹 Cleaned up temporary container: ${containerId}`);
+            }
+        });
+        this.activeTemporaryContainers.clear();
+        
+        // WICHTIG: Auch alle RadarChart Event-Listener bereinigen
+        // this.cleanupRadarChartEventListeners(); // Temporär deaktiviert
+    }
+
+    cleanupRadarChartEventListeners() {
+        // Temporär deaktiviert - zu aggressiv für RadarChart Funktionalität
+        console.log('🧹 RadarChart cleanup temporarily disabled');
+        return;
+        
+        // RadarChart fügt globale resize Event-Listener hinzu
+        // Diese müssen bereinigt werden, um Race-Conditions zu vermeiden
+        console.log('🧹 Cleaning up global RadarChart event listeners');
+        
+        // Brutale aber effektive Lösung: Alle resize Event-Listener entfernen
+        // und dann neu hinzufügen (außer RadarChart-bezogene)
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+        const pristineWindow = iframe.contentWindow;
+        document.body.removeChild(iframe);
+        
+        // Alle aktuellen resize listeners sammeln
+        const currentListeners = [];
+        
+        // addEventListener überschreiben um neue Listener zu tracken
+        const originalAdd = window.addEventListener;
+        window.addEventListener = function(type, listener, options) {
+            if (type === 'resize') {
+                const listenerStr = listener.toString();
+                if (!listenerStr.includes('RadarChart') && !listenerStr.includes('d3.select')) {
+                    currentListeners.push(listener);
+                }
+            }
+            return originalAdd.call(this, type, listener, options);
+        };
+        
+        // Alle Event-Listener entfernen durch Neuerstellen des Event-Target
+        // Das ist drastisch aber effektiv
+        console.log('🗑️  Cleared all resize event listeners');
+        
+        // Nutze die globale Cleanup-Funktion falls verfügbar
+        if (typeof window.cleanupRadarChartListeners === 'function') {
+            window.cleanupRadarChartListeners(); // Alle RadarChart Listener bereinigen
+        }
+    }
+
+    renderRadarChartInLightDOM(chartData, inputResponsiveOptions, shadowChartElement, renderingId) {
+        // Sofort prüfen ob dieser Rendering-Vorgang noch aktuell ist
+        if (renderingId !== this.currentChartRenderingId) {
+            console.log(`RadarChart rendering cancelled at start (ID: ${renderingId})`);
+            return;
+        }
+        
+        console.log(`🔵 Starting RadarChart rendering (ID: ${renderingId})`);
+        console.log(`🔵 Shadow chart element:`, shadowChartElement);
+        console.log(`🔵 Current time: ${new Date().toISOString()}`);
+        
         // Daten für RadarChart vorbereiten
         // Sortiere die Kategorien basierend auf dem topaxis-Attribut
         let categoryKeys = Object.keys(this.config.categories);
-        console.log('Original categoryKeys:', categoryKeys);
-        console.log('Config chart:', this.config.chart);
+        console.log('🔵 Original categoryKeys:', categoryKeys);
+        console.log('🔵 Config chart:', this.config.chart);
         
         if (this.config.chart && this.config.chart.topaxis) {
             const topAxisKey = this.config.chart.topaxis;
@@ -527,20 +794,39 @@ class QuestionnaireApp extends HTMLElement {
 
         // Erstelle einen temporären Container im Light DOM
         const tempContainer = document.createElement('div');
-        tempContainer.id = 'temp-radar-chart-' + Date.now();
+        const tempContainerId = 'temp-radar-chart-' + Date.now() + '-' + renderingId;
+        tempContainer.id = tempContainerId;
         tempContainer.style.cssText = `width: ${safeOptions.w + 100}px; height: ${safeOptions.h + 100}px; position: absolute; top: -9999px; left: -9999px;`;
         document.body.appendChild(tempContainer);
+        
+        // Container zur Bereinigung registrieren
+        this.activeTemporaryContainers.add(tempContainerId);
 
         // RadarChart im Light DOM erstellen
         if (typeof window.RadarChart === 'function') {
             try {
-                console.log('Attempting to create RadarChart with data:', finalChartData);
-                console.log('Chart options:', safeOptions);
+                console.log('🔵 Attempting to create RadarChart with data:', finalChartData);
+                console.log('🔵 Chart options:', safeOptions);
+                console.log('🔵 Target container ID:', '#' + tempContainer.id);
+                console.log('🔵 About to call window.RadarChart...');
                 
                 window.RadarChart('#' + tempContainer.id, finalChartData, safeOptions);
                 
+                console.log('🔵 RadarChart function called successfully');
+                
                 // Warte bis der Chart gerendert ist, dann verschiebe ins Shadow DOM
                 setTimeout(() => {
+                    // KRITISCH: Prüfen ob dieser Rendering-Vorgang noch aktuell ist
+                    if (renderingId !== this.currentChartRenderingId) {
+                        console.log(`RadarChart rendering cancelled in setTimeout (ID: ${renderingId}, Current: ${this.currentChartRenderingId})`);
+                        // Container bereinigen
+                        if (document.body.contains(tempContainer)) {
+                            document.body.removeChild(tempContainer);
+                        }
+                        this.activeTemporaryContainers.delete(tempContainerId);
+                        return;
+                    }
+                    
                     try {
                         const svg = tempContainer.querySelector('svg');
                         if (svg) {
@@ -561,7 +847,18 @@ class QuestionnaireApp extends HTMLElement {
                                 if (document.body.contains(tempContainer)) {
                                     document.body.removeChild(tempContainer);
                                 }
+                                this.activeTemporaryContainers.delete(tempContainerId);
                                 this.renderFallbackChart(this.currentScores);
+                                return;
+                            }
+                            
+                            // Finaler Check: Ist dieser Rendering-Vorgang noch aktuell?
+                            if (renderingId !== this.currentChartRenderingId) {
+                                console.log(`RadarChart rendering cancelled before DOM update (ID: ${renderingId})`);
+                                if (document.body.contains(tempContainer)) {
+                                    document.body.removeChild(tempContainer);
+                                }
+                                this.activeTemporaryContainers.delete(tempContainerId);
                                 return;
                             }
                             
@@ -569,15 +866,19 @@ class QuestionnaireApp extends HTMLElement {
                             shadowChartElement.innerHTML = '';
                             shadowChartElement.appendChild(svg.cloneNode(true));
                             
+                            console.log(`RadarChart successfully rendered (ID: ${renderingId})`);
+                            
                             // Temporären Container entfernen
                             if (document.body.contains(tempContainer)) {
                                 document.body.removeChild(tempContainer);
                             }
+                            this.activeTemporaryContainers.delete(tempContainerId);
                         } else {
                             console.warn('No SVG found in radar chart');
                             if (document.body.contains(tempContainer)) {
                                 document.body.removeChild(tempContainer);
                             }
+                            this.activeTemporaryContainers.delete(tempContainerId);
                             this.renderFallbackChart(this.currentScores);
                         }
                     } catch (svgError) {
@@ -585,6 +886,7 @@ class QuestionnaireApp extends HTMLElement {
                         if (document.body.contains(tempContainer)) {
                             document.body.removeChild(tempContainer);
                         }
+                        this.activeTemporaryContainers.delete(tempContainerId);
                         this.renderFallbackChart(this.currentScores);
                     }
                 }, 500);
@@ -594,11 +896,13 @@ class QuestionnaireApp extends HTMLElement {
                 if (document.body.contains(tempContainer)) {
                     document.body.removeChild(tempContainer);
                 }
+                this.activeTemporaryContainers.delete(tempContainerId);
                 this.renderFallbackChart(this.currentScores);
             }
         } else {
             console.warn('RadarChart function not available');
             document.body.removeChild(tempContainer);
+            this.activeTemporaryContainers.delete(tempContainerId);
             this.renderFallbackChart(this.currentScores);
         }
     }
@@ -617,7 +921,16 @@ class QuestionnaireApp extends HTMLElement {
         chartContainer.innerHTML = html;
     }
 
-    renderGaugeChart(scores, container, containerWidth, containerHeight) {
+    renderGaugeChart(scores, container, containerWidth, containerHeight, renderingId) {
+        console.log(`🔶 Starting Gauge chart rendering (ID: ${renderingId})`);
+        console.log(`🔶 Container:`, container);
+        console.log(`🔶 Dimensions: ${containerWidth}x${containerHeight}`);
+        console.log(`🔶 Scores:`, scores);
+        console.log(`🔶 Current time: ${new Date().toISOString()}`);
+        
+        // Spezieller GaugeChart-Schutz gegen RadarChart aktivieren
+        this.protectGaugeChartFromRadarChart(container, renderingId);
+        
         // Gauge: Zeige nur die erste Kategorie als Wert an
         const firstKey = Object.keys(this.config.categories)[0];
         const value = scores[firstKey] || 0;
@@ -630,11 +943,23 @@ class QuestionnaireApp extends HTMLElement {
         const percentage = (value / maxForCategory) * 100;
 
         try {
+            // Prüfen ob dieser Rendering-Vorgang noch aktuell ist
+            if (renderingId !== this.currentChartRenderingId) {
+                console.log(`❌ Gauge chart rendering cancelled (ID: ${renderingId})`);
+                return;
+            }
+            
             // SVG für Gauge erstellen
+            console.log(`🔶 Creating SVG element for Gauge`);
             const svg = d3.select(container)
                 .append("svg")
                 .attr("width", containerWidth)
-                .attr("height", containerHeight);
+                .attr("height", containerHeight)
+                .attr("data-chart-type", "gauge")  // Markierung für Identifikation
+                .attr("data-rendering-id", renderingId);
+            
+            console.log(`🔶 SVG created:`, svg.node());
+            console.log(`🔶 SVG attributes: chart-type=${svg.attr('data-chart-type')}, rendering-id=${svg.attr('data-rendering-id')}`);
 
             const radius = Math.min(containerWidth, containerHeight) / 3;
             const centerX = containerWidth / 2;
@@ -683,14 +1008,24 @@ class QuestionnaireApp extends HTMLElement {
                 .attr("fill", "#6b7280")
                 .text(categoryLabel);
 
+            console.log(`✅ Gauge chart successfully rendered (ID: ${renderingId})`);
+
         } catch (error) {
-            console.error('Error creating gauge chart:', error);
+            console.error('❌ Error creating gauge chart:', error);
             this.renderFallbackChart(scores);
         }
     }
 
-    renderBarChart(scores, container, containerWidth, containerHeight, maxScore) {
+    renderBarChart(scores, container, containerWidth, containerHeight, maxScore, renderingId) {
+        console.log(`Starting Bar chart rendering (ID: ${renderingId})`);
+        
         try {
+            // Prüfen ob dieser Rendering-Vorgang noch aktuell ist
+            if (renderingId !== this.currentChartRenderingId) {
+                console.log(`Bar chart rendering cancelled (ID: ${renderingId})`);
+                return;
+            }
+            
             const margin = {top: 20, right: 20, bottom: 30, left: 40};
             const width = containerWidth - margin.left - margin.right;
             const height = containerHeight - margin.top - margin.bottom;
@@ -728,6 +1063,8 @@ class QuestionnaireApp extends HTMLElement {
                 .attr("width", d => x(scores[d] || 0))
                 .attr("fill", "#3b82f6");
 
+            console.log(`Bar chart successfully rendered (ID: ${renderingId})`);
+
         } catch (error) {
             console.error('Error creating bar chart:', error);
             this.renderFallbackChart(scores);
@@ -744,9 +1081,16 @@ class QuestionnaireApp extends HTMLElement {
     handleMenuNavigation(event, folder) {
         event.preventDefault();
         
+        console.log(`🔀 Menu navigation to folder: ${folder}`);
+        
+        // Chart-Rendering zurücksetzen und temporäre Container bereinigen
+        this.currentChartRenderingId = 0;
+        this.cleanupTemporaryContainers();
+        
         // Update URL
         const url = new URL(window.location);
         url.searchParams.set('q', folder);
+        url.hash = ''; // Hash löschen beim Fragebogen-Wechsel
         window.history.pushState(null, null, url);
         
         // Reload questionnaire
