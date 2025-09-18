@@ -202,6 +202,8 @@ export class QuestionnaireApp {
             const displayMode = localStorage.getItem('displayMode') || 'column';
             if (displayMode === 'column') {
                 QuestionRenderer.applyAnswerColors(this.config);
+            } else {
+                QuestionRenderer.applyInlineAnswerColors(this.config);
             }
         });
         document.getElementById('random-answers-btn')?.addEventListener('click', () => {
@@ -210,6 +212,8 @@ export class QuestionnaireApp {
             const displayMode = localStorage.getItem('displayMode') || 'column';
             if (displayMode === 'column') {
                 QuestionRenderer.applyAnswerColors(this.config);
+            } else {
+                QuestionRenderer.applyInlineAnswerColors(this.config);
             }
         });
         document.getElementById('max-answers-btn')?.addEventListener('click', () => {
@@ -218,6 +222,8 @@ export class QuestionnaireApp {
             const displayMode = localStorage.getItem('displayMode') || 'column';
             if (displayMode === 'column') {
                 QuestionRenderer.applyAnswerColors(this.config);
+            } else {
+                QuestionRenderer.applyInlineAnswerColors(this.config);
             }
         });
 

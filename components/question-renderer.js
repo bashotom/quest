@@ -22,6 +22,8 @@ export class QuestionRenderer {
         // Apply colors to already selected answers in table mode
         if (displayMode === 'column') {
             QuestionRenderer.applyAnswerColors(config);
+        } else {
+            // Apply colors in inline mode (done automatically in setupInlineChangeListeners)
         }
     }
     
@@ -137,7 +139,9 @@ export class QuestionRenderer {
             config.answers?.forEach((answer, index) => {
                 const label = answer.label || Object.keys(answer)[0];
                 html += `
-                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-50 transition-colors">
+                    <label class="answer-label flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-50 transition-colors duration-150" 
+                           data-answer-color="${answer.color || ''}"
+                           data-answer-index="${index}">
                         <input type="radio" name="question-${question.id}" value="${index}" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
                         <span class="text-sm sm:text-base">${label}</span>
                     </label>
@@ -149,6 +153,10 @@ export class QuestionRenderer {
 
         html += '</div>';
         container.innerHTML = html;
+        
+        // Add hover event listeners and change listeners for inline mode
+        QuestionRenderer.setupInlineHoverEffects();
+        QuestionRenderer.setupInlineChangeListeners(config);
     }
     
     static updateButtonStyles() {
@@ -168,14 +176,23 @@ export class QuestionRenderer {
     }
     
     static setAllAnswers(questions, mode) {
-        // First reset all cell colors
+        // First reset all colors (both table and inline mode)
         const allRadios = document.querySelectorAll('input[type="radio"]');
         allRadios.forEach(radio => {
+            // Reset table cells
             const cell = radio.closest('td');
             if (cell) {
                 cell.style.backgroundColor = '';
                 cell.style.color = '';
                 cell.classList.remove('font-medium');
+            }
+            
+            // Reset inline labels
+            const label = radio.closest('.answer-label');
+            if (label) {
+                label.style.backgroundColor = '';
+                label.style.color = '';
+                label.classList.remove('font-medium');
             }
         });
         
@@ -249,11 +266,91 @@ export class QuestionRenderer {
     }
     
     static setupHoverEffects() {
-        // Add event listeners to all answer cells
+        // Add event listeners to all answer cells (table mode)
         const answerCells = document.querySelectorAll('.answer-cell');
         answerCells.forEach(cell => {
             cell.addEventListener('mouseenter', () => QuestionRenderer.showColorPreview(cell));
             cell.addEventListener('mouseleave', () => QuestionRenderer.hideColorPreview(cell));
+        });
+    }
+    
+    static setupInlineHoverEffects() {
+        // Add event listeners to all answer labels (inline mode)
+        const answerLabels = document.querySelectorAll('.answer-label');
+        answerLabels.forEach(label => {
+            label.addEventListener('mouseenter', () => QuestionRenderer.showInlineColorPreview(label));
+            label.addEventListener('mouseleave', () => QuestionRenderer.hideInlineColorPreview(label));
+        });
+    }
+    
+    static setupInlineChangeListeners(config) {
+        // Add change listeners to radio buttons in inline mode
+        const radioButtons = document.querySelectorAll('input[type="radio"]');
+        radioButtons.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.checked) {
+                    QuestionRenderer.applyInlineAnswerColor(radio, config);
+                }
+            });
+        });
+        
+        // Apply colors to already selected answers
+        QuestionRenderer.applyInlineAnswerColors(config);
+    }
+    
+    static showInlineColorPreview(label) {
+        // Don't show preview if already selected
+        const radio = label.querySelector('input[type="radio"]');
+        if (radio && radio.checked) return;
+        
+        const answerColor = label.dataset.answerColor;
+        if (answerColor) {
+            // Create a lighter version of the color for preview
+            const lighterColor = QuestionRenderer.lightenColor(answerColor, 0.8);
+            label.style.backgroundColor = lighterColor;
+        }
+    }
+    
+    static hideInlineColorPreview(label) {
+        // Don't hide if already selected
+        const radio = label.querySelector('input[type="radio"]');
+        if (radio && radio.checked) return;
+        
+        // Reset to default hover color
+        label.style.backgroundColor = '';
+    }
+    
+    static applyInlineAnswerColor(radio, config) {
+        // Reset all labels in this question group first
+        const questionName = radio.name;
+        const allRadiosInQuestion = document.querySelectorAll(`input[name="${questionName}"]`);
+        allRadiosInQuestion.forEach(r => {
+            const label = r.closest('.answer-label');
+            if (label) {
+                label.style.backgroundColor = '';
+                label.style.color = '';
+                label.classList.remove('font-medium');
+            }
+        });
+        
+        // Apply color to selected label
+        const answerIndex = parseInt(radio.value);
+        const answer = config.answers[answerIndex];
+        if (answer && answer.color) {
+            const label = radio.closest('.answer-label');
+            if (label) {
+                label.style.backgroundColor = answer.color;
+                label.style.color = '#374151'; // Dark gray text for pastel colors
+                label.classList.add('font-medium');
+            }
+        }
+    }
+    
+    static applyInlineAnswerColors(config) {
+        // Apply colors to all checked radio buttons in inline mode
+        const checkedRadios = document.querySelectorAll('input[type="radio"]:checked');
+        checkedRadios.forEach(radio => {
+            QuestionRenderer.applyInlineAnswerColor(radio, config);
         });
     }
 }
