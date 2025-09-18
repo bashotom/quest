@@ -138,12 +138,13 @@ export class RadarGrid {
                 
                 // Check if it's the bottom vertical axis
                 const isBottomVerticalAxis = Math.abs(angle - Math.PI/2) < 0.1;
+                const isTopVerticalAxis = Math.abs(angle + Math.PI/2) < 0.1;
                 
                 // Add tickmark text
                 axisGrid.append("text")
                     .attr("class", "tickmark")
                     .attr("x", tickX + (Math.cos(angle) > 0 ? 5 : Math.cos(angle) < 0 ? -5 : 0))
-                    .attr("y", tickY + (Math.sin(angle) > 0 ? 5 : Math.sin(angle) < 0 ? -5 : 0) - (isBottomVerticalAxis ? 9 : 0))
+                    .attr("y", tickY + (Math.sin(angle) > 0 ? 5 : Math.sin(angle) < 0 ? -5 : 0) - (isBottomVerticalAxis ? 9 : 0) + (isTopVerticalAxis ? 19 : 0))
                     .style("font-size", "10px")
                     .style("fill", "#000000")
                     .style("text-anchor", Math.cos(angle) > 0 ? "start" : Math.cos(angle) < 0 ? "end" : "middle")
