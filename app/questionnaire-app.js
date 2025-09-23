@@ -2,6 +2,7 @@ import { QuestionnaireLoader } from '../services/questionnaire-loader.js';
 import { URLHashManager } from '../utils/url-hash-manager.js';
 import { ChartRenderer } from '../charts/chart-renderer.js';
 import { QuestionRenderer } from '../components/question-renderer.js';
+import { ResultRenderer } from '../components/result-renderer.js';
 import { FormHandler } from '../components/form-handler.js';
 import { RadarLegend } from '../charts/radar/radar-legend.js';
 
@@ -125,7 +126,7 @@ export class QuestionnaireApp {
         if (tableContainer && !tableContainer.hasChildNodes()) {
             const scores = URLHashManager.parseScoresFromHash(this.questions);
             if (scores) {
-                ChartRenderer.renderResultTable(scores, this.questions, this.config);
+                ResultRenderer.render(scores, this.questions, this.config, tableContainer);
             }
         }
 

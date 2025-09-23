@@ -1,6 +1,6 @@
 import { GaugeChart } from './gauge-chart.js';
 import { RadarChart } from './radar-chart.js';
-import { QuestionRenderer } from '../components/question-renderer.js';
+import { ResultRenderer } from '../components/result-renderer.js';
 
 /**
  * ChartRenderer - Manages all chart rendering with container isolation
@@ -212,7 +212,7 @@ export class ChartRenderer {
         if (!tableContainer) return;
 
         if (config.chart?.resulttable === true) {
-            QuestionRenderer.renderResultTable(scores, questions, config, tableContainer);
+            ResultRenderer.render(scores, questions, config, tableContainer);
             tableContainer.classList.remove('hidden');
         } else {
             tableContainer.innerHTML = '';
