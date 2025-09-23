@@ -42,7 +42,7 @@
     "radiusvector": "A,B,C",
     "inverseradiusvector": "D,E,F",
     "tickmarks": "B,E",
-    "horizontalline": "yes",
+    "horizontalline": true,
     "resulttable": true
   },
   "input": {

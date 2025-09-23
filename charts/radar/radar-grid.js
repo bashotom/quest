@@ -160,7 +160,7 @@ export class RadarGrid {
      * @param {number} radius - Chart radius
      */
     static addHorizontalLine(axisGrid, chartConfig, radius) {
-        if (chartConfig.horizontalline) {
+        if (chartConfig.horizontalline === true) {
             axisGrid.append("line")
                 .attr("x1", -radius * 1.2)
                 .attr("y1", 0)
