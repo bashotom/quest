@@ -14,7 +14,7 @@ export class QuestionnaireApp {
         this.config = {};
         this.currentFolder = '';
         this.formHandler = null;
-        this.labelState = 'long'; // Default label state
+        this.labelState = null; // Default label state is unset
         
         this.initializeElements();
         this.setupEventListeners();

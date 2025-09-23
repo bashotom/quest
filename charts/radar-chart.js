@@ -47,7 +47,8 @@ export class RadarChart {
         // Initialize SVG
         const { svg, g } = RadarGrid.initializeSVG(id, finalConfig);
         
-        const labelState = window.innerWidth < 650 ? 'short' : (options.labelState || 'long');
+        // Determine label state: prioritize manual selection, otherwise use screen size
+        const labelState = options.labelState || (window.innerWidth < 650 ? 'short' : 'long');
 
         // Create a shared render context object to simplify parameter passing
         const renderContext = {
