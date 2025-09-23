@@ -12,7 +12,7 @@ export class ChartRenderer {
     /**
      * Main chart rendering method with interference prevention
      */
-    static render(chartType, scores, questions, config) {
+    static render(chartType, scores, questions, config, options = {}) {
         const renderingId = ++ChartRenderer.currentRenderingId;
         
         // Cancel all previous timeouts to prevent race conditions
@@ -26,7 +26,7 @@ export class ChartRenderer {
         
         switch (chartType) {
             case 'radar':
-                return ChartRenderer.renderRadarChart(scores, renderingId, questions, config);
+                return ChartRenderer.renderRadarChart(scores, renderingId, questions, config, options);
             case 'gauge':
                 return ChartRenderer.renderGaugeChart(scores, renderingId, questions, config);
             case 'bar':
@@ -46,7 +46,7 @@ export class ChartRenderer {
     /**
      * Render Radar Chart in dedicated container with complete DOM recreation
      */
-    static renderRadarChart(scores, renderingId, questions, config) {
+    static renderRadarChart(scores, renderingId, questions, config, renderOptions) {
         const radarContainer = document.getElementById('radar-chart-container');
         if (!radarContainer) return;
         
@@ -100,6 +100,7 @@ export class ChartRenderer {
             const containerHeight = newChartElement.offsetHeight || 400;
 
             const options = {
+                ...renderOptions,
                 margin: screenWidth < 640 ? 
                     { top: 40, right: 40, bottom: 40, left: 40 } : 
                     { top: 50, right: 50, bottom: 50, left: 50 },

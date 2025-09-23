@@ -181,8 +181,9 @@ export class RadarGrid {
      * @param {Function} rScale - D3 radius scale
      * @param {number} maxValue - Maximum value
      * @param {number} angleSlice - Angle slice in radians
+     * @param {string} labelState - 'short' or 'long'
      */
-    static renderAxisLabels(axis, axes, config, rScale, maxValue, angleSlice) {
+    static renderAxisLabels(axis, axes, config, rScale, maxValue, angleSlice, labelState = 'long') {
         const total = axes.length;
 
         axis.append("text")
@@ -210,19 +211,23 @@ export class RadarGrid {
                 const normalizedPosition = (i / total) * 2 * Math.PI;
                 
                 const isVerticalAxis = Math.abs(Math.cos(angle)) < 0.1;
-                const useShortLabels = window.innerWidth < 650;
-                const verticalAdjustment = (isVerticalAxis && !useShortLabels) ? -25 : 0;
+                let verticalAdjustment = isVerticalAxis ? -25 : 0;
+
+                // Add an offset for short labels to move them down
+                if (labelState === 'short') {
+                    verticalAdjustment += 28;
+                }
                 
                 if (Math.abs(normalizedPosition - Math.PI) < 0.1) return basePosition + 10 + verticalAdjustment;
                 if (Math.abs(normalizedPosition) < 0.1) return basePosition - 10 + verticalAdjustment;
                 
-                const verticalOffset = Math.abs(Math.sin(normalizedPosition)) * -5;
+                const verticalOffset = Math.abs(Math.sin(normalizedPosition)) * -30;
                 return basePosition + verticalOffset + verticalAdjustment;
             })
             .text(d => {
                 if (!d) return 'ERR';
                 
-                const useShortLabels = window.innerWidth < 650;
+                const useShortLabels = labelState === 'short';
                 
                 if (useShortLabels) {
                     return d.key || d.split?.(':')[0]?.trim() || 'ERR';
@@ -237,13 +242,14 @@ export class RadarGrid {
      * Update labels based on screen width
      * @param {Object} axis - D3 axis selection
      * @param {Object} config - Chart configuration
+     * @param {string} labelState - 'short' or 'long'
      */
-    static updateLabels(axis, config) {
+    static updateLabels(axis, config, labelState = 'long') {
         const legends = axis.selectAll(".legend");
         
         legends.text(d => {
             if (d && typeof d === 'object' && d.key && d.value) {
-                if (window.innerWidth < 650) {
+                if (labelState === 'short') {
                     return d.key;
                 }
                 return d.value;
@@ -265,7 +271,7 @@ export class RadarGrid {
      * @returns {Object} Axis selection and update function
      */
     static render(context) {
-        const { g, allAxis, finalConfig, chartConfig, rScale, maxValue, angleSlice } = context;
+        const { g, allAxis, finalConfig, chartConfig, rScale, maxValue, angleSlice, labelState } = context;
 
         // Render background circles
         const axisGrid = this.renderBackgroundCircles(g, finalConfig);
@@ -280,11 +286,11 @@ export class RadarGrid {
         this.addHorizontalLine(axisGrid, chartConfig, finalConfig.radius);
         
         // Render axis labels
-        this.renderAxisLabels(axis, allAxis, finalConfig, rScale, maxValue, angleSlice);
+        this.renderAxisLabels(axis, allAxis, finalConfig, rScale, maxValue, angleSlice, labelState);
         
         return {
             axis,
-            updateLabels: () => this.updateLabels(axis, finalConfig)
+            updateLabels: (newLabelState) => this.updateLabels(axis, finalConfig, newLabelState)
         };
     }
 }

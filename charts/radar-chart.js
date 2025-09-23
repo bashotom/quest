@@ -56,7 +56,8 @@ export class RadarChart {
             chartConfig,
             rScale,
             angleSlice,
-            maxValue: finalConfig.maxValue
+            maxValue: finalConfig.maxValue,
+            labelState: options.labelState || 'long' // Pass label state
         };
         
         // Render grid (background circles, axes, tickmarks, labels)

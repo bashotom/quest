@@ -14,6 +14,7 @@ export class QuestionnaireApp {
         this.config = {};
         this.currentFolder = '';
         this.formHandler = null;
+        this.labelState = 'long'; // Default label state
         
         this.initializeElements();
         this.setupEventListeners();
@@ -33,7 +34,10 @@ export class QuestionnaireApp {
             backButtonTop: document.getElementById('back-button-top'),
             questionnaireTitle: document.getElementById('questionnaire-title'),
             questionnaireDescription: document.getElementById('questionnaire-description'),
-            questionnaireMenu: document.getElementById('questionnaire-menu')
+            questionnaireMenu: document.getElementById('questionnaire-menu'),
+            labelToggleButtons: document.getElementById('label-toggle-buttons'),
+            shortLabelsBtn: document.getElementById('short-labels-btn'),
+            longLabelsBtn: document.getElementById('long-labels-btn')
         };
     }
     
@@ -49,6 +53,10 @@ export class QuestionnaireApp {
         window.addEventListener('unhandledrejection', (event) => {
             console.error('Unhandled Promise Rejection:', event.reason);
         });
+
+        // Label toggle buttons
+        this.elements.shortLabelsBtn?.addEventListener('click', () => this.setLabelState('short'));
+        this.elements.longLabelsBtn?.addEventListener('click', () => this.setLabelState('long'));
     }
     
     // Utility Methods
@@ -69,6 +77,10 @@ export class QuestionnaireApp {
         this.elements.questionnaireForm.classList.remove('hidden');
         this.elements.evaluationPage.classList.add('hidden');
         
+        if (this.elements.labelToggleButtons) {
+            this.elements.labelToggleButtons.classList.add('hidden');
+        }
+
         // Buttons wieder anzeigen
         ['min-answers-btn', 'random-answers-btn', 'max-answers-btn'].forEach(id => {
             const btn = document.getElementById(id);
@@ -85,6 +97,14 @@ export class QuestionnaireApp {
         this.elements.questionnaireForm.classList.add('hidden');
         this.elements.evaluationPage.classList.remove('hidden');
         
+        if (this.elements.labelToggleButtons) {
+            if (this.config.chart?.type === 'radar') {
+                this.elements.labelToggleButtons.classList.remove('hidden');
+            } else {
+                this.elements.labelToggleButtons.classList.add('hidden');
+            }
+        }
+
         // Buttons ausblenden
         ['min-answers-btn', 'random-answers-btn', 'max-answers-btn'].forEach(id => {
             const btn = document.getElementById(id);
@@ -172,7 +192,7 @@ export class QuestionnaireApp {
             return;
         }
         
-        ChartRenderer.render(chartType, scores, this.questions, this.config);
+        ChartRenderer.render(chartType, scores, this.questions, this.config, { labelState: this.labelState });
     }
     
     // Event Handlers
@@ -264,6 +284,14 @@ export class QuestionnaireApp {
                 setTimeout(() => this.elements.copyButton.textContent = 'Kopieren', 2000);
             }).catch(err => console.error('Fehler beim Kopieren:', err));
         });
+    }
+
+    setLabelState(state) {
+        this.labelState = state;
+        const scores = URLHashManager.parseScoresFromHash(this.questions);
+        if (scores) {
+            this.renderEvaluation(scores);
+        }
     }
     
     handleMenuNavigation(event, folder) {
