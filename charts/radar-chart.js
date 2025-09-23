@@ -79,7 +79,7 @@ export class RadarChart {
         RadarInteractions.setup(renderContext);
         
         // Render legend for mobile
-        RadarLegend.render(id, finalConfig);
+        RadarLegend.render(id, finalConfig, labelState);
         
         // DISABLED: Responsive handling to prevent race conditions
         // Since we recreate charts completely on each update, resize handling is not needed

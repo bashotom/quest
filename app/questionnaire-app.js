@@ -3,6 +3,7 @@ import { URLHashManager } from '../utils/url-hash-manager.js';
 import { ChartRenderer } from '../charts/chart-renderer.js';
 import { QuestionRenderer } from '../components/question-renderer.js';
 import { FormHandler } from '../components/form-handler.js';
+import { RadarLegend } from '../charts/radar/radar-legend.js';
 
 /**
  * QuestionnaireApp - Main application class
@@ -94,6 +95,9 @@ export class QuestionnaireApp {
     }
 
     showEvaluation() {
+        // Remove any existing legend before showing new evaluation
+        RadarLegend.remove();
+
         this.elements.questionnaireForm.classList.add('hidden');
         this.elements.evaluationPage.classList.remove('hidden');
         

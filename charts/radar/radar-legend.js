@@ -3,13 +3,16 @@
  */
 export class RadarLegend {
     /**
-     * Create legend for narrow screens
+     * Create legend for narrow screens or when short labels are active
      * @param {string} containerId - DOM selector for container
      * @param {Object} config - Chart configuration
+     * @param {string} labelState - Current label state ('short' or 'long')
      */
-    static render(containerId, config) {
-        // Only create legend for narrow screens with category data
-        if (window.innerWidth >= 650 || !this.hasValidCategoryData(config)) {
+    static render(containerId, config, labelState) {
+        const showLegend = (window.innerWidth < 650 || labelState === 'short');
+
+        // Only create legend if needed and valid category data exists
+        if (!showLegend || !this.hasValidCategoryData(config)) {
             this.remove();
             return;
         }
@@ -35,28 +38,24 @@ export class RadarLegend {
      * @param {Object} config - Chart configuration
      */
     static createLegend(containerId, config) {
-        const chartContainer = document.querySelector(containerId);
-        if (!chartContainer) return;
-
-        const parentContainer = chartContainer.parentNode;
-        parentContainer.style.display = 'block';
+        const legendContainer = document.getElementById('radar-legend-container');
+        if (!legendContainer) {
+            console.error('createLegend: ERROR - radar-legend-container not found!');
+            return;
+        }
 
         // Create legend container
-        const legendContainer = this.createLegendContainer();
+        const legendContent = this.createLegendContainer();
         
         // Create wrapper div
         const wrapperDiv = this.createWrapperDiv();
-        wrapperDiv.appendChild(legendContainer);
+        wrapperDiv.appendChild(legendContent);
 
-        // Insert legend after chart container
-        if (chartContainer.nextSibling) {
-            parentContainer.insertBefore(wrapperDiv, chartContainer.nextSibling);
-        } else {
-            parentContainer.appendChild(wrapperDiv);
-        }
+        // Insert legend into the dedicated container
+        legendContainer.appendChild(wrapperDiv);
 
         // Add legend content
-        this.addLegendContent(legendContainer, config);
+        this.addLegendContent(legendContent, config);
     }
 
     /**
@@ -89,6 +88,7 @@ export class RadarLegend {
      */
     static createWrapperDiv() {
         const wrapperDiv = document.createElement('div');
+        wrapperDiv.className = 'radar-legend-wrapper'; // Add class for easier removal
         
         Object.assign(wrapperDiv.style, {
             display: 'block',
@@ -171,7 +171,12 @@ export class RadarLegend {
      * Remove all existing legends
      */
     static remove() {
-        d3.selectAll(".radar-legend").remove();
+        const legendContainer = document.getElementById('radar-legend-container');
+        if (legendContainer) {
+            legendContainer.innerHTML = ''; // Clear the container
+        }
+        const legends = document.querySelectorAll('.radar-legend-wrapper');
+        legends.forEach(legend => legend.remove());
     }
 
     /**
