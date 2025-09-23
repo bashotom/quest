@@ -21,15 +21,21 @@ export class FormHandler {
             return false;
         }
         
-        // Convert array to object for validation
-        const answersObject = {};
+        // Convert array to object for validation and hash update
+        const answersObjectForValidation = {};
+        const answersObjectForHash = {};
         answersArray.forEach(answer => {
-            if (answer && answer.questionId && answer.value !== undefined) {
-                answersObject[answer.questionId] = answer.value;
+            if (answer && answer.questionId) {
+                if (answer.value !== undefined) {
+                    answersObjectForValidation[answer.questionId] = answer.value;
+                }
+                if (answer.index !== undefined) {
+                    answersObjectForHash[answer.questionId] = answer.index;
+                }
             }
         });
         
-        const incomplete = this.questions.filter(q => !(q.id in answersObject));
+        const incomplete = this.questions.filter(q => !(q.id in answersObjectForValidation));
         
         if (incomplete.length > 0) {
             this.showValidationErrors(incomplete);
@@ -39,7 +45,7 @@ export class FormHandler {
         this.clearValidationErrors();
         
         const scores = URLHashManager.calculateScores(answersArray, this.questions, this.config);
-        URLHashManager.updateHash(answersObject);
+        URLHashManager.updateHash(answersObjectForHash);
         
         if (onSuccess) {
             onSuccess(scores);

@@ -42,7 +42,8 @@
     "radiusvector": "A,B,C",
     "inverseradiusvector": "D,E,F",
     "tickmarks": "B,E",
-    "horizontalline": "yes"
+    "horizontalline": "yes",
+    "resulttable": "yes"
   },
   "input": {
     "element": "radiobox",

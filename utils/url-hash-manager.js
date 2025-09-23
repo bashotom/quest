@@ -117,14 +117,15 @@ export class URLHashManager {
             
             if (selectedValue !== null) {
                 // selectedValue is the answerIndex, convert to actual answer
-                const answerIndex = parseInt(selectedValue);
-                const answerOption = config.answers[answerIndex];
+                const answerIndex = parseInt(selectedValue, 10);
                 
-                if (answerOption) {
+                if (!isNaN(answerIndex) && config.answers[answerIndex]) {
+                    const answerOption = config.answers[answerIndex];
                     answers.push({
                         questionId: questionId,
                         label: answerOption.label,
-                        value: answerOption.value
+                        value: answerOption.value,
+                        index: answerIndex // Store index for hash updates
                     });
                 }
             }
