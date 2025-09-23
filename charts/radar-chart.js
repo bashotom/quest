@@ -47,6 +47,8 @@ export class RadarChart {
         // Initialize SVG
         const { svg, g } = RadarGrid.initializeSVG(id, finalConfig);
         
+        const labelState = window.innerWidth < 650 ? 'short' : (options.labelState || 'long');
+
         // Create a shared render context object to simplify parameter passing
         const renderContext = {
             g,
@@ -57,7 +59,7 @@ export class RadarChart {
             rScale,
             angleSlice,
             maxValue: finalConfig.maxValue,
-            labelState: options.labelState || 'long' // Pass label state
+            labelState: labelState // Pass label state
         };
         
         // Render grid (background circles, axes, tickmarks, labels)
