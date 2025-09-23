@@ -211,7 +211,7 @@ export class ChartRenderer {
         const tableContainer = document.getElementById('result-table-container');
         if (!tableContainer) return;
 
-        if (config.chart?.resulttable) {
+        if (config.chart?.resulttable === true) {
             QuestionRenderer.renderResultTable(scores, questions, config, tableContainer);
             tableContainer.classList.remove('hidden');
         } else {
