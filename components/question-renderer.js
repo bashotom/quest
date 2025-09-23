@@ -471,4 +471,55 @@ export class QuestionRenderer {
             QuestionRenderer.applyInlineAnswerColor(radio, config);
         });
     }
+    
+    static renderResultTable(scores, questions, config, container) {
+        if (!container) {
+            console.error("renderResultTable: container is missing.");
+            return;
+        }
+        container.innerHTML = ''; // Clear previous table
+
+        // Normalize categories to a simple key-value object
+        const categories = Array.isArray(config.categories)
+            ? config.categories.reduce((acc, cat) => ({ ...acc, ...cat }), {})
+            : config.categories;
+
+        // Calculate max scores per category to determine percentage
+        const categoryMaxScores = {};
+        Object.keys(categories).forEach(categoryKey => {
+            const categoryQuestions = questions.filter(q => q.category === categoryKey);
+            const maxAnswerValue = config.answers.reduce((max, ans) => Math.max(max, ans.value), 0);
+            categoryMaxScores[categoryKey] = categoryQuestions.length * maxAnswerValue;
+        });
+
+        const table = document.createElement('table');
+        table.className = 'min-w-full divide-y divide-gray-200 mt-8';
+        table.innerHTML = `
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategorie</th>
+                    <th class="px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Punktzahl</th>
+                    <th class="px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prozent</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                ${Object.entries(scores).map(([categoryKey, score]) => {
+                    const categoryName = categories[categoryKey] || categoryKey;
+                    const displayName = `${categoryKey}: ${categoryName}`;
+                    const maxScore = categoryMaxScores[categoryKey] || 0;
+                    const percentage = maxScore > 0 ? ((score / maxScore) * 100).toFixed(0) : 0;
+                    
+                    return `
+                        <tr>
+                            <td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${displayName}</td>
+                            <td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${score}</td>
+                            <td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${percentage}%</td>
+                        </tr>
+                    `;
+                }).join('')}
+            </tbody>
+        `;
+        
+        container.appendChild(table);
+    }
 }

@@ -1,5 +1,6 @@
 import { GaugeChart } from './gauge-chart.js';
 import { RadarChart } from './radar-chart.js';
+import { QuestionRenderer } from '../components/question-renderer.js';
 
 /**
  * ChartRenderer - Manages all chart rendering with container isolation
@@ -211,63 +212,7 @@ export class ChartRenderer {
         if (!tableContainer) return;
 
         if (config.chart?.resulttable) {
-            const categoryMaxScores = {};
-            const categories = Array.isArray(config.categories) 
-                ? config.categories.reduce((acc, cat) => ({ ...acc, ...cat }), {}) 
-                : config.categories;
-
-            Object.keys(categories).forEach(category => {
-                const categoryQuestions = questions.filter(q => q.category === category);
-                const maxAnswerValue = config.answers.reduce((max, ans) => Math.max(max, ans.value), 0);
-                categoryMaxScores[category] = categoryQuestions.length * maxAnswerValue;
-            });
-
-            let tableHtml = `
-                <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Zusammenfassung der Punkte</h3>
-                    <table class="w-full text-sm text-left text-gray-500">
-                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
-                            <tr>
-                                <th scope="col" class="px-6 py-3">Kategorie</th>
-                                <th scope="col" class="px-6 py-3">Punkte</th>
-                                <th scope="col" class="px-6 py-3">Prozent</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-            
-            Object.entries(scores).forEach(([category, score]) => {
-                let categoryName = category; // Fallback to ID
-                let displayName = '';
-
-                if (Array.isArray(config.categories)) {
-                    const categoryObj = config.categories.find(c => c.hasOwnProperty(category));
-                    if (categoryObj) {
-                        categoryName = categoryObj[category];
-                    }
-                } else if (config.categories && typeof config.categories === 'object') {
-                    categoryName = config.categories[category] || category;
-                }
-
-                displayName = `${category}: ${categoryName}`;
-                const maxScore = categoryMaxScores[category] || 0;
-                const percentage = maxScore > 0 ? ((score / maxScore) * 100).toFixed(0) : 0;
-
-                tableHtml += `
-                    <tr class="bg-white border-b">
-                        <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${displayName}</th>
-                        <td class="px-6 py-4">${score}</td>
-                        <td class="px-6 py-4">${percentage}%</td>
-                    </tr>
-                `;
-            });
-
-            tableHtml += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
-            tableContainer.innerHTML = tableHtml;
+            QuestionRenderer.renderResultTable(scores, questions, config, tableContainer);
             tableContainer.classList.remove('hidden');
         } else {
             tableContainer.innerHTML = '';

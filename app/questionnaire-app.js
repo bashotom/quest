@@ -120,6 +120,15 @@ export class QuestionnaireApp {
             this.elements.questionnaireMenu.parentElement.style.display = 'none';
         }
         
+        // Render result table if not already present
+        const tableContainer = document.getElementById('result-table-container');
+        if (tableContainer && !tableContainer.hasChildNodes()) {
+            const scores = URLHashManager.parseScoresFromHash(this.questions);
+            if (scores) {
+                ChartRenderer.renderResultTable(scores, this.questions, this.config);
+            }
+        }
+
         // DOM-Update abwarten
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
@@ -196,6 +205,12 @@ export class QuestionnaireApp {
             return;
         }
         
+        // Clear only chart and legend containers
+        const radarContainer = document.getElementById('radar-chart-container');
+        const legendContainer = document.getElementById('radar-legend-container');
+        if (radarContainer) radarContainer.innerHTML = '<div id="radarChart" class="w-full h-full radar-chart flex justify-center items-center"></div>';
+        if (legendContainer) legendContainer.innerHTML = '';
+
         ChartRenderer.render(chartType, scores, this.questions, this.config, { labelState: this.labelState });
     }
     
@@ -294,7 +309,9 @@ export class QuestionnaireApp {
         this.labelState = state;
         const scores = URLHashManager.parseScoresFromHash(this.questions);
         if (scores) {
-            this.renderEvaluation(scores);
+            // Only re-render the chart, not the whole evaluation page
+            const chartType = this.config.chart?.type || 'radar';
+            ChartRenderer.render(chartType, scores, this.questions, this.config, { labelState: this.labelState });
         }
     }
     
