@@ -19,6 +19,8 @@ export class ConfigParser {
             input: {},
             resulttable: {}
         };
+            // trafficlights initialisieren
+            result.trafficlights = [];
         
         // Titel und Beschreibung direkt übernehmen
         result.title = jsonData.title || '';
@@ -64,6 +66,10 @@ export class ConfigParser {
     result.resulttable = jsonData.resulttable || {};
     // resulttiles übernehmen, falls vorhanden
     result.resulttiles = jsonData.resulttiles || {};
+            // trafficlights aus Root übernehmen (neue Struktur)
+            if (Array.isArray(jsonData.trafficlights)) {
+                result.trafficlights = jsonData.trafficlights.map(tl => ({ ...tl }));
+            }
         // Spezialfall: scale_angles für GaugeChart an die oberste Ebene kopieren
         if (jsonData.chart && Array.isArray(jsonData.chart.scale_angles)) {
             result.scale_angles = jsonData.chart.scale_angles;

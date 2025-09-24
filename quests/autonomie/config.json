@@ -47,23 +47,24 @@
   },
   "resulttiles": {
     "enabled": true,
-    "header": "Ergebnisse für {category}: {percent} %",
+    "header": "{percent}% {category}",
     "content": "Hier sind die Details zu den Ergebnissen für {category}."
   },
+  "trafficlights": [
+    {
+      "categories": "A,B,C",
+      "red": 30,
+      "orange": 60
+    },
+    {
+      "categories": "D,E,F",
+      "green": 30,
+      "orange": 60
+    }
+  ],
   "resulttable": {
     "enabled": true,
-    "trafficlights": [
-      {
-        "categories": "A,B,C",
-        "red": 30,
-        "orange": 60
-      },
-      {
-        "categories": "D,E,F",
-        "green": 30,
-        "orange": 60
-      }
-    ]
+    "show_trafficlights": true
   },
   "input": {
     "element": "radiobox",

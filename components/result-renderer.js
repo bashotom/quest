@@ -83,7 +83,11 @@ export class ResultRenderer {
             const maxScore = categoryMaxScores[categoryKey] || 0;
             const percentage = maxScore > 0 ? parseFloat(((score / maxScore) * 100).toFixed(2)) : 0;
             
-            const trafficLightConfig = config.resulttable?.trafficlights?.find(t => t.categories.split(',').includes(categoryKey));
+            // Trafficlight-Regel aus neuer Struktur (config.trafficlights)
+            const trafficLightConfig = Array.isArray(config.trafficlights)
+                ? config.trafficlights.find(t => t.categories.split(',').map(s => s.trim()).includes(categoryKey))
+                : undefined;
+            // Ampelfarbe berechnen
             const trafficLightColor = ResultRenderer.getTrafficLightColor(percentage, trafficLightConfig);
 
             const row = document.createElement('tr');

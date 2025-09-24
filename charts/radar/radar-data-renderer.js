@@ -119,8 +119,8 @@ export class RadarDataRenderer {
      * @returns {Object} Circle selections
      */
     static renderDataPoints(blobWrapper, axes, chartConfig, rScale, maxValue, angleSlice, config) {
-        const useTrafficLights = chartConfig.trafficlights && config.config && config.config.resulttable && config.config.resulttable.trafficlights;
-        const trafficLightRules = useTrafficLights ? config.config.resulttable.trafficlights : null;
+        const useTrafficLights = chartConfig.trafficlights && Array.isArray(config.config?.trafficlights);
+        const trafficLightRules = useTrafficLights ? config.config.trafficlights : null;
         
         return blobWrapper.selectAll(".radarCircle")
             .data(d => d)
@@ -144,7 +144,6 @@ export class RadarDataRenderer {
                         return trafficColor;
                     }
                 }
-                
                 // Fall back to default color scheme
                 const parentData = d3.select(nodes[i].parentNode).datum();
                 const datasetIndex = blobWrapper.data().indexOf(parentData);

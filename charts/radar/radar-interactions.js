@@ -143,13 +143,11 @@ export class RadarInteractions {
         // Determine background color
         let backgroundColor = "white";
         let textColor = "black";
-        
-        // Check if traffic lights are enabled and get the color
-        if (chartConfig.trafficlights && config.config && config.config.resulttable && config.config.resulttable.trafficlights) {
-            const trafficLightColor = RadarMathUtils.getTrafficLightColor(data, config.config.resulttable.trafficlights, maxValue);
+        let trafficLightColor = null;
+        if (chartConfig.trafficlights && Array.isArray(config.config?.trafficlights)) {
+            trafficLightColor = RadarMathUtils.getTrafficLightColor(data, config.config.trafficlights, maxValue);
             if (trafficLightColor) {
                 backgroundColor = trafficLightColor;
-                // Use white text on colored backgrounds for better readability
                 textColor = "white";
             }
         }
