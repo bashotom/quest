@@ -2,11 +2,52 @@ import { QuestionRenderer } from './question-renderer.js';
 
 export class ResultRenderer {
     static render(scores, questions, config, container) {
+        // DEBUG: Log config.resulttiles and scores
         if (!container) {
             console.error("ResultRenderer.render: container is missing.");
             return;
         }
-        container.innerHTML = ''; // Clear previous content
+        container.innerHTML = ''; // Clear previous content at the very start
+        // Render result tiles below the chart if enabled
+        if (config.resulttiles && config.resulttiles.enabled) {
+            const categories = Array.isArray(config.categories)
+                ? config.categories.reduce((acc, cat) => ({ ...acc, ...cat }), {})
+                : config.categories;
+
+            const categoryMaxScores = {};
+            Object.keys(categories).forEach(categoryKey => {
+                const categoryQuestions = questions.filter(q => q.category === categoryKey);
+                const maxAnswerValue = config.answers.reduce((max, ans) => Math.max(max, ans.value), 0);
+                categoryMaxScores[categoryKey] = categoryQuestions.length * maxAnswerValue;
+            });
+
+
+            const tilesWrapper = document.createElement('div');
+            tilesWrapper.id = 'resulttiles';
+            tilesWrapper.className = 'flex flex-wrap gap-4 mt-8';
+
+            Object.entries(scores).forEach(([categoryKey, score]) => {
+                const categoryName = categories[categoryKey] || categoryKey;
+                const maxScore = categoryMaxScores[categoryKey] || 0;
+                const percent = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+
+                // Replace placeholders in header/content
+                let header = config.resulttiles.header || '';
+                let content = config.resulttiles.content || '';
+                header = header.replace(/\{category\}/g, categoryName).replace(/\{percent\}/g, percent);
+                content = content.replace(/\{category\}/g, categoryName).replace(/\{percent\}/g, percent);
+
+
+                const tile = document.createElement('div');
+                tile.className = 'bg-white rounded-lg shadow p-4 flex-1 min-w-[220px] max-w-xs';
+                tile.innerHTML = `
+                    <div class="font-bold text-lg mb-2">${header}</div>
+                    <div class="text-gray-700 text-sm">${content}</div>
+                `;
+                tilesWrapper.appendChild(tile);
+            });
+            container.appendChild(tilesWrapper);
+        }
 
         const categories = Array.isArray(config.categories)
             ? config.categories.reduce((acc, cat) => ({ ...acc, ...cat }), {})

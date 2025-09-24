@@ -45,6 +45,11 @@
     "horizontalline": true,
     "trafficlights": true
   },
+  "resulttiles": {
+    "enabled": true,
+    "header": "Ergebnisse für {category}: {percent} %",
+    "content": "Hier sind die Details zu den Ergebnissen für {category}."
+  },
   "resulttable": {
     "enabled": true,
     "trafficlights": [
