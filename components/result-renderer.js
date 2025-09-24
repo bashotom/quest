@@ -37,6 +37,14 @@ export class ResultRenderer {
                 header = header.replace(/\{category\}/g, categoryName).replace(/\{percent\}/g, percent);
                 content = content.replace(/\{category\}/g, categoryName).replace(/\{percent\}/g, percent);
 
+                // Apply range-based text if configured
+                if (config.resulttiles.ranges && config.resulttiles.range_texts) {
+                    const rangeText = ResultRenderer.getRangeText(percent, config.resulttiles.ranges, config.resulttiles.range_texts);
+                    if (rangeText) {
+                        content = rangeText;
+                    }
+                }
+
                 // Ampelfarbe berechnen
                 const trafficLightConfig = Array.isArray(config.trafficlights)
                     ? config.trafficlights.find(t => t.categories.split(',').map(s => s.trim()).includes(categoryKey))
@@ -179,5 +187,21 @@ export class ResultRenderer {
             return 'green';
         }
         return 'transparent';
+    }
+
+    static getRangeText(percentage, ranges, rangeTexts) {
+        if (!ranges || !rangeTexts || ranges.length === 0 || rangeTexts.length === 0) {
+            return null;
+        }
+
+        // Determine which range the percentage falls into
+        for (let i = 0; i < ranges.length; i++) {
+            if (percentage < ranges[i]) {
+                return rangeTexts[i] || null;
+            }
+        }
+
+        // If percentage is >= the highest range, return the last text
+        return rangeTexts[ranges.length] || rangeTexts[rangeTexts.length - 1] || null;
     }
 }
