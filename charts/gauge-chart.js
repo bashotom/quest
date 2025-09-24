@@ -31,9 +31,9 @@ export class GaugeChart {
             .attr("transform", `translate(${containerWidth/2},${containerHeight/2 + 10})`);
         
         // CRITICAL: Use Same Coordinate System Throughout (per instructions)
-        // Use config.scale_angles if present, else fallback
-        let startAngleDeg = 225;
-        let endAngleDeg = 315;
+        // Use config.scale_angles if present, else fallback to 200-340 degrees
+        let startAngleDeg = 200;
+        let endAngleDeg = 340;
         if (this.config && Array.isArray(this.config.scale_angles) && this.config.scale_angles.length === 3) {
             startAngleDeg = this.config.scale_angles[0];
             endAngleDeg = this.config.scale_angles[2];
@@ -116,7 +116,7 @@ export class GaugeChart {
         }
         
         // Tick Marks - CONSISTENT System
-        const scaleAngles = (this.config && this.config.scale_angles) ? this.config.scale_angles : [225, 270, 315]; // degrees from config or fallback
+        const scaleAngles = (this.config && this.config.scale_angles) ? this.config.scale_angles : [200, 270, 340]; // degrees from config or fallback
         const scaleValues = [0, Math.round(maxScore/2), maxScore];
         scaleAngles.forEach((angleDeg, i) => {
             const angle = (angleDeg * Math.PI) / 180; // SAME conversion
