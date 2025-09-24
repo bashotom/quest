@@ -48,7 +48,9 @@
   "resulttiles": {
     "enabled": true,
     "header": "{percent}% {category}",
-    "content": "Hier sind die Details zu den Ergebnissen für {category}."
+    "content": "Hier sind die Details zu den Ergebnissen für {category}.",
+    "ranges": [ 30, 60],
+    "range_texts": [ "Ihr Ergebnis ist schlecht.", "Ihr Ergebnis ist durchschnittlich.", "Ihr Ergebnis ist gut." ]
   },
   "trafficlights": [
     {
