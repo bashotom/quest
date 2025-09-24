@@ -1,4 +1,3 @@
-
 import { QuestionRenderer } from './question-renderer.js';
 
 export class ResultRenderer {
@@ -28,6 +27,7 @@ export class ResultRenderer {
                     <th class="px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategorie</th>
                     <th class="px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Punktzahl</th>
                     <th class="px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prozent</th>
+                    <th class="px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ampel</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -40,15 +40,23 @@ export class ResultRenderer {
             const categoryName = categories[categoryKey] || categoryKey;
             const displayName = `${categoryKey}: ${categoryName}`;
             const maxScore = categoryMaxScores[categoryKey] || 0;
-            const percentage = maxScore > 0 ? ((score / maxScore) * 100).toFixed(0) : 0;
+            const percentage = maxScore > 0 ? parseFloat(((score / maxScore) * 100).toFixed(2)) : 0;
             
+            const trafficLightConfig = config.resulttable?.trafficlights?.find(t => t.categories.split(',').includes(categoryKey));
+            const trafficLightColor = ResultRenderer.getTrafficLightColor(percentage, trafficLightConfig);
+
             const row = document.createElement('tr');
             row.className = 'cursor-pointer hover:bg-gray-50';
             row.dataset.categoryKey = categoryKey;
             row.innerHTML = `
                 <td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${displayName}</td>
                 <td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${score}</td>
-                <td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${percentage}%</td>
+                <td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${percentage.toFixed(0)}%</td>
+                <td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">
+                    <div class="traffic-light-container">
+                        <div class="traffic-light" style="background-color: ${trafficLightColor};"></div>
+                    </div>
+                </td>
             `;
             tbody.appendChild(row);
         });
@@ -103,5 +111,20 @@ export class ResultRenderer {
         detailsRow.appendChild(detailsCell);
 
         return detailsRow;
+    }
+
+    static getTrafficLightColor(percentage, config) {
+        if (!config) return 'transparent';
+
+        if (config.green !== undefined) {
+            if (percentage <= config.green) return 'green';
+            if (percentage <= config.orange) return 'orange';
+            return 'red';
+        } else if (config.red !== undefined) {
+            if (percentage <= config.red) return 'red';
+            if (percentage <= config.orange) return 'orange';
+            return 'green';
+        }
+        return 'transparent';
     }
 }

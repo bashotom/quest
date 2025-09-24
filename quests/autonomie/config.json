@@ -46,14 +46,18 @@
   },
   "resulttable": {
     "enabled": true,
-    "trafficlight": {
-      "A": [30, 60],
-      "B": [30, 60],
-      "C": [30, 60],
-      "D": [60, 30],
-      "E": [60, 30],
-      "F": [60, 30]
-    }
+    "trafficlights": [
+      {
+        "categories": "A,B,C",
+        "red": 30,
+        "orange": 60
+      },
+      {
+        "categories": "D,E,F",
+        "green": 30,
+        "orange": 60
+      }
+    ]
   },
   "input": {
     "element": "radiobox",
