@@ -1,3 +1,5 @@
+import { RadarMathUtils } from './utils/radar-math-utils.js';
+
 /**
  * RadarInteractions - Tooltip and hover interactions for radar charts
  */
@@ -29,13 +31,28 @@ export class RadarInteractions {
      * @returns {Object} Tooltip selection
      */
     static createTooltip(g) {
-        return g.append("text")
+        const tooltipGroup = g.append("g")
             .attr("class", "tooltip")
             .style("opacity", 0)
-            .style("font-size", "12px")
-            .style("fill", "#000")
-            .style("text-anchor", "middle")
             .style("pointer-events", "none");
+
+        // Add circular background
+        const circle = tooltipGroup.append("circle")
+            .attr("class", "tooltip-circle")
+            .attr("r", 18)
+            .style("fill", "white")
+            .style("stroke", "black")
+            .style("stroke-width", "1px");
+
+        // Add text
+        const text = tooltipGroup.append("text")
+            .attr("class", "tooltip-text")
+            .style("font-size", "12px")
+            .style("fill", "black")
+            .style("text-anchor", "middle")
+            .style("dominant-baseline", "middle");
+
+        return tooltipGroup;
     }
 
     /**
@@ -74,7 +91,7 @@ export class RadarInteractions {
             .style("fill", "none")
             .style("pointer-events", "all")
             .on("mouseover", function(event, d) {
-                RadarInteractions.showTooltip(d3.select(this), tooltip, d);
+                RadarInteractions.showTooltip(d3.select(this), tooltip, d, chartConfig, config, maxValue);
             })
             .on("mouseout", function() {
                 RadarInteractions.hideTooltip(tooltip);
@@ -115,15 +132,39 @@ export class RadarInteractions {
      * @param {Object} circle - D3 circle selection
      * @param {Object} tooltip - Tooltip selection
      * @param {Object} data - Data point
+     * @param {Object} chartConfig - Chart configuration
+     * @param {Object} config - Chart configuration
+     * @param {number} maxValue - Maximum value
      */
-    static showTooltip(circle, tooltip, data) {
-        const newX = parseFloat(circle.attr('cx')) - 10;
-        const newY = parseFloat(circle.attr('cy')) - 10;
+    static showTooltip(circle, tooltip, data, chartConfig, config, maxValue) {
+        const newX = parseFloat(circle.attr('cx'));
+        const newY = parseFloat(circle.attr('cy')) - 30; // Position above the data point
+        
+        // Determine background color
+        let backgroundColor = "white";
+        let textColor = "black";
+        
+        // Check if traffic lights are enabled and get the color
+        if (chartConfig.trafficlights && config.config && config.config.resulttable && config.config.resulttable.trafficlights) {
+            const trafficLightColor = RadarMathUtils.getTrafficLightColor(data, config.config.resulttable.trafficlights, maxValue);
+            if (trafficLightColor) {
+                backgroundColor = trafficLightColor;
+                // Use white text on colored backgrounds for better readability
+                textColor = "white";
+            }
+        }
         
         tooltip
-            .attr('x', newX)
-            .attr('y', newY)
-            .text(data.value.toFixed(1))
+            .attr('transform', `translate(${newX}, ${newY})`)
+            .select('.tooltip-circle')
+            .style('fill', backgroundColor);
+            
+        tooltip
+            .select('.tooltip-text')
+            .text(Math.round(data.value))
+            .style('fill', textColor);
+            
+        tooltip
             .transition().duration(200)
             .style('opacity', 1);
     }
@@ -143,18 +184,47 @@ export class RadarInteractions {
      * @param {Object} tooltip - Tooltip selection
      * @param {Object} data - Data point
      * @param {Object} axis - Axis information
+     * @param {Object} chartConfig - Chart configuration (optional)
+     * @param {Object} config - Chart configuration (optional)
+     * @param {number} maxValue - Maximum value (optional)
      */
-    static showEnhancedTooltip(circle, tooltip, data, axis) {
-        const newX = parseFloat(circle.attr('cx')) - 10;
-        const newY = parseFloat(circle.attr('cy')) - 10;
+    static showEnhancedTooltip(circle, tooltip, data, axis, chartConfig, config, maxValue) {
+        const newX = parseFloat(circle.attr('cx'));
+        const newY = parseFloat(circle.attr('cy')) - 30; // Position above the data point
         
         const axisLabel = axis.value || axis.key || 'Unknown';
-        const tooltipText = `${axisLabel}: ${data.value.toFixed(1)}`;
+        const tooltipText = `${axisLabel}: ${Math.round(data.value)}`;
+        
+        // Check if text is too long, adjust circle radius if needed
+        const textLength = tooltipText.length;
+        const circleRadius = Math.max(18, textLength * 3.5); // Dynamic radius based on text length
+        
+        // Determine background color
+        let backgroundColor = "white";
+        let textColor = "black";
+        
+        // Check if traffic lights are enabled and get the color
+        if (chartConfig && chartConfig.trafficlights && config && config.config && config.config.resulttable && config.config.resulttable.trafficlights && maxValue) {
+            const trafficLightColor = RadarMathUtils.getTrafficLightColor(data, config.config.resulttable.trafficlights, maxValue);
+            if (trafficLightColor) {
+                backgroundColor = trafficLightColor;
+                // Use white text on colored backgrounds for better readability
+                textColor = "white";
+            }
+        }
         
         tooltip
-            .attr('x', newX)
-            .attr('y', newY)
+            .attr('transform', `translate(${newX}, ${newY})`)
+            .select('.tooltip-circle')
+            .attr('r', circleRadius)
+            .style('fill', backgroundColor);
+            
+        tooltip
+            .select('.tooltip-text')
             .text(tooltipText)
+            .style('fill', textColor);
+            
+        tooltip
             .transition().duration(200)
             .style('opacity', 1);
     }
