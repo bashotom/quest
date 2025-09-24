@@ -42,8 +42,18 @@
     "radiusvector": "A,B,C",
     "inverseradiusvector": "D,E,F",
     "tickmarks": "B,E",
-    "horizontalline": true,
-    "resulttable": true
+    "horizontalline": true
+  },
+  "resulttable": {
+    "enabled": true,
+    "trafficlight": {
+      "A": [30, 60],
+      "B": [30, 60],
+      "C": [30, 60],
+      "D": [60, 30],
+      "E": [60, 30],
+      "F": [60, 30]
+    }
   },
   "input": {
     "element": "radiobox",

@@ -17,8 +17,10 @@
     {"A": "ACE-Gesamtwert"}
   ],
   "chart": {
-    "type": "gauge",
-    "resulttable": true
+    "type": "gauge"
+  },
+  "resulttable": {
+    "enabled": true
   },
   "input": {
     "element": "radiobox",

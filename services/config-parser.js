@@ -16,7 +16,8 @@ export class ConfigParser {
             title: '',
             description: '',
             chart: {},
-            input: {}
+            input: {},
+            resulttable: {}
         };
         
         // Titel und Beschreibung direkt übernehmen
@@ -57,10 +58,10 @@ export class ConfigParser {
             });
         }
         
-        // Chart-Konfiguration übernehmen
-        if (jsonData.chart && typeof jsonData.chart === 'object') {
-            result.chart = { ...jsonData.chart };
-        }
+        // Chart- und Input-Konfigurationen
+        result.chart = jsonData.chart || {};
+        result.input = jsonData.input || {};
+        result.resulttable = jsonData.resulttable || {};
         
         // Input-Konfiguration verarbeiten
         if (jsonData.input && typeof jsonData.input === 'object') {
