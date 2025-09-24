@@ -125,3 +125,16 @@ body {
     border: 1px solid rgba(0, 0, 0, 0.1);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
+
+/* Result Tile Gauge Styles */
+.gauge-container {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: #fafafa;
+    padding: 0.5rem;
+}
+
+.gauge-container svg {
+    width: 100%;
+    height: 100%;
+}

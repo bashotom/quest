@@ -8,24 +8,27 @@ export class GaugeChart {
         this.config = config;
     }
 
-    render(value, maxScore, categoryLabel) {
+    render(value, maxScore, categoryLabel, trafficLightConfig = null) {
     // Container leeren
     this.container.innerHTML = '';
         
         // Container-Dimensionen
         const containerWidth = this.container.offsetWidth;
         const containerHeight = this.container.offsetHeight;
-        const size = Math.min(containerWidth, containerHeight);
-        const radius = (size / 2) - 60;
         
-        // SVG erstellen
+        // Feste Gauge-Größe für Kacheln (größer als Container)
+        const gaugeSize = Math.max(200, Math.min(containerWidth, containerHeight) * 1.8);
+        const radius = (gaugeSize / 2) - 40;
+        
+        // SVG erstellen mit fester Größe
         const svg = d3.select(this.container)
             .append("svg")
             .attr("width", containerWidth)
-            .attr("height", containerHeight);
+            .attr("height", containerHeight)
+            .style("overflow", "visible");
         
         const g = svg.append("g")
-            .attr("transform", `translate(${containerWidth/2},${containerHeight/2 + 20})`);
+            .attr("transform", `translate(${containerWidth/2},${containerHeight/2 + 10})`);
         
         // CRITICAL: Use Same Coordinate System Throughout (per instructions)
         // Use config.scale_angles if present, else fallback
@@ -55,6 +58,48 @@ export class GaugeChart {
             .attr("d", backgroundArc)
             .attr("transform", "rotate(90)")
             .style("fill", "#e5e7eb");
+        
+        // Traffic Light Segments (rot, orange, grün) als Hintergrund
+        if (trafficLightConfig) {
+            const percentage = Math.round((value / maxScore) * 100);
+            let segments = [];
+            
+            if (trafficLightConfig.green !== undefined) {
+                // Normale Logik: niedrige Werte = rot, hohe Werte = grün
+                segments = [
+                    { start: 0, end: trafficLightConfig.red || 0, color: "#ef4444", opacity: 0.3 },
+                    { start: trafficLightConfig.red || 0, end: trafficLightConfig.orange || 0, color: "#f97316", opacity: 0.3 },
+                    { start: trafficLightConfig.orange || 0, end: 100, color: "#22c55e", opacity: 0.3 }
+                ];
+            } else if (trafficLightConfig.red !== undefined) {
+                // Inverse Logik: niedrige Werte = grün, hohe Werte = rot
+                segments = [
+                    { start: 0, end: trafficLightConfig.green || 0, color: "#22c55e", opacity: 0.3 },
+                    { start: trafficLightConfig.green || 0, end: trafficLightConfig.orange || 0, color: "#f97316", opacity: 0.3 },
+                    { start: trafficLightConfig.orange || 0, end: 100, color: "#ef4444", opacity: 0.3 }
+                ];
+            }
+            
+            // Zeichne Ampel-Segmente
+            segments.forEach(segment => {
+                if (segment.end > segment.start) {
+                    const startAngleRad = startAngle + ((segment.start / 100) * (endAngle - startAngle));
+                    const endAngleRad = startAngle + ((segment.end / 100) * (endAngle - startAngle));
+                    
+                    const segmentArc = d3.arc()
+                        .innerRadius(radius * 0.7)
+                        .outerRadius(radius * 0.9)
+                        .startAngle(startAngleRad)
+                        .endAngle(endAngleRad);
+                    
+                    g.append("path")
+                        .attr("d", segmentArc)
+                        .attr("transform", "rotate(90)")
+                        .style("fill", segment.color)
+                        .style("opacity", segment.opacity);
+                }
+            });
+        }
         
         // Value arc - SAME coordinate origin
         if (valueRatio > 0) {
@@ -117,46 +162,5 @@ export class GaugeChart {
             .attr("cy", 0)
             .attr("r", 8)
             .style("fill", "#1f2937");
-        
-        // Wert-Anzeige
-        g.append("text")
-            .attr("x", 0)
-            .attr("y", radius * 0.4)
-            .attr("text-anchor", "middle")
-            .style("font-size", "2.5rem")
-            .style("font-weight", "bold")
-            .style("font-family", "Inter, sans-serif")
-            .style("fill", "#3b82f6")
-            .text(value);
-        
-        g.append("text")
-            .attr("x", 0)
-            .attr("y", radius * 0.4 + 30)
-            .attr("text-anchor", "middle")
-            .style("font-size", "1rem")
-            .style("font-family", "Inter, sans-serif")
-            .style("fill", "#6b7280")
-            .text(`von ${maxScore}`);
-        
-        // Kategorie-Label
-        g.append("text")
-            .attr("x", 0)
-            .attr("y", radius * 0.4 + 55)
-            .attr("text-anchor", "middle")
-            .style("font-size", "1.1rem")
-            .style("font-family", "Inter, sans-serif")
-            .style("fill", "#374151")
-            .text(categoryLabel);
-        
-        // Prozentsatz
-        const percentage = Math.round((value / maxScore) * 100);
-        g.append("text")
-            .attr("x", 0)
-            .attr("y", radius * 0.4 + 80)
-            .attr("text-anchor", "middle")
-            .style("font-size", "1rem")
-            .style("font-family", "Inter, sans-serif")
-            .style("fill", "#6b7280")
-            .text(`${percentage}%`);
     }
 }

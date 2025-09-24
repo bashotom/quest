@@ -1,4 +1,5 @@
 import { QuestionRenderer } from './question-renderer.js';
+import { GaugeChart } from '../charts/gauge-chart.js';
 
 export class ResultRenderer {
     static render(scores, questions, config, container) {
@@ -54,14 +55,51 @@ export class ResultRenderer {
 
                 const tile = document.createElement('div');
                 tile.className = 'bg-white rounded-lg shadow p-4 flex-1 min-w-[220px] max-w-xs';
+                
+                // Check if gauge should be displayed
+                const shouldShowGauge = config.resulttiles.evaluation_gauge === true;
+                
                 tile.innerHTML = `
                     <div class="font-bold text-lg mb-2 flex items-center gap-2">
                         <span class="inline-block w-4 h-4 rounded-full border border-gray-300" style="background-color: ${trafficLightColor};"></span>
                         <span>${header}</span>
                     </div>
-                    <div class="text-gray-700 text-sm">${content}</div>
+                    <div class="text-gray-700 text-sm mb-4">${content}</div>
+                    ${shouldShowGauge ? `<div class="gauge-container w-full" style="height: 110px;" id="gauge-${categoryKey}"></div>` : ''}
                 `;
+                
                 tilesWrapper.appendChild(tile);
+                
+                // Render gauge chart if enabled
+                if (shouldShowGauge) {
+                    // Use requestAnimationFrame to ensure DOM is rendered
+                    requestAnimationFrame(() => {
+                        const gaugeContainer = document.getElementById(`gauge-${categoryKey}`);
+                        if (gaugeContainer && gaugeContainer.offsetWidth > 0) {
+                            const categoryName = categories[categoryKey] || categoryKey;
+                            try {
+                                // Check if D3 is available
+                                if (typeof d3 === 'undefined') {
+                                    console.error('D3.js library not loaded');
+                                    gaugeContainer.innerHTML = '<div class="text-center text-gray-500 p-4">D3.js nicht verfügbar</div>';
+                                    return;
+                                }
+                                // Get traffic light config for this category
+                                const trafficLightConfig = Array.isArray(config.trafficlights)
+                                    ? config.trafficlights.find(t => t.categories.split(',').map(s => s.trim()).includes(categoryKey))
+                                    : undefined;
+                                
+                                const gauge = new GaugeChart(gaugeContainer, {});
+                                gauge.render(score, maxScore, categoryName, trafficLightConfig);
+                            } catch (error) {
+                                console.error(`Error rendering gauge for category ${categoryKey}:`, error);
+                                gaugeContainer.innerHTML = '<div class="text-center text-gray-500 p-4 text-xs">Gauge Chart Fehler:<br>' + error.message + '</div>';
+                            }
+                        } else {
+                            console.warn(`Gauge container not found or not visible for category ${categoryKey}`);
+                        }
+                    });
+                }
             });
             container.appendChild(tilesWrapper);
         }
