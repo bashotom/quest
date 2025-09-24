@@ -119,12 +119,15 @@ export class RadarDataRenderer {
      * @returns {Object} Circle selections
      */
     static renderDataPoints(blobWrapper, axes, chartConfig, rScale, maxValue, angleSlice, config) {
+        const useTrafficLights = chartConfig.trafficlights && config.config && config.config.resulttable && config.config.resulttable.trafficlights;
+        const trafficLightRules = useTrafficLights ? config.config.resulttable.trafficlights : null;
+        
         return blobWrapper.selectAll(".radarCircle")
             .data(d => d)
             .enter()
             .append("circle")
             .attr("class", "radarCircle")
-            .attr("r", config.dotRadius)
+            .attr("r", useTrafficLights ? config.dotRadius * 1.3 : config.dotRadius) // Larger points for traffic lights
             .attr("cx", (d, i) => {
                 const position = this.calculateDataPointPosition(d, i, axes, chartConfig, rScale, maxValue, angleSlice);
                 return position.x;
@@ -134,12 +137,22 @@ export class RadarDataRenderer {
                 return position.y;
             })
             .style("fill", (d, i, nodes) => {
-                // Get the parent dataset index
+                if (useTrafficLights) {
+                    // Use traffic light color if available
+                    const trafficColor = RadarMathUtils.getTrafficLightColor(d, trafficLightRules, maxValue);
+                    if (trafficColor) {
+                        return trafficColor;
+                    }
+                }
+                
+                // Fall back to default color scheme
                 const parentData = d3.select(nodes[i].parentNode).datum();
                 const datasetIndex = blobWrapper.data().indexOf(parentData);
                 return config.color(datasetIndex);
             })
-            .style("fill-opacity", 0.8);
+            .style("fill-opacity", 0.8)
+            .style("stroke", useTrafficLights ? "#333" : "none") // Add border for traffic light points
+            .style("stroke-width", useTrafficLights ? "1px" : "0");
     }
 
     /**

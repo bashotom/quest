@@ -156,4 +156,58 @@ export class RadarMathUtils {
             }
         });
     }
+
+    /**
+     * Calculate traffic light color for a data point based on config and score
+     * @param {Object} dataPoint - Data point with axis and value
+     * @param {Array} trafficLightRules - Array of traffic light rules from resulttable.trafficlights
+     * @param {number} maxValue - Maximum possible value (typically 100 for percentages)
+     * @returns {string} Color code (#ff0000 for red, #ffa500 for orange, #008000 for green) or null if no rule applies
+     */
+    static getTrafficLightColor(dataPoint, trafficLightRules, maxValue = 100) {
+        if (!trafficLightRules || !Array.isArray(trafficLightRules) || !dataPoint?.axis?.key) {
+            return null;
+        }
+
+        const categoryKey = dataPoint.axis.key;
+        const value = dataPoint.value;
+
+        // Find matching traffic light rule for this category
+        const matchingRule = trafficLightRules.find(rule => {
+            const categories = rule.categories.split(',').map(cat => cat.trim());
+            return categories.includes(categoryKey);
+        });
+
+        if (!matchingRule) {
+            return null;
+        }
+
+        // Calculate thresholds as percentages of maxValue
+        const redThreshold = (matchingRule.red || 0);
+        const orangeThreshold = (matchingRule.orange || 0);
+        const greenThreshold = (matchingRule.green || 0);
+
+        // Handle different rule types based on available thresholds
+        if (matchingRule.red !== undefined && matchingRule.orange !== undefined) {
+            // Standard rule: red below red threshold, orange between red and orange, green above orange
+            if (value <= redThreshold) {
+                return '#ff4444'; // Red
+            } else if (value <= orangeThreshold) {
+                return '#ffa500'; // Orange
+            } else {
+                return '#00aa00'; // Green
+            }
+        } else if (matchingRule.green !== undefined && matchingRule.orange !== undefined) {
+            // Inverse rule: green below green threshold, orange between green and orange, red above orange
+            if (value <= greenThreshold) {
+                return '#00aa00'; // Green
+            } else if (value <= orangeThreshold) {
+                return '#ffa500'; // Orange
+            } else {
+                return '#ff4444'; // Red
+            }
+        }
+
+        return null; // No matching rule format
+    }
 }

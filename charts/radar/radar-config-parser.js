@@ -67,7 +67,8 @@ export class RadarConfigParser {
             inverseradiusvector: this.parseConfigArray(chart.inverseradiusvector),
             tickmarks: this.parseConfigArray(chart.tickmarks) || ['B', 'E'],
             horizontalline: chart.horizontalline === true,
-            topaxis: chart.topaxis
+            topaxis: chart.topaxis,
+            trafficlights: chart.trafficlights === true
         };
     }
 

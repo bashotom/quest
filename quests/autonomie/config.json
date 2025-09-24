@@ -42,7 +42,8 @@
     "radiusvector": "A,B,C",
     "inverseradiusvector": "D,E,F",
     "tickmarks": "B,E",
-    "horizontalline": true
+    "horizontalline": true,
+    "trafficlights": true
   },
   "resulttable": {
     "enabled": true,
