@@ -49,8 +49,14 @@
     "enabled": true,
     "header": "{percent}% {category}",
     "content": "Hier sind die Details zu den Ergebnissen für {category}.",
-    "ranges": [ 30, 60],
-    "range_texts": [ "Ihr Ergebnis ist schlecht.", "Ihr Ergebnis ist durchschnittlich.", "Ihr Ergebnis ist gut." ]
+    "evaluation": {
+      "A": { "ranges": [ 0, 30, 60, 100 ], "texts": [ "Sie grenzen sich kaum ab.", "Ihre Abgrenzung ist durchschnittlich.", "Sie grenzen sich gesund ab." ] },
+      "B": { "ranges": [ 0, 30, 60, 100 ], "texts": [ "Sie sind sehr egoistisch.", "Ihr Egoismus ist durchschnittlich.", "Sie sind gesund egoistisch." ] },
+      "C": { "ranges": [ 0, 30, 60, 100 ], "texts": [ "Sie zeigen kaum Aggression.", "Ihre Aggression ist durchschnittlich.", "Sie zeigen gesunde Aggression." ] },
+      "D": { "ranges": [ 100, 60, 30, 0 ], "texts": [ "Sie neigen stark zu Überabgrenzung.", "Ihre Überabgrenzung ist durchschnittlich.", "Sie neigen nicht zu Überabgrenzung." ] },
+      "E": { "ranges": [ 100, 60, 30, 0 ], "texts": [ "Sie sind sehr übergriffig.", "Ihre Übergriffigkeit ist durchschnittlich.", "Sie sind nicht übergriffig." ] },
+      "F": { "ranges": [ 100, 60, 30, 0 ], "texts": [ "Sie zeigen starke destruktive Aggression.", "Ihre destruktive Aggression ist durchschnittlich.", "Sie zeigen keine destruktive Aggression." ] }
+    }
   },
   "trafficlights": [
     {

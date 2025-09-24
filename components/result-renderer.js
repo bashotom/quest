@@ -37,9 +37,10 @@ export class ResultRenderer {
                 header = header.replace(/\{category\}/g, categoryName).replace(/\{percent\}/g, percent);
                 content = content.replace(/\{category\}/g, categoryName).replace(/\{percent\}/g, percent);
 
-                // Apply range-based text if configured
-                if (config.resulttiles.ranges && config.resulttiles.range_texts) {
-                    const rangeText = ResultRenderer.getRangeText(percent, config.resulttiles.ranges, config.resulttiles.range_texts);
+                // Apply category-specific evaluation text if configured
+                if (config.resulttiles.evaluation && config.resulttiles.evaluation[categoryKey]) {
+                    const categoryEvaluation = config.resulttiles.evaluation[categoryKey];
+                    const rangeText = ResultRenderer.getRangeText(percent, categoryEvaluation.ranges, categoryEvaluation.texts);
                     if (rangeText) {
                         content = rangeText;
                     }
@@ -194,14 +195,64 @@ export class ResultRenderer {
             return null;
         }
 
-        // Determine which range the percentage falls into
-        for (let i = 0; i < ranges.length; i++) {
-            if (percentage < ranges[i]) {
-                return rangeTexts[i] || null;
+        // Support both 4-value ranges [0,30,60,100] and 3-value ranges [100,60,30]
+        if ((ranges.length === 4 || ranges.length === 3) && rangeTexts.length === 3) {
+            // Check if ranges are in descending order (inverse logic)
+            const isDescending = ranges[0] > ranges[ranges.length - 1];
+            
+            if (ranges.length === 4) {
+                // 4-value logic: Text[i] corresponds to Range[i] to Range[i+1]
+                if (isDescending) {
+                    // For descending ranges [100, 60, 30, 0]
+                    for (let i = 0; i < ranges.length - 1; i++) {
+                        const upperBound = ranges[i];
+                        const lowerBound = ranges[i + 1];
+                        if (percentage <= upperBound && percentage > lowerBound) {
+                            return rangeTexts[i] || null;
+                        }
+                    }
+                    // Handle edge case: percentage equals the lowest value
+                    if (percentage <= ranges[ranges.length - 1]) {
+                        return rangeTexts[rangeTexts.length - 1];
+                    }
+                } else {
+                    // For ascending ranges [0, 30, 60, 100]
+                    for (let i = 0; i < ranges.length - 1; i++) {
+                        const lowerBound = ranges[i];
+                        const upperBound = ranges[i + 1];
+                        if (percentage >= lowerBound && percentage < upperBound) {
+                            return rangeTexts[i] || null;
+                        }
+                    }
+                    // Handle edge case: percentage equals the highest value
+                    if (percentage >= ranges[ranges.length - 1]) {
+                        return rangeTexts[rangeTexts.length - 1];
+                    }
+                }
+            } else if (ranges.length === 3) {
+                // 3-value logic: treat as boundary values
+                if (isDescending) {
+                    // For descending ranges [100, 60, 30] (missing 0)
+                    if (percentage > ranges[1]) {
+                        return rangeTexts[0];
+                    } else if (percentage > ranges[2]) {
+                        return rangeTexts[1];
+                    } else {
+                        return rangeTexts[2];
+                    }
+                } else {
+                    // For ascending ranges [0, 30, 60] (missing 100)
+                    if (percentage < ranges[1]) {
+                        return rangeTexts[0];
+                    } else if (percentage < ranges[2]) {
+                        return rangeTexts[1];
+                    } else {
+                        return rangeTexts[2];
+                    }
+                }
             }
         }
-
-        // If percentage is >= the highest range, return the last text
-        return rangeTexts[ranges.length] || rangeTexts[rangeTexts.length - 1] || null;
+        
+        return null;
     }
 }
