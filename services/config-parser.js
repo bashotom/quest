@@ -62,6 +62,10 @@ export class ConfigParser {
         result.chart = jsonData.chart || {};
         result.input = jsonData.input || {};
         result.resulttable = jsonData.resulttable || {};
+        // Spezialfall: scale_angles für GaugeChart an die oberste Ebene kopieren
+        if (jsonData.chart && Array.isArray(jsonData.chart.scale_angles)) {
+            result.scale_angles = jsonData.chart.scale_angles;
+        }
         
         // Input-Konfiguration verarbeiten
         if (jsonData.input && typeof jsonData.input === 'object') {

@@ -9,8 +9,8 @@ export class GaugeChart {
     }
 
     render(value, maxScore, categoryLabel) {
-        // Container leeren
-        this.container.innerHTML = '';
+    // Container leeren
+    this.container.innerHTML = '';
         
         // Container-Dimensionen
         const containerWidth = this.container.offsetWidth;
@@ -28,14 +28,17 @@ export class GaugeChart {
             .attr("transform", `translate(${containerWidth/2},${containerHeight/2 + 20})`);
         
         // CRITICAL: Use Same Coordinate System Throughout (per instructions)
-        const startAngleDeg = 225; // bottom-left
-        const endAngleDeg = 315;   // bottom-right  
-        const totalAngleDeg = endAngleDeg - startAngleDeg; // 90 degrees
-        
+        // Use config.scale_angles if present, else fallback
+        let startAngleDeg = 225;
+        let endAngleDeg = 315;
+        if (this.config && Array.isArray(this.config.scale_angles) && this.config.scale_angles.length === 3) {
+            startAngleDeg = this.config.scale_angles[0];
+            endAngleDeg = this.config.scale_angles[2];
+        }
+        const totalAngleDeg = endAngleDeg - startAngleDeg;
         // Convert degrees to radians ONCE
         const startAngle = (startAngleDeg * Math.PI) / 180;
         const endAngle = (endAngleDeg * Math.PI) / 180;
-        
         // Calculate value position using SAME system
         const valueRatio = Math.min(value / maxScore, 1);
         const valueAngleDeg = startAngleDeg + valueRatio * totalAngleDeg;
@@ -68,12 +71,10 @@ export class GaugeChart {
         }
         
         // Tick Marks - CONSISTENT System
-        const scaleAngles = [225, 270, 315]; // degrees
+        const scaleAngles = (this.config && this.config.scale_angles) ? this.config.scale_angles : [225, 270, 315]; // degrees from config or fallback
         const scaleValues = [0, Math.round(maxScore/2), maxScore];
-        
         scaleAngles.forEach((angleDeg, i) => {
             const angle = (angleDeg * Math.PI) / 180; // SAME conversion
-            
             // Tick-Linie
             g.append("line")
                 .attr("x1", Math.cos(angle) * (radius * 0.68))
@@ -82,7 +83,6 @@ export class GaugeChart {
                 .attr("y2", Math.sin(angle) * (radius * 0.92))
                 .style("stroke", "#374151")
                 .style("stroke-width", "2px");
-            
             // Label
             const x = Math.cos(angle) * (radius * 0.6);
             const y = Math.sin(angle) * (radius * 0.6);
@@ -141,7 +141,7 @@ export class GaugeChart {
         // Kategorie-Label
         g.append("text")
             .attr("x", 0)
-            .attr("y", radius * 0.6)
+            .attr("y", radius * 0.4 + 55)
             .attr("text-anchor", "middle")
             .style("font-size", "1.1rem")
             .style("font-family", "Inter, sans-serif")
@@ -152,7 +152,7 @@ export class GaugeChart {
         const percentage = Math.round((value / maxScore) * 100);
         g.append("text")
             .attr("x", 0)
-            .attr("y", radius * 0.6 + 25)
+            .attr("y", radius * 0.4 + 80)
             .attr("text-anchor", "middle")
             .style("font-size", "1rem")
             .style("font-family", "Inter, sans-serif")
