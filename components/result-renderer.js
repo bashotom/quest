@@ -37,11 +37,19 @@ export class ResultRenderer {
                 header = header.replace(/\{category\}/g, categoryName).replace(/\{percent\}/g, percent);
                 content = content.replace(/\{category\}/g, categoryName).replace(/\{percent\}/g, percent);
 
+                // Ampelfarbe berechnen
+                const trafficLightConfig = Array.isArray(config.trafficlights)
+                    ? config.trafficlights.find(t => t.categories.split(',').map(s => s.trim()).includes(categoryKey))
+                    : undefined;
+                const trafficLightColor = ResultRenderer.getTrafficLightColor(percent, trafficLightConfig);
 
                 const tile = document.createElement('div');
                 tile.className = 'bg-white rounded-lg shadow p-4 flex-1 min-w-[220px] max-w-xs';
                 tile.innerHTML = `
-                    <div class="font-bold text-lg mb-2">${header}</div>
+                    <div class="font-bold text-lg mb-2 flex items-center gap-2">
+                        <span class="inline-block w-4 h-4 rounded-full border border-gray-300" style="background-color: ${trafficLightColor};"></span>
+                        <span>${header}</span>
+                    </div>
                     <div class="text-gray-700 text-sm">${content}</div>
                 `;
                 tilesWrapper.appendChild(tile);
