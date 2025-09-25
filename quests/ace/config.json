@@ -19,7 +19,7 @@
   "chart": {
     "type": "gauge",
     "style": "simple",
-    "ranges": [0, 40, 60, 100],
+    "ranges": [0, 33, 66, 100],
     "range_colors": ["green", "orange", "red"],
     "scale_angles": [210, 270, 330]
   },
