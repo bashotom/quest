@@ -21,12 +21,9 @@ export class ResultTileRenderer {
     
     static createTile(categoryData, config) {
         const { categoryKey, categoryName, percentage, trafficLightColor } = categoryData;
-        
-        // Replace placeholders in header/content
-        let header = this.replacePlaceholders(config.resulttiles.header || '', categoryName, percentage);
-        let content = this.replacePlaceholders(config.resulttiles.content || '', categoryName, percentage);
-        
+                
         // Apply category-specific evaluation text if configured
+        let content = "";
         content = this.applyEvaluationText(content, categoryKey, percentage, config);
         
         const shouldShowGauge = config.resulttiles.evaluation_gauge === true;
@@ -36,9 +33,16 @@ export class ResultTileRenderer {
         
         const tile = document.createElement('div');
         tile.className = 'bg-white rounded-lg shadow p-4 flex-1 min-w-[220px] max-w-xs';
+        
+        // Show percentage only if configured
+        const showPercentage = config.resulttiles.show_percentage === true;
+        const headerText = showPercentage 
+            ? `${categoryKey}: ${categoryName} ${Math.round(percentage)}%`
+            : `${categoryKey}: ${categoryName}`;
+            
         tile.innerHTML = `
             <div class="font-bold text-lg mb-2 flex items-center justify-between">
-                <span>${categoryKey}: ${categoryName} ${Math.round(percentage)}%</span>
+                <span>${headerText}</span>
                 ${trafficLightHtml}
             </div>
             <div class="text-gray-700 text-sm mb-4">${content}</div>
