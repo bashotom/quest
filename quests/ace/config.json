@@ -19,8 +19,8 @@
   "chart": {
     "type": "gauge",
     "style": "simple",
-    "ranges": [0, 3, 6, 10],
-    "range_colors": ["#86efac", "#fef3c7", "#fecaca"],
+    "ranges": [0, 40, 60, 100],
+    "range_colors": ["red", "orange", "green"],
     "range_labels": [ "0-2: Gering", "3-5: Moderat", "6-10: Hoch"],
     "scale_angles": [210, 270, 330]
   },

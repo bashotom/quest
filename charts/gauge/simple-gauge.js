@@ -82,8 +82,14 @@ export class SimpleGauge {
 
         // SimpleGauge configuration
         const percent = Math.min(value / maxScore, 1);
-        const sectionsCount = 3;
-        const sectionsColors = ['#ef4444', '#f97316', '#22c55e']; // red, orange, green
+        
+        // Use config values for ranges and colors, with fallbacks
+        const configRanges = this.config.ranges || [0, 33, 66, 100];
+        const configColors = this.config.range_colors || ['#ef4444', '#f97316', '#22c55e'];
+        
+        // Calculate sections count from ranges (ranges has one more element than sections)
+        const sectionsCount = Math.max(1, configRanges.length - 1);
+        const sectionsColors = configColors.slice(0, sectionsCount);
 
         // Create SimpleGaugeRenderer instance
         const simpleGaugeRenderer = new SimpleGaugeRenderer({
@@ -92,6 +98,7 @@ export class SimpleGauge {
             width: gaugeWidth,
             sectionsCount: sectionsCount,
             sectionsColors: sectionsColors,
+            ranges: configRanges,
             needleColor: '#1f2937',
             animationDuration: 1500,
             animationDelay: 100,
@@ -186,6 +193,7 @@ class SimpleGaugeRenderer {
         this._sectionsColors = config.sectionsColors;
         this._needleColor = config.needleColor;
         this._percent = config.percent || 0;
+        this._ranges = config.ranges || [0, 33, 66, 100];
     }
 
     /**
@@ -240,9 +248,19 @@ class SimpleGaugeRenderer {
      * @private
      */
     _createArcs(radius) {
-        const sectionPercentage = 1 / this._sectionsCount / 2;
         const padRad = 0.05;
-        let totalPercent = 0.75; // Start at 270deg
+        let totalPercent = 0.75; // Start at 270deg (bottom left)
+        
+        // Calculate total range for proportional calculation
+        const totalRange = this._ranges[this._ranges.length - 1] - this._ranges[0];
+        
+        // Calculate proportional sections based on actual ranges
+        const sectionProportions = [];
+        for (let i = 0; i < this._sectionsCount; i++) {
+            const sectionRange = this._ranges[i + 1] - this._ranges[i];
+            const sectionProportion = (sectionRange / totalRange) * 0.5; // 0.5 is for semicircle
+            sectionProportions.push(sectionProportion);
+        }
 
         this._arcs = this._chart.selectAll('.arc')
             .data(d3.range(1, this._sectionsCount + 1))
@@ -250,9 +268,10 @@ class SimpleGaugeRenderer {
             .append('path')
             .attr('class', (sectionIndex) => `arc chart-color${sectionIndex}`)
             .attr('d', (sectionIndex) => {
+                const sectionProportion = sectionProportions[sectionIndex - 1];
                 const arcStartRad = this._percToRad(totalPercent);
-                const arcEndRad = arcStartRad + this._percToRad(sectionPercentage);
-                totalPercent += sectionPercentage;
+                const arcEndRad = arcStartRad + this._percToRad(sectionProportion);
+                totalPercent += sectionProportion;
 
                 const startPadRad = sectionIndex === 1 ? 0 : padRad / 2;
                 const endPadRad = sectionIndex === this._sectionsCount ? 0 : padRad / 2;
