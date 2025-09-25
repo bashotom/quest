@@ -75,7 +75,7 @@
     }
   ],
   "resulttable": {
-    "enabled": true,
+    "enabled": false,
     "show_trafficlights": true
   },
   "input": {

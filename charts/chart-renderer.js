@@ -205,13 +205,14 @@ export class ChartRenderer {
     }
 
     /**
-     * Render result table if configured
+     * Render result table and/or result tiles if configured
      */
     static renderResultTable(scores, questions, config) {
         const tableContainer = document.getElementById('result-table-container');
         if (!tableContainer) return;
 
-        if (config.resulttable?.enabled === true) {
+        // Render if either result table OR result tiles are enabled
+        if (config.resulttable?.enabled === true || config.resulttiles?.enabled === true) {
             ResultRenderer.render(scores, questions, config, tableContainer);
             tableContainer.classList.remove('hidden');
         } else {

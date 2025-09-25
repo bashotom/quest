@@ -19,7 +19,9 @@ export class ResultRenderer {
             ResultTileRenderer.render(processedData, config, container);
         }
         
-        // Always render table
-        ResultTableRenderer.render(processedData, config, container);
+        // Render table if enabled
+        if (config.resulttable?.enabled) {
+            ResultTableRenderer.render(processedData, config, container);
+        }
     }
 }
