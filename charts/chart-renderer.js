@@ -158,7 +158,9 @@ export class ChartRenderer {
         const maxAnswer = Math.max(...config.answers.map(a => a.value));
         const maxScore = categoryQuestions.length * maxAnswer;
         
-        const chart = new GaugeChart(chartElement, config);
+        // Pass the chart configuration to the GaugeChart
+        const chartConfig = config.chart || {};
+        const chart = new GaugeChart(chartElement, chartConfig);
         chart.render(value, maxScore, categoryLabel);
     }
     

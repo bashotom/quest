@@ -140,3 +140,46 @@ body {
     width: 100%;
     height: 100%;
 }
+
+/* D3 Simple Gauge Styles */
+.simple-gauge .arc {
+    stroke: #ffffff;
+    stroke-width: 1px;
+}
+
+.simple-gauge .arc.active {
+    filter: brightness(1.2);
+    stroke-width: 2px;
+}
+
+.simple-gauge .needle {
+    filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.simple-gauge .needle-center {
+    stroke: #ffffff;
+    stroke-width: 1px;
+    filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+/* Min/Max state styling for simple gauge */
+.simple-gauge.min .arc {
+    opacity: 0.6;
+}
+
+.simple-gauge.max .arc {
+    filter: brightness(1.3);
+}
+
+/* Chart color styling for simple gauge sections */
+.simple-gauge .chart-color1 {
+    fill: #ef4444;
+}
+
+.simple-gauge .chart-color2 {
+    fill: #f97316;
+}
+
+.simple-gauge .chart-color3 {
+    fill: #22c55e;
+}
