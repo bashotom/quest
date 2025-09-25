@@ -34,9 +34,9 @@ export class ResultTileRenderer {
         const tile = document.createElement('div');
         tile.className = 'bg-white rounded-lg shadow p-4 flex-1 min-w-[220px] max-w-xs';
         tile.innerHTML = `
-            <div class="font-bold text-lg mb-2 flex items-center gap-2">
-                <span class="inline-block w-4 h-4 rounded-full border border-gray-300" style="background-color: ${trafficLightColor};"></span>
-                <span>${header}</span>
+            <div class="font-bold text-lg mb-2 flex items-center justify-between">
+                <span>${categoryKey}: ${categoryName} ${Math.round(percentage)}%</span>
+                <span class="inline-block w-6 h-6 rounded-full border border-gray-300" style="background-color: ${trafficLightColor};"></span>
             </div>
             <div class="text-gray-700 text-sm mb-4">${content}</div>
             ${shouldShowGauge ? `<div class="gauge-container w-full" style="height: 110px;" id="gauge-${categoryKey}"></div>` : ''}
