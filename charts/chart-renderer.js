@@ -1,4 +1,5 @@
-import { GaugeChart } from './gauge-chart.js';
+import { TachometerGauge } from './gauge/tachometer-gauge.js';
+import { SimpleGauge } from './gauge/simple-gauge.js';
 import { RadarChart } from './radar-chart.js';
 import { ResultRenderer } from '../components/result-renderer.js';
 
@@ -158,10 +159,21 @@ export class ChartRenderer {
         const maxAnswer = Math.max(...config.answers.map(a => a.value));
         const maxScore = categoryQuestions.length * maxAnswer;
         
-        // Pass the chart configuration to the GaugeChart
+        // Determine gauge type based on configuration
         const chartConfig = config.chart || {};
-        const chart = new GaugeChart(chartElement, chartConfig);
-        chart.render(value, maxScore, categoryLabel);
+        const gaugeStyle = chartConfig.gauge_style || chartConfig.style || 'tachometer';
+        
+        // Create appropriate gauge instance
+        let gauge;
+        if (gaugeStyle === 'simple') {
+            gauge = new SimpleGauge(chartElement, chartConfig);
+            gauge.render(value, maxScore, categoryLabel);
+        } else {
+            // Default to tachometer style
+            const trafficLightConfig = chartConfig.traffic_light || null;
+            gauge = new TachometerGauge(chartElement, chartConfig);
+            gauge.render(value, maxScore, categoryLabel, trafficLightConfig);
+        }
     }
     
     /**
