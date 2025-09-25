@@ -68,7 +68,7 @@ export class ResultTileRenderer {
         };
         
         // Determine which light should be active based on config trafficlights
-        const lightState = this.getTrafficLightState(categoryKey, percentage, config);
+        const lightState = this.getTrafficLightState(categoryKey, percentage, config, categoryData);
         
         const redActive = lightState === 'red';
         const yellowActive = lightState === 'yellow';
@@ -89,42 +89,70 @@ export class ResultTileRenderer {
         `;
     }
     
-    static getTrafficLightState(categoryKey, percentage, config) {
-        if (!config.trafficlights || !Array.isArray(config.trafficlights)) {
-            return 'green'; // Default fallback
+    static getTrafficLightState(categoryKey, percentage, config, categoryData = null) {
+        // First try explicit trafficlights configuration
+        if (config.trafficlights && Array.isArray(config.trafficlights)) {
+            // Find the traffic light configuration for this category
+            const trafficLightConfig = config.trafficlights.find(tl => {
+                if (tl.categories) {
+                    const categories = tl.categories.split(',').map(cat => cat.trim());
+                    return categories.includes(categoryKey);
+                }
+                return false;
+            });
+            
+            if (trafficLightConfig) {
+                // Apply traffic light logic based on the configuration
+                if (trafficLightConfig.red !== undefined && trafficLightConfig.orange !== undefined) {
+                    // Standard logic: red <= red threshold, orange <= orange threshold, green > orange threshold
+                    if (percentage <= trafficLightConfig.red) {
+                        return 'red';
+                    } else if (percentage <= trafficLightConfig.orange) {
+                        return 'yellow';
+                    } else {
+                        return 'green';
+                    }
+                } else if (trafficLightConfig.green !== undefined && trafficLightConfig.orange !== undefined) {
+                    // Inverse logic: green <= green threshold, orange <= orange threshold, red > orange threshold
+                    if (percentage <= trafficLightConfig.green) {
+                        return 'green';
+                    } else if (percentage <= trafficLightConfig.orange) {
+                        return 'yellow';
+                    } else {
+                        return 'red';
+                    }
+                }
+            }
         }
         
-        // Find the traffic light configuration for this category
-        const trafficLightConfig = config.trafficlights.find(tl => {
-            if (tl.categories) {
-                const categories = tl.categories.split(',').map(cat => cat.trim());
-                return categories.includes(categoryKey);
-            }
-            return false;
-        });
-        
-        if (!trafficLightConfig) {
-            return 'green'; // Default fallback
-        }
-        
-        // Apply traffic light logic based on the configuration
-        if (trafficLightConfig.red !== undefined && trafficLightConfig.orange !== undefined) {
-            // Standard logic: red <= red threshold, orange <= orange threshold, green > orange threshold
-            if (percentage <= trafficLightConfig.red) {
-                return 'red';
-            } else if (percentage <= trafficLightConfig.orange) {
-                return 'yellow';
+        // Fallback: Use chart.ranges configuration for gauge charts
+        if (config.chart && config.chart.ranges && Array.isArray(config.chart.ranges)) {
+            const ranges = config.chart.ranges;
+            
+            // For ACE questionnaire, use inverse logic (low percentages = good)
+            const isACE = config.title && config.title.toLowerCase().includes('ace');
+            
+            if (isACE) {
+                // ACE inverse logic: low percentages = green (good), high percentages = red (bad)
+                // ranges: [0, 40, 60, 100]
+                if (percentage <= ranges[1]) {
+                    return 'green'; // 0-40%: Low ACE = good
+                } else if (percentage <= ranges[2]) {
+                    return 'yellow'; // 40-60%: Moderate ACE
+                } else {
+                    return 'red'; // 60-100%: High ACE = bad
+                }
             } else {
-                return 'green';
-            }
-        } else if (trafficLightConfig.green !== undefined && trafficLightConfig.orange !== undefined) {
-            // Inverse logic: green <= green threshold, orange <= orange threshold, red > orange threshold
-            if (percentage <= trafficLightConfig.green) {
-                return 'green';
-            } else if (percentage <= trafficLightConfig.orange) {
-                return 'yellow';
-            } else {
-                return 'red';
+                // Standard logic for other questionnaires
+                if (ranges.length >= 3) {
+                    if (percentage <= ranges[1]) {
+                        return 'red';
+                    } else if (percentage <= ranges[2]) {
+                        return 'yellow';
+                    } else {
+                        return 'green';
+                    }
+                }
             }
         }
         
