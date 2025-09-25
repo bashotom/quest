@@ -54,23 +54,23 @@
     "content": "Hier sind die Details zu den Ergebnissen für {category}.",
     "evaluation_gauge": false,
     "evaluation": {
-      "A": { "ranges": [ 0, 30, 60, 100 ], "texts": [ "Sie grenzen sich kaum ab.", "Ihre Abgrenzung ist durchschnittlich.", "Sie grenzen sich gesund ab." ] },
-      "B": { "ranges": [ 0, 30, 60, 100 ], "texts": [ "Es gelingt ihnen selten, nur mal auf sich zu hören.", "Ihr Egoismus ist durchschnittlich.", "Sie sind gesund egoistisch." ] },
-      "C": { "ranges": [ 0, 30, 60, 100 ], "texts": [ "Sie zeigen kaum Aggression.", "Ihre Aggression ist durchschnittlich.", "Sie zeigen gesunde Aggression." ] },
-      "D": { "ranges": [ 100, 60, 30, 0 ], "texts": [ "Sie neigen stark zu Überabgrenzung.", "Ihre Überabgrenzung ist durchschnittlich.", "Sie neigen nicht zu Überabgrenzung." ] },
-      "E": { "ranges": [ 100, 60, 30, 0 ], "texts": [ "Sie sind sehr übergriffig.", "Ihre Übergriffigkeit ist durchschnittlich.", "Sie sind nicht übergriffig." ] },
-      "F": { "ranges": [ 100, 60, 30, 0 ], "texts": [ "Sie zeigen starke destruktive Aggression.", "Ihre destruktive Aggression ist durchschnittlich.", "Sie zeigen keine destruktive Aggression." ] }
+      "A": { "ranges": [ 0, 40, 80, 100 ], "texts": [ "Sie grenzen sich kaum ab.", "Ihre Abgrenzung ist verbesserungsfähig.", "Sie grenzen sich gesund ab." ] },
+      "B": { "ranges": [ 0, 40, 80, 100 ], "texts": [ "Es gelingt ihnen selten, nur mal auf sich zu hören.", "Ihr Egoismus ist verbesserungsfähig.", "Sie sind gesund egoistisch." ] },
+      "C": { "ranges": [ 0, 40, 80, 100 ], "texts": [ "Sie zeigen kaum Aggression.", "Ihre Aggression ist verbesserungsfähig.", "Sie zeigen gesunde Aggression." ] },
+      "D": { "ranges": [ 100, 60, 20, 0 ], "texts": [ "Sie neigen stark zu Überabgrenzung.", "Ihre Überabgrenzung ist verbesserungsfähig.", "Sie neigen nicht zu Überabgrenzung." ] },
+      "E": { "ranges": [ 100, 60, 20, 0 ], "texts": [ "Sie sind sehr übergriffig.", "Ihre Übergriffigkeit ist verbesserungsfähig.", "Sie sind nicht übergriffig." ] },
+      "F": { "ranges": [ 100, 60, 20, 0 ], "texts": [ "Sie zeigen starke destruktive Aggression.", "Ihre destruktive Aggression ist verbesserungsfähig.", "Sie zeigen keine destruktive Aggression." ] }
     }
   },
   "trafficlights": [
     {
       "categories": "A,B,C",
-      "red": 30,
-      "orange": 60
+      "red": 40,
+      "orange": 80
     },
     {
       "categories": "D,E,F",
-      "green": 30,
+      "green": 20,
       "orange": 60
     }
   ],
