@@ -8,8 +8,17 @@ export class RadarLegend {
      * @param {Object} config - Chart configuration
      * @param {string} labelState - Current label state ('short' or 'long')
      */
+    static getLegendCondition(config) {
+        if (!config) return undefined;
+        if (config.legend?.condition) return config.legend.condition;
+        if (config.chart?.legend?.condition) return config.chart.legend.condition;
+        if (config.config?.chart?.legend?.condition) return config.config.chart.legend.condition;
+        return undefined;
+    }
+
     static render(containerId, config, labelState) {
-        const showLegend = (window.innerWidth < 650 || labelState === 'short');
+        const legendCondition = RadarLegend.getLegendCondition(config);
+        const showLegend = (labelState === 'short' && legendCondition === 'mobile');
 
         // Only create legend if needed and valid category data exists
         if (!showLegend || !this.hasValidCategoryData(config)) {

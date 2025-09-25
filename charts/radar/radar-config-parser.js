@@ -68,7 +68,8 @@ export class RadarConfigParser {
             tickmarks: this.parseConfigArray(chart.tickmarks) || ['B', 'E'],
             horizontalline: chart.horizontalline === true,
             topaxis: chart.topaxis,
-            trafficlights: chart.trafficlights === true
+            trafficlights: chart.trafficlights === true,
+            legend: chart.legend ? { ...chart.legend } : undefined
         };
     }
 

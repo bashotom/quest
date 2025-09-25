@@ -43,13 +43,16 @@
     "inverseradiusvector": "D,E,F",
     "tickmarks": "B,E",
     "horizontalline": true,
-    "trafficlights": true
+    "trafficlights": true,
+    "legend": {
+      "condition": "off"
+    }
   },
   "resulttiles": {
     "enabled": true,
     "header": "{percent}% {category}",
     "content": "Hier sind die Details zu den Ergebnissen für {category}.",
-    "evaluation_gauge": true,
+    "evaluation_gauge": false,
     "evaluation": {
       "A": { "ranges": [ 0, 30, 60, 100 ], "texts": [ "Sie grenzen sich kaum ab.", "Ihre Abgrenzung ist durchschnittlich.", "Sie grenzen sich gesund ab." ] },
       "B": { "ranges": [ 0, 30, 60, 100 ], "texts": [ "Es gelingt ihnen selten, nur mal auf sich zu hören.", "Ihr Egoismus ist durchschnittlich.", "Sie sind gesund egoistisch." ] },
