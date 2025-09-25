@@ -53,12 +53,36 @@
     "evaluation_gauge": false,
     "show_percentage": false,
     "evaluation": {
-      "A": { "ranges": [ 0, 33, 66, 100 ], "texts": [ "Sie grenzen sich kaum ab.", "Ihre Abgrenzung ist verbesserungsfähig.", "Sie grenzen sich gesund ab." ] },
-      "B": { "ranges": [ 0, 33, 66, 100 ], "texts": [ "Es gelingt ihnen selten, nur mal auf sich zu hören.", "Ihr Egoismus ist verbesserungsfähig.", "Sie sind gesund egoistisch." ] },
-      "C": { "ranges": [ 0, 33, 66, 100 ], "texts": [ "Sie zeigen kaum Aggression.", "Ihre Aggression ist verbesserungsfähig.", "Sie zeigen gesunde Aggression." ] },
-      "D": { "ranges": [ 100, 66, 33, 0 ], "texts": [ "Sie neigen stark zu Überabgrenzung.", "Ihre Überabgrenzung ist verbesserungsfähig.", "Sie neigen nicht zu Überabgrenzung." ] },
-      "E": { "ranges": [ 100, 66, 33, 0 ], "texts": [ "Sie sind sehr übergriffig.", "Ihre Übergriffigkeit ist verbesserungsfähig.", "Sie sind nicht übergriffig." ] },
-      "F": { "ranges": [ 100, 66, 33, 0 ], "texts": [ "Sie zeigen starke destruktive Aggression.", "Ihre destruktive Aggression ist verbesserungsfähig.", "Sie zeigen keine destruktive Aggression." ] }
+      "A": { "ranges": [ 0, 33, 66, 100 ], 
+        "texts": [ 
+          "Sie grenzen sich kaum ab, d.h. Sie lassen sich leicht von den Meinungen und Gefühlen anderer beeinflussen und haben Schwierigkeiten, Ihre eigenen Bedürfnisse und Wünsche zu erkennen und zu vertreten. Oft passen Sie sich an, um Konflikte zu vermeiden oder gemocht zu werden. Dies kann dazu führen, dass Sie sich selbst verlieren und unzufrieden sind.", 
+          "Ihre Abgrenzung ist verbesserungsfähig, d.h. Sie können lernen, Ihre eigenen Bedürfnisse und Wünsche klarer zu kommunizieren und durchzusetzen.", 
+          "Sie grenzen sich gesund ab, d.h. Sie sind in der Lage, Ihre eigenen Bedürfnisse und Wünsche zu erkennen und zu vertreten, ohne dabei die Bedürfnisse anderer zu ignorieren." ] },
+      "B": { "ranges": [ 0, 33, 66, 100 ], 
+        "texts": [ 
+          "Es gelingt ihnen selten, nur mal auf sich zu hören, d.h. Sie stellen die Bedürfnisse und Wünsche anderer oft über Ihre eigenen und haben Schwierigkeiten, sich selbst zu priorisieren. Sie neigen dazu, sich schuldig zu fühlen, wenn Sie sich um sich selbst kümmern, und setzen sich selten für Ihre eigenen Interessen ein. Dies kann zu Erschöpfung und Unzufriedenheit führen.",
+          "Ihr Egoismus ist verbesserungsfähig, d.h. Sie können lernen, sich selbst mehr zu priorisieren und Ihre eigenen Bedürfnisse und Wünsche zu erkennen und zu vertreten.", 
+          "Sie sind auf eine gesunde Art egoistisch, d.h. Sie sind in der Lage, Ihre eigenen Bedürfnisse und Wünsche zu erkennen und zu vertreten, ohne dabei die Bedürfnisse anderer zu ignorieren." ] },
+      "C": { "ranges": [ 0, 33, 66, 100 ], 
+        "texts": [ 
+            "Sie zeigen kaum Aggression, d.h. Sie haben Schwierigkeiten, Ihre eigenen Bedürfnisse und Wünsche durchzusetzen und neigen dazu, Konflikte zu vermeiden.", 
+            "Ihre Aggression ist verbesserungsfähig, d.h. Sie können lernen, Ihre Bedürfnisse und Wünsche klarer und deutlicher zu kommunizieren und durchzusetzen. Auch dürfen Sie lernen, dass es in Ordnung ist, manchmal auch deutlich 'Nein' zu sagen und Grenzen zu setzen und diese auch entschieden zu verteidigen.", 
+            "Sie zeigen gesunde Aggression, d.h. Sie sind in der Lage, Ihre eigenen Bedürfnisse und Wünsche zu erkennen und zu vertreten, ohne dabei die Bedürfnisse anderer zu ignorieren." ] },
+      "D": { "ranges": [ 100, 66, 33, 0 ], 
+        "texts": [ 
+            "Sie neigen stark zu Überabgrenzung, d.h. Sie ziehen sich stark von anderen Menschen zurück und haben Schwierigkeiten, Nähe und Intimität zuzulassen. Sie schützen sich so vor emotionaler Verletzung, was dazu führen kann, dass Sie sich isoliert und einsam fühlen.", 
+            "Ihre Überabgrenzung ist verbesserungsfähig, d.h. manchmal ziehen sich stark von anderen Menschen zurück und haben Schwierigkeiten, Nähe und Intimität zuzulassen. Sie schützen sich so vor emotionaler Verletzung, was dazu führen kann, dass Sie sich isoliert und einsam fühlen.", 
+            "Sie neigen nicht zu Überabgrenzung, d.h. Sie sind in der Lage, Nähe und Intimität zuzulassen und haben keine Schwierigkeiten, sich auf andere Menschen einzulassen." ] },
+      "E": { "ranges": [ 100, 66, 33, 0 ], 
+        "texts": [ 
+          "Sie sind sehr übergriffig, d.h. Sie behandeln die Angelegenheiten anderer, als wären es ihre eigenen. Es fällt Ihnen schwer eine klare Grenze zu anderen Menschen zu ziehen und nehmen somit anderen viel Raum, der Ihnen gar nicht zusteht. Das Gegenüber kann sich somit bedrängt und bemuttert fühlen. Häufig lässt er das eine Weile aus Bequemlichkeit zu, aber irgendwann kann die Geduld des Gegenübers erschöpft sein, und sie erfahren eine schmerzhafte Ablehnung, die sie sehr enttäuscht, da es doch nur gut gemeint haben.", 
+          "Sie sind manchmal übergriffig, d.h. Sie respektieren die Grenzen anderer nicht immer und kümmern sich mehr um die anderen als um sich selbst.", 
+          "Sie sind nicht übergriffig, d.h. Sie respektieren die Grenzen anderer." ] },
+      "F": { "ranges": [ 100, 66, 33, 0 ], 
+        "texts": [ 
+          "Sie zeigen starke destruktive Aggression, d.h. Sie neigen dazu, Ihre eigenen Bedürfnisse und Wünsche auf eine Weise durchzusetzen, die andere verletzt oder ignoriert. Sie haben Schwierigkeiten, Empathie für die Gefühle und Bedürfnisse anderer zu zeigen, und neigen dazu, impulsiv und rücksichtslos zu handeln.", 
+          "Ihre destruktive Aggression ist verbesserungsfähig, d.h. Sie können lernen, Ihre Bedürfnisse und Wünsche auf eine Weise zu kommunizieren und durchzusetzen, die andere respektiert.", 
+          "Sie zeigen keine destruktive Aggression, d.h. Sie sind in der Lage, Ihre eigenen Bedürfnisse und Wünsche zu erkennen und zu vertreten, ohne dabei die Bedürfnisse anderer zu ignorieren." ] }
     }
   },
   "trafficlights": [
