@@ -16,19 +16,19 @@ export class GaugeChart {
         const containerWidth = this.container.offsetWidth;
         const containerHeight = this.container.offsetHeight;
         
-        // Feste Gauge-Größe für Kacheln (größer als Container)
-        const gaugeSize = Math.max(200, Math.min(containerWidth, containerHeight) * 1.8);
-        const radius = (gaugeSize / 2) - 40;
+        // Angepasste Gauge-Größe für bessere Container-Einpassung
+        const gaugeSize = Math.max(180, Math.min(containerWidth, containerHeight) * 1.2);
+        const radius = (gaugeSize / 2) - 50;
         
-        // SVG erstellen mit fester Größe
+        // SVG erstellen mit Container-beschränkter Größe
         const svg = d3.select(this.container)
             .append("svg")
             .attr("width", containerWidth)
             .attr("height", containerHeight)
-            .style("overflow", "visible");
+            .style("overflow", "hidden");
         
         const g = svg.append("g")
-            .attr("transform", `translate(${containerWidth/2},${containerHeight/2 + 10})`);
+            .attr("transform", `translate(${containerWidth/2},${containerHeight * 0.65})`);  // Tiefer positioniert
         
         // CRITICAL: Use Same Coordinate System Throughout (per instructions)
         // Use config.scale_angles if present, else fallback to 200-340 degrees
