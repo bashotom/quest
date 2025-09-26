@@ -21,6 +21,7 @@
     "style": "simple",
     "ranges": [0, 33, 66, 100],
     "range_colors": ["green", "orange", "red"],
+    "explanation": "Der ACE-Gesamtwert gibt die Anzahl der verschiedenen Arten von belastenden Kindheitserfahrungen an, die eine Person gemacht hat.",
     "scale_angles": [210, 270, 330]
   },
   "resulttable": {

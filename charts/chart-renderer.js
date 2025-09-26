@@ -29,6 +29,9 @@ export class ChartRenderer {
         // Render result table if configured
         ChartRenderer.renderResultTable(scores, questions, config);
         
+        // Render chart explanation if configured
+        ChartRenderer.renderChartExplanation(config);
+        
         switch (chartType) {
             case 'radar':
                 return ChartRenderer.renderRadarChart(scores, renderingId, questions, config, options);
@@ -46,6 +49,9 @@ export class ChartRenderer {
      */
     static hideAllContainers() {
         document.querySelectorAll('.chart-type-container').forEach(c => c.classList.add('hidden'));
+        // Also hide the explanation container
+        const explanationContainer = document.getElementById('chart-explanation-container');
+        if (explanationContainer) explanationContainer.classList.add('hidden');
     }
     
     /**
@@ -232,6 +238,27 @@ export class ChartRenderer {
         } else {
             tableContainer.innerHTML = '';
             tableContainer.classList.add('hidden');
+        }
+    }
+
+    /**
+     * Render chart explanation if configured
+     */
+    static renderChartExplanation(config) {
+        const explanationContainer = document.getElementById('chart-explanation-container');
+        const explanationText = document.getElementById('chart-explanation-text');
+        
+        if (!explanationContainer || !explanationText) return;
+
+        // Check if chart configuration has an explanation
+        const chartConfig = config.chart || {};
+        const explanation = chartConfig.explanation;
+
+        if (explanation && explanation.trim()) {
+            explanationText.textContent = explanation;
+            explanationContainer.classList.remove('hidden');
+        } else {
+            explanationContainer.classList.add('hidden');
         }
     }
 }
