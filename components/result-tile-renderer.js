@@ -27,9 +27,10 @@ export class ResultTileRenderer {
         content = this.applyEvaluationText(content, categoryKey, percentage, config);
         
         const shouldShowGauge = config.resulttiles.evaluation_gauge === true;
+        const shouldShowTrafficLight = config.resulttiles.show_trafficlight === true;
         
-        // Create traffic light HTML
-        const trafficLightHtml = this.createTrafficLight(categoryData, config);
+        // Create traffic light HTML only if enabled
+        const trafficLightHtml = shouldShowTrafficLight ? this.createTrafficLight(categoryData, config) : '';
         
         const tile = document.createElement('div');
         tile.className = 'bg-white rounded-lg shadow p-4 flex-1 min-w-[220px] max-w-xs';

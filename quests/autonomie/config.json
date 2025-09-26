@@ -51,9 +51,10 @@
   "resulttiles": {
     "enabled": true,
     "evaluation_gauge": false,
-    "show_percentage": true,
     "show_categoryid": true,
+    "show_percentage": true,
     "show_score": false,
+    "show_trafficlight": false,
     "evaluation": {
       "A": { "ranges": [ 0, 33, 66, 100 ], 
         "texts": [ 
