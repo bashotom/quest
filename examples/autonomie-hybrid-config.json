@@ -1,0 +1,116 @@
+{
+  "title": "Autonomie (Hybrid)",
+  "description": "Autonomie-Fragebogen mit LocalStorage + Server Backup",
+  "bookmark_encoding": "base64",
+  "answers": [
+    {
+      "label": "stimmt fast immer", 
+      "value": 4,
+      "color": "#86efac"
+    },
+    {
+      "label": "stimmt häufig", 
+      "value": 3,
+      "color": "#bbf7d0"
+    },
+    {
+      "label": "manchmal", 
+      "value": 2,
+      "color": "#fef3c7"
+    },
+    {
+      "label": "stimmt selten", 
+      "value": 1,
+      "color": "#fed7aa"
+    },
+    {
+      "label": "trifft nicht zu", 
+      "value": 0,
+      "color": "#fecaca"
+    }
+  ],
+  "categories": [
+    {"A": "gesunde Abgrenzung"},
+    {"B": "gesunder Egoismus"},
+    {"C": "gesunde Aggression"},
+    {"D": "Überabgrenzung"},
+    {"E": "Übergriffigkeit"},
+    {"F": "Destruktive Aggression"}
+  ],
+  "chart": {
+    "type": "radar",
+    "topaxis": "B",
+    "radiusvector": "A,B,C",
+    "inverseradiusvector": "D,E,F",
+    "tickmarks": "B,E",
+    "horizontalline": true,
+    "trafficlights": true,
+    "legend": {
+      "condition": "off"
+    }
+  },
+  "input": {
+    "element": "radiobox",
+    "size": 5,
+    "display": "responsive"
+  },
+  "persistence": {
+    "enabled": true,
+    "type": "hybrid",
+    "server": {
+      "endpoint": "/api/questionnaire-data.php",
+      "sync": "auto",
+      "authentication": "session",
+      "timeout": 5000
+    }
+  },
+  "trafficlights": [
+    {
+      "category": "A",
+      "green": {"min": 7, "max": 14},
+      "yellow": {"min": 4, "max": 6},
+      "red": {"min": 0, "max": 3}
+    },
+    {
+      "category": "B",
+      "green": {"min": 7, "max": 16},
+      "yellow": {"min": 4, "max": 6},
+      "red": {"min": 0, "max": 3}
+    },
+    {
+      "category": "C",
+      "green": {"min": 7, "max": 12},
+      "yellow": {"min": 4, "max": 6},
+      "red": {"min": 0, "max": 3}
+    },
+    {
+      "category": "D",
+      "green": {"min": 0, "max": 3},
+      "yellow": {"min": 4, "max": 6},
+      "red": {"min": 7, "max": 16}
+    },
+    {
+      "category": "E",
+      "green": {"min": 0, "max": 3},
+      "yellow": {"min": 4, "max": 6},
+      "red": {"min": 7, "max": 12}
+    },
+    {
+      "category": "F",
+      "green": {"min": 0, "max": 3},
+      "yellow": {"min": 4, "max": 6},
+      "red": {"min": 7, "max": 16}
+    }
+  ],
+  "resulttable": {
+    "condition": "on",
+    "columns": [
+      {"category": "A", "label": "gesunde Abgrenzung"},
+      {"category": "B", "label": "gesunder Egoismus"}, 
+      {"category": "C", "label": "gesunde Aggression"},
+      {"category": "D", "label": "Überabgrenzung"},
+      {"category": "E", "label": "Übergriffigkeit"},
+      {"category": "F", "label": "Destruktive Aggression"}
+    ]
+  }
+}

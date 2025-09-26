@@ -102,6 +102,24 @@ export class ConfigParser {
                 enabled: jsonData.persistence.enabled === true,
                 type: jsonData.persistence.type || 'localstorage'
             };
+            
+            // Server-Konfiguration für Hybrid-Modus
+            if (jsonData.persistence.server && typeof jsonData.persistence.server === 'object') {
+                result.persistence.server = {
+                    endpoint: jsonData.persistence.server.endpoint || '/api/questionnaire-data.php',
+                    sync: jsonData.persistence.server.sync || 'auto',
+                    authentication: jsonData.persistence.server.authentication || 'session',
+                    timeout: parseInt(jsonData.persistence.server.timeout) || 5000
+                };
+            } else if (jsonData.persistence.type === 'hybrid' || jsonData.persistence.type === 'server') {
+                // Default server config für hybrid/server Modus
+                result.persistence.server = {
+                    endpoint: '/api/questionnaire-data.php',
+                    sync: 'auto',
+                    authentication: 'session',
+                    timeout: 5000
+                };
+            }
         } else {
             result.persistence = {
                 enabled: false,
@@ -148,6 +166,29 @@ export class ConfigParser {
         const validDisplayModes = ['column', 'inline', 'responsive'];
         if (config.input.display && !validDisplayModes.includes(config.input.display)) {
             errors.push(`Ungültiger Display-Modus: ${config.input.display}. Erlaubt: ${validDisplayModes.join(', ')}`);
+        }
+
+        // Validiere Persistence-Typ
+        const validPersistenceTypes = ['localstorage', 'server', 'hybrid'];
+        if (config.persistence.type && !validPersistenceTypes.includes(config.persistence.type)) {
+            errors.push(`Ungültiger Persistence-Typ: ${config.persistence.type}. Erlaubt: ${validPersistenceTypes.join(', ')}`);
+        }
+
+        // Validiere Server-Konfiguration für server/hybrid Modi
+        if ((config.persistence.type === 'server' || config.persistence.type === 'hybrid') && config.persistence.server) {
+            if (!config.persistence.server.endpoint) {
+                errors.push('Server-Endpoint ist erforderlich für server/hybrid Persistierung');
+            }
+            
+            const validSyncModes = ['auto', 'manual'];
+            if (config.persistence.server.sync && !validSyncModes.includes(config.persistence.server.sync)) {
+                errors.push(`Ungültiger Sync-Modus: ${config.persistence.server.sync}. Erlaubt: ${validSyncModes.join(', ')}`);
+            }
+            
+            const validAuthMethods = ['session', 'none'];
+            if (config.persistence.server.authentication && !validAuthMethods.includes(config.persistence.server.authentication)) {
+                errors.push(`Ungültige Authentifizierung: ${config.persistence.server.authentication}. Erlaubt: ${validAuthMethods.join(', ')}`);
+            }
         }
 
         return errors;
