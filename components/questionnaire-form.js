@@ -424,7 +424,7 @@ class QuestionnaireForm extends HTMLElement {
 
             // Update URL hash
             const answers = this.getCurrentAnswers();
-            URLHashManager.updateHash(answers);
+            URLHashManager.updateHash(answers, this.questions, this.config);
 
             // Custom event dispatchen
             this.dispatchEvent(new CustomEvent('answerChanged', {
@@ -527,7 +527,7 @@ class QuestionnaireForm extends HTMLElement {
         
         // Update hash
         const answers = this.getCurrentAnswers();
-        URLHashManager.updateHash(answers);
+        URLHashManager.updateHash(answers, this.questions, this.config);
     }
 
     /**

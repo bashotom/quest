@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Base64 URL Test</title>
+</head>
+<body>
+    <h1>Base64 URL Encoding Test</h1>
+    <div id="test-results"></div>
+    
+    <script type="module">
+        import { URLHashManager } from './utils/url-hash-manager.js';
+        
+        // Test data
+        const questions = [
+            {id: 'A1', category: 'A'},
+            {id: 'A2', category: 'A'},
+            {id: 'B1', category: 'B'}
+        ];
+        
+        const config = {
+            bookmark_encoding: 'base64',
+            answers: [
+                {label: 'Option 0', value: 0},
+                {label: 'Option 1', value: 1},
+                {label: 'Option 2', value: 2},
+                {label: 'Option 3', value: 3},
+                {label: 'Option 4', value: 4}
+            ],
+            categories: [
+                {"A": "Category A"},
+                {"B": "Category B"}
+            ]
+        };
+        
+        const configNoBase64 = { ...config, bookmark_encoding: 'standard' };
+        
+        // Test answers
+        const answers = {
+            'A1': 4,
+            'A2': 3,
+            'B1': 2
+        };
+        
+        const resultsDiv = document.getElementById('test-results');
+        
+        // Test Base64 encoding
+        console.log('=== Base64 Encoding Test ===');
+        const base64Link = URLHashManager.createShareLink(answers, questions, config);
+        console.log('Base64 Link:', base64Link);
+        resultsDiv.innerHTML += `<h2>Base64 Link:</h2><p>${base64Link}</p>`;
+        
+        // Test standard encoding
+        console.log('=== Standard Encoding Test ===');
+        const standardLink = URLHashManager.createShareLink(answers, questions, configNoBase64);
+        console.log('Standard Link:', standardLink);
+        resultsDiv.innerHTML += `<h2>Standard Link:</h2><p>${standardLink}</p>`;
+        
+        // Test parsing Base64
+        // Simulate Base64 hash
+        window.history.replaceState(null, null, '#c=NDMy'); // Base64 for "432"
+        const parsedBase64 = URLHashManager.parseCompactHash(questions);
+        console.log('Parsed Base64:', parsedBase64);
+        resultsDiv.innerHTML += `<h2>Parsed Base64:</h2><pre>${JSON.stringify(parsedBase64, null, 2)}</pre>`;
+        
+        // Test scores calculation
+        if (parsedBase64) {
+            const scores = URLHashManager.calculateScoresFromAnswers(parsedBase64, questions, config);
+            console.log('Calculated Scores:', scores);
+            resultsDiv.innerHTML += `<h2>Calculated Scores:</h2><pre>${JSON.stringify(scores, null, 2)}</pre>`;
+        }
+        
+        // Length comparison
+        const base64Hash = base64Link.split('#')[1];
+        const standardHash = standardLink.split('#')[1];
+        
+        resultsDiv.innerHTML += `<h2>Length Comparison:</h2>`;
+        resultsDiv.innerHTML += `<p>Base64 Hash Length: ${base64Hash.length} characters</p>`;
+        resultsDiv.innerHTML += `<p>Standard Hash Length: ${standardHash.length} characters</p>`;
+        resultsDiv.innerHTML += `<p>Compression: ${Math.round((1 - base64Hash.length/standardHash.length) * 100)}%</p>`;
+    </script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>URL-Komprimierung Test - Autonomie</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 5px; }
+        .url { word-break: break-all; font-family: monospace; font-size: 12px; }
+        .stats { font-weight: bold; color: #007bff; }
+    </style>
+</head>
+<body>
+    <h1>Base64 URL-Komprimierung Test für Autonomie</h1>
+    <p>Teste die URL-Komprimierung für einen ausgefüllten Autonomie-Fragebogen:</p>
+    
+    <div id="results"></div>
+    
+    <script type="module">
+        import { URLHashManager } from './utils/url-hash-manager.js';
+        
+        // Simuliere komplette Autonomie-Antworten (48 Fragen)
+        const questions = [];
+        const categories = ['A', 'B', 'C', 'D', 'E', 'F'];
+        
+        // Erstelle 48 Fragen (8 pro Kategorie)
+        categories.forEach(cat => {
+            for (let i = 1; i <= 8; i++) {
+                questions.push({
+                    id: `${cat}${i}`,
+                    category: cat
+                });
+            }
+        });
+        
+        // Simuliere realistische Antworten (0-4)
+        const answers = {};
+        questions.forEach((q, index) => {
+            // Verschiedene Muster für realistische Daten
+            answers[q.id] = Math.floor(Math.random() * 5); // 0-4
+        });
+        
+        const config = {
+            bookmark_encoding: 'base64',
+            answers: [
+                {label: 'Option 0', value: 0},
+                {label: 'Option 1', value: 1},
+                {label: 'Option 2', value: 2},
+                {label: 'Option 3', value: 3},
+                {label: 'Option 4', value: 4}
+            ],
+            categories: [
+                {"A": "gesunde Abgrenzung"},
+                {"B": "gesunder Egoismus"},
+                {"C": "gesunde Aggression"},
+                {"D": "Überabgrenzung"},
+                {"E": "Übergriffigkeit"},
+                {"F": "Destruktive Aggression"}
+            ]
+        };
+        
+        const configStandard = { ...config, bookmark_encoding: 'standard' };
+        
+        // Teste beide Formate
+        const base64URL = URLHashManager.createShareLink(answers, questions, config);
+        const standardURL = URLHashManager.createShareLink(answers, questions, configStandard);
+        
+        // Zeige Ergebnisse
+        const resultsDiv = document.getElementById('results');
+        
+        const base64Hash = base64URL.split('#')[1];
+        const standardHash = standardURL.split('#')[1];
+        
+        const compression = Math.round((1 - base64Hash.length/standardHash.length) * 100);
+        
+        resultsDiv.innerHTML = `
+            <div class="result">
+                <h3>📊 Vergleich der URL-Längen</h3>
+                <div class="stats">
+                    Standard URL: ${standardHash.length} Zeichen<br>
+                    Base64 URL: ${base64Hash.length} Zeichen<br>
+                    Komprimierung: ${compression}% weniger Zeichen
+                </div>
+            </div>
+            
+            <div class="result">
+                <h3>🔗 Standard URL (alt)</h3>
+                <div class="url">${standardURL}</div>
+            </div>
+            
+            <div class="result">
+                <h3>✨ Base64 URL (neu)</h3>
+                <div class="url">${base64URL}</div>
+            </div>
+            
+            <div class="result">
+                <h3>🧪 Parse-Test</h3>
+                <div>
+                    Base64 URL geparst: ${URLHashManager.parseCompactHash(questions) ? '✅ Erfolgreich' : '❌ Fehler'}<br>
+                    Scores berechnet: ${URLHashManager.parseScoresFromHash(questions, config) ? '✅ Erfolgreich' : '❌ Fehler'}
+                </div>
+            </div>
+        `;
+        
+        console.log('=== URL-Komprimierung Test ===');
+        console.log('Standard URL:', standardURL);
+        console.log('Base64 URL:', base64URL);
+        console.log(`Komprimierung: ${compression}%`);
+    </script>
+</body>
+</html>

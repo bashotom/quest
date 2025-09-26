@@ -124,7 +124,7 @@ export class QuestionnaireApp {
         // Render result table if not already present
         const tableContainer = document.getElementById('result-table-container');
         if (tableContainer && !tableContainer.hasChildNodes()) {
-            const scores = URLHashManager.parseScoresFromHash(this.questions);
+            const scores = URLHashManager.parseScoresFromHash(this.questions, this.config);
             if (scores) {
                 ResultRenderer.render(scores, this.questions, this.config, tableContainer);
             }
@@ -195,8 +195,19 @@ export class QuestionnaireApp {
         const chartType = this.config.chart?.type || 'radar';
         
         // Share link aktualisieren
+        console.log('🔗 [DEBUG] Updating share link...');
         if (this.elements.shareLinkInput) {
-            this.elements.shareLinkInput.value = window.location.href;
+            const currentUrl = window.location.href;
+            console.log('📱 [DEBUG] Share link update:', {
+                currentUrl: currentUrl,
+                hash: window.location.hash,
+                hashLength: window.location.hash.length,
+                isBase64Hash: window.location.hash.startsWith('#c=')
+            });
+            this.elements.shareLinkInput.value = currentUrl;
+            console.log('✅ [DEBUG] Share link input updated to:', this.elements.shareLinkInput.value);
+        } else {
+            console.log('❌ [DEBUG] Share link input element not found!');
         }
         
         // Ensure evaluation page is visible before rendering chart
@@ -234,6 +245,13 @@ export class QuestionnaireApp {
         });
 
         // Form handler
+        // Setup form handler mit Debug-Informationen
+        console.log('🎯 [DEBUG] Setting up FormHandler with:', {
+            questionsCount: this.questions.length,
+            configKeys: Object.keys(this.config),
+            bookmarkEncoding: this.config.bookmark_encoding
+        });
+        
         this.formHandler = new FormHandler(this.questions, this.config);
         this.formHandler.setupRadioChangeListeners();
         
@@ -308,7 +326,7 @@ export class QuestionnaireApp {
 
     setLabelState(state) {
         this.labelState = state;
-        const scores = URLHashManager.parseScoresFromHash(this.questions);
+        const scores = URLHashManager.parseScoresFromHash(this.questions, this.config);
         if (scores) {
             // Only re-render the chart, not the whole evaluation page
             const chartType = this.config.chart?.type || 'radar';
@@ -333,7 +351,7 @@ export class QuestionnaireApp {
             return;
         }
         
-        const scores = URLHashManager.parseScoresFromHash(this.questions);
+        const scores = URLHashManager.parseScoresFromHash(this.questions, this.config);
         if (scores) {
             this.renderEvaluation(scores);
             this.showEvaluation();
@@ -360,7 +378,7 @@ export class QuestionnaireApp {
             this.renderForm();
             
             // Check for existing answers in hash
-            const scores = URLHashManager.parseScoresFromHash(this.questions);
+            const scores = URLHashManager.parseScoresFromHash(this.questions, this.config);
             if (scores) {
                 this.renderEvaluation(scores);
                 this.showEvaluation();

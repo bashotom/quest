@@ -26,6 +26,9 @@ export class ConfigParser {
         result.title = jsonData.title || '';
         result.description = jsonData.description || '';
         
+        // Bookmark-Encoding übernehmen (für Base64-URL-Komprimierung)
+        result.bookmark_encoding = jsonData.bookmark_encoding || null;
+        
         // Answers verarbeiten - unterstützt beide Strukturen
         if (jsonData.answers && Array.isArray(jsonData.answers)) {
             result.answers = jsonData.answers.map(answerObj => {

@@ -6,9 +6,17 @@ export class URLHashManager {
     /**
      * Parst Scores aus dem URL-Hash
      * @param {Array} questions - Die Fragen für die Validierung
+     * @param {Object} config - Konfiguration für Score-Berechnung
      * @returns {Object|null} Scores nach Kategorien oder null bei unvollständigen Daten
      */
-    static parseScoresFromHash(questions) {
+    static parseScoresFromHash(questions, config = null) {
+        // Versuche zuerst kompakte Base64-Version
+        const compactAnswers = this.parseCompactHash(questions);
+        if (compactAnswers && config) {
+            return this.calculateScoresFromAnswers(compactAnswers, questions, config);
+        }
+        
+        // Fallback zur ursprünglichen Standard-Hash-Methode
         const hash = window.location.hash.substring(1);
         if (!hash) return null;
 
@@ -53,10 +61,88 @@ export class URLHashManager {
     }
 
     /**
+     * Dekodiert eine kompakte Base64-URL
+     * @param {Array} questions - Fragen für die Zuordnung
+     * @returns {Object|null} Antworten als questionId->answerIndex oder null bei Fehler
+     */
+    static parseCompactHash(questions) {
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        const compressed = params.get('c');
+        
+        if (!compressed) return null;
+        
+        try {
+            const values = atob(compressed);
+            const answers = {};
+            
+            questions.forEach((question, index) => {
+                if (index < values.length) {
+                    const value = parseInt(values[index], 10);
+                    if (!isNaN(value)) {
+                        answers[question.id] = value;
+                    }
+                }
+            });
+            
+            return answers;
+        } catch (error) {
+            console.error('Failed to decode compact hash:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Berechnet Scores aus Antwort-Objekten
+     * @param {Object} answers - Antworten als questionId->answerIndex
+     * @param {Array} questions - Fragen mit Kategorie-Zuordnung
+     * @param {Object} config - Konfiguration mit Antwortoptionen und Kategorien
+     * @returns {Object} Scores nach Kategorien
+     */
+    static calculateScoresFromAnswers(answers, questions, config) {
+        const scores = {};
+        
+        // Normalize categories (handle array format)
+        const categories = Array.isArray(config.categories)
+            ? config.categories.reduce((acc, cat) => ({ ...acc, ...cat }), {})
+            : config.categories;
+        
+        // Initialize all categories with 0
+        Object.keys(categories).forEach(category => {
+            scores[category] = 0;
+        });
+
+        // Process each answer
+        Object.entries(answers).forEach(([questionId, answerIndex]) => {
+            const question = questions.find(q => q.id === questionId);
+            if (question && config.answers[answerIndex]) {
+                const category = question.category;
+                const value = config.answers[answerIndex].value;
+                if (scores.hasOwnProperty(category)) {
+                    scores[category] += value;
+                }
+            }
+        });
+
+        return scores;
+    }
+
+    /**
      * Setzt Antworten aus dem URL-Hash in die Form-Elemente
      * @param {Array} questions - Die verfügbaren Fragen
      */
     static setAnswersFromHash(questions) {
+        // Versuche zuerst kompakte Base64-Version
+        const compactAnswers = this.parseCompactHash(questions);
+        if (compactAnswers) {
+            Object.entries(compactAnswers).forEach(([questionId, answerIndex]) => {
+                const radio = document.querySelector(`input[name="question-${questionId}"][value="${answerIndex}"]`);
+                if (radio) radio.checked = true;
+            });
+            return;
+        }
+        
+        // Fallback zur ursprünglichen Standard-Hash-Methode
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         questions.forEach(q => {
             const idx = hashParams.get(q.id);
@@ -70,8 +156,59 @@ export class URLHashManager {
     /**
      * Aktualisiert den URL-Hash mit den aktuellen Antworten
      * @param {Object} answers - Antworten als Key-Value-Paare
+     * @param {Array} questions - Fragen-Array für Base64-Encoding
+     * @param {Object} config - Konfiguration mit bookmark_encoding Option
      */
-    static updateHash(answers) {
+    static updateHash(answers, questions = null, config = null) {
+        console.log('🔧 [DEBUG] URLHashManager.updateHash called with:', {
+            answersCount: Object.keys(answers || {}).length,
+            questionsCount: questions?.length,
+            configBookmarkEncoding: config?.bookmark_encoding,
+            hasConfig: !!config,
+            hasQuestions: !!questions
+        });
+        
+        // Check if Base64 encoding is enabled
+        if (config && config.bookmark_encoding === 'base64' && questions) {
+            console.log('✨ [DEBUG] Base64 encoding detected, creating compact URL...');
+            
+            const values = questions.map(question => {
+                const answerIndex = answers[question.id];
+                const value = answerIndex !== undefined ? answerIndex.toString() : '0';
+                return value;
+            }).join('');
+            
+            console.log('📊 [DEBUG] Base64 values string:', {
+                valuesString: values,
+                length: values.length,
+                firstChars: values.substring(0, 10) + '...',
+                questionsUsed: questions.length
+            });
+            
+            const compressed = btoa(values);
+            const newHash = `#c=${compressed}`;
+            
+            console.log('🗜️ [DEBUG] Base64 compression complete:', {
+                originalLength: values.length,
+                compressedLength: compressed.length,
+                compressionRatio: Math.round((1 - compressed.length/values.length) * 100) + '%',
+                newHash: newHash,
+                currentHash: window.location.hash
+            });
+            
+            if (window.location.hash !== newHash) {
+                console.log('🔄 [DEBUG] Setting new Base64 hash:', newHash);
+                window.history.replaceState(null, null, newHash);
+                console.log('✅ [DEBUG] Base64 hash set successfully, new URL:', window.location.href);
+            } else {
+                console.log('⚠️ [DEBUG] Hash unchanged, no update needed');
+            }
+            return;
+        }
+        
+        console.log('📝 [DEBUG] Using standard URL encoding (no Base64)');
+        
+        // Default behavior - standard URL parameters
         const hashParams = new URLSearchParams();
         Object.entries(answers).forEach(([questionId, answerIndex]) => {
             hashParams.set(questionId, answerIndex);
@@ -79,8 +216,11 @@ export class URLHashManager {
         
         // Hash setzen ohne Page-Reload
         const newHash = `#${hashParams.toString()}`;
+        console.log('🔄 [DEBUG] Setting standard hash:', newHash);
+        
         if (window.location.hash !== newHash) {
             window.history.replaceState(null, null, newHash);
+            console.log('✅ [DEBUG] Standard hash set successfully');
         }
     }
 
@@ -144,8 +284,13 @@ export class URLHashManager {
     static calculateScores(answers, questions, config) {
         const scores = {};
         
+        // Normalize categories (handle array format)
+        const categories = Array.isArray(config.categories)
+            ? config.categories.reduce((acc, cat) => ({ ...acc, ...cat }), {})
+            : config.categories;
+        
         // Initialize all categories with 0
-        Object.keys(config.categories).forEach(category => {
+        Object.keys(categories).forEach(category => {
             scores[category] = 0;
         });
 
@@ -166,10 +311,18 @@ export class URLHashManager {
 
     /**
      * Erstellt einen Share-Link mit den aktuellen Antworten
-     * @param {Object} answers - Antworten als Key-Value-Paare
+     * @param {Object} answers - Antworten als Key-Value-Paare (questionId -> answerIndex)
+     * @param {Array} questions - Fragen-Array für Base64-Encoding
+     * @param {Object} config - Konfiguration mit bookmark_encoding Option
      * @returns {string} Vollständige Share-URL
      */
-    static createShareLink(answers) {
+    static createShareLink(answers, questions = null, config = null) {
+        // Check if Base64 encoding is enabled
+        if (config && config.bookmark_encoding === 'base64' && questions) {
+            return this.createCompactShareLink(answers, questions);
+        }
+        
+        // Default behavior - standard URL parameters
         const hashParams = new URLSearchParams();
         Object.entries(answers).forEach(([questionId, answerIndex]) => {
             hashParams.set(questionId, answerIndex);
@@ -177,6 +330,26 @@ export class URLHashManager {
         
         const baseUrl = window.location.origin + window.location.pathname + window.location.search;
         return `${baseUrl}#${hashParams.toString()}`;
+    }
+
+    /**
+     * Erstellt eine kompakte Base64-kodierte URL
+     * @param {Object} answers - Antworten als Key-Value-Paare (questionId -> answerIndex)
+     * @param {Array} questions - Fragen für die Reihenfolge
+     * @returns {string} Kompakte Share-URL
+     */
+    static createCompactShareLink(answers, questions) {
+        // Erstelle kompakten String: nur Werte in Fragen-Reihenfolge
+        const values = questions.map(question => {
+            const answerIndex = answers[question.id];
+            return answerIndex !== undefined ? answerIndex.toString() : '0';
+        }).join('');
+        
+        // Base64-kodiere den String
+        const compressed = btoa(values);
+        
+        const baseUrl = window.location.origin + window.location.pathname + window.location.search;
+        return `${baseUrl}#c=${compressed}`;
     }
 
     /**

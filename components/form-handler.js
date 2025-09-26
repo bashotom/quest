@@ -39,7 +39,7 @@ export class FormHandler {
         this.clearValidationErrors();
         
         const scores = URLHashManager.calculateScores(answersArray, this.questions, this.config);
-        URLHashManager.updateHash(answersObject);
+        URLHashManager.updateHash(answersObject, this.questions, this.config);
         
         if (onSuccess) {
             onSuccess(scores);
@@ -138,13 +138,106 @@ export class FormHandler {
     }
     
     setupRadioChangeListeners() {
-        // Event-Listener für Radio-Buttons hinzufügen (Entfernung der Fehler-Markierung)
+        // Event-Listener für Radio-Buttons hinzufügen (Entfernung der Fehler-Markierung und Hash-Update)
+        console.log('🎛️ [DEBUG] Setting up radio change listeners with config:', {
+            hasQuestions: !!this.questions,
+            hasConfig: !!this.config,
+            questionsCount: this.questions?.length,
+            bookmarkEncoding: this.config?.bookmark_encoding
+        });
+        
         document.addEventListener('change', (event) => {
             if (event.target.type === 'radio' && event.target.name.startsWith('question-')) {
+                console.log('📻 [DEBUG] Radio button changed:', {
+                    name: event.target.name,
+                    value: event.target.value,
+                    questionId: event.target.name.replace('question-', '')
+                });
+                
                 const questionId = event.target.name.replace('question-', '');
                 this.clearQuestionErrorMarking(questionId);
+                
+                // Hash-Update für Bookmarking
+                console.log('🔄 [DEBUG] About to update hash from radio change...');
+                this.updateHashFromCurrentAnswers();
             }
         });
+    }
+    
+    /**
+     * Aktualisiert den URL-Hash basierend auf den aktuellen Antworten
+     */
+    updateHashFromCurrentAnswers() {
+        console.log('🔍 [DEBUG] updateHashFromCurrentAnswers called');
+        
+        const form = document.getElementById('quiz-form');
+        if (!form || !this.questions || !this.config) {
+            console.log('❌ [DEBUG] Missing dependencies:', {
+                form: !!form,
+                questions: !!this.questions,
+                config: !!this.config,
+                questionsLength: this.questions?.length,
+                configBookmarkEncoding: this.config?.bookmark_encoding
+            });
+            return;
+        }
+        
+        console.log('✅ [DEBUG] Form and config found:', {
+            questionsCount: this.questions.length,
+            bookmarkEncoding: this.config.bookmark_encoding,
+            configKeys: Object.keys(this.config)
+        });
+        
+        const formData = new FormData(form);
+        const answers = {};
+        
+        // Sammle alle Antworten
+        this.questions.forEach(question => {
+            const value = formData.get(`question-${question.id}`);
+            if (value !== null) {
+                answers[question.id] = parseInt(value, 10);
+            }
+        });
+        
+        console.log('📝 [DEBUG] Collected answers:', {
+            answersCount: Object.keys(answers).length,
+            answers: answers,
+            firstFewAnswers: Object.entries(answers).slice(0, 5)
+        });
+        
+        // Aktualisiere Hash mit Base64 falls konfiguriert
+        console.log('🔄 [DEBUG] About to call URLHashManager.updateHash with:', {
+            answersCount: Object.keys(answers).length,
+            questionsCount: this.questions.length,
+            bookmarkEncoding: this.config.bookmark_encoding
+        });
+        
+        URLHashManager.updateHash(answers, this.questions, this.config);
+        
+        console.log('✅ [DEBUG] URLHashManager.updateHash completed');
+        console.log('🌐 [DEBUG] Current URL after update:', window.location.href);
+        
+        // WICHTIG: Share-Link auch aktualisieren bei Live-Updates!
+        this.updateShareLinkDisplay();
+    }
+    
+    /**
+     * Aktualisiert die Share-Link-Anzeige mit der aktuellen URL
+     */
+    updateShareLinkDisplay() {
+        const shareLinkInput = document.getElementById('share-link');
+        if (shareLinkInput) {
+            const currentUrl = window.location.href;
+            console.log('🔗 [DEBUG] Updating share link display:', {
+                currentUrl: currentUrl,
+                hash: window.location.hash,
+                isBase64Hash: window.location.hash.startsWith('#c=')
+            });
+            shareLinkInput.value = currentUrl;
+            console.log('✅ [DEBUG] Share link display updated to:', shareLinkInput.value);
+        } else {
+            console.log('❌ [DEBUG] Share link input element not found during live update');
+        }
     }
     
     getEffectiveDisplayMode(displayMode) {
