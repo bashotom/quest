@@ -8,26 +8,60 @@ Eine schlanke, einseitige Web-Anwendung für dynamische Fragebögen mit Chart-Vi
 - **Architektur:** Modulare ES6-Module, client-seitig, statische Dateien
 - **Charts:** D3.js Radar-Charts & Gauge-Charts, Chart.js für Fallbacks
 - **Styling:** TailwindCSS (CDN) + modulare CSS-Dateien
+- **Persistierung:** LocalStorage-basierte Antwortenspeicherung (optional konfigurierbar)
 
 ## 📁 Modulare Dateistruktur
 
 ```
 quest/
 ├── index.html                    # Hauptdatei (nur ~160 Zeilen!)
+├── README.md                     # Projektdokumentation
 ├── app/
 │   └── questionnaire-app.js      # Hauptanwendungsklasse
 ├── components/                   # UI-Komponenten
 │   ├── question-renderer.js      # Fragebogen-Rendering (Tabelle/Karten)
-│   └── form-handler.js           # Form-Validation & Fehlerbehandlung
+│   ├── form-handler.js           # Form-Validation & Auto-Save
+│   ├── questionnaire-form.js     # Legacy Form-Komponente
+│   ├── result-renderer.js        # Ergebnis-Rendering
+│   ├── result-table-renderer.js  # Tabellen-Ergebnis-Darstellung
+│   └── result-tile-renderer.js   # Kachel-Ergebnis-Darstellung
 ├── charts/                       # Chart-Module
 │   ├── chart-renderer.js         # Chart-Management mit Container-Isolation
 │   ├── gauge-chart.js            # D3.js Gauge-Chart-Implementierung
-│   └── radar-chart.js            # D3.js Radar-Chart-Implementierung (ES6)
+│   ├── gauge-chart-legacy.js     # Legacy Gauge-Implementation
+│   ├── radar-chart.js            # D3.js Radar-Chart-Implementierung (ES6)
+│   ├── gauge/                    # Spezialisierte Gauge-Charts
+│   │   ├── simple-gauge.js       # Einfache Gauge-Implementierung
+│   │   └── tachometer-gauge.js   # Tachometer-Style Gauge
+│   └── radar/                    # Modulare Radar-Chart-Komponenten
+│       ├── radar-config-parser.js    # Konfiguration & Setup
+│       ├── radar-data-processor.js   # Datenverarbeitung
+│       ├── radar-grid.js             # Grid & Achsen-Rendering
+│       ├── radar-arrows.js           # Pfeil-Rendering
+│       ├── radar-data-renderer.js    # Daten-Visualisierung
+│       ├── radar-interactions.js     # Tooltips & Hover-Effekte
+│       ├── radar-legend.js          # Mobile Legend
+│       ├── radar-responsive.js      # Responsive-Handling
+│       └── utils/
+│           └── radar-math-utils.js   # Mathematische Berechnungen
+├── config/
+│   └── questionnaires.json      # Fragebogen-Konfiguration (zentral)
 ├── css/
 │   └── styles.css                # Alle Styles (ausgelagert aus index.html)
+├── docs/                         # Dokumentation & Guides
+│   ├── spec.md                   # Technische Spezifikation
+│   ├── implementation-summary.md # Implementierungs-Übersicht
+│   ├── gauge-charts-feature.md   # Gauge-Chart Dokumentation
+│   ├── gauge-styles-overview.md  # Gauge-Styling Guide
+│   ├── standard-encoding-implementation.md # Encoding-Dokumentation
+│   ├── finale-universal-encoding-summary.md # Encoding-Finale
+│   ├── d3-simple-gauge-integration.md # D3-Gauge Integration
+│   └── gauge-validation.js       # Gauge-Validierung
 ├── services/                     # Backend-Services
 │   ├── questionnaire-loader.js   # Datenlade-Service
-│   └── config-parser.js          # JSON-Parsing
+│   ├── config-parser.js          # JSON-Parsing & Konfiguration
+│   ├── persistence-manager.js    # LocalStorage-Persistierung
+│   └── result-data-processor.js  # Ergebnis-Datenverarbeitung
 ├── utils/                        # Hilfsfunktionen
 │   └── url-hash-manager.js       # URL-Hash-Management
 └── quests/                      # Fragebogen-Daten
@@ -35,7 +69,11 @@ quest/
     │   ├── questions.txt        # Fragen (ID|Text Format)
     │   └── config.json          # Konfiguration
     ├── ace/                     # ACE-Fragebogen
+    │   ├── questions.txt
+    │   └── config.json
     └── resilienz/               # Resilienz-Fragebogen
+        ├── questions.txt
+        └── config.json
 ```
 
 ## ✨ Neue Modulare Architektur (September 2025)
@@ -52,11 +90,12 @@ quest/
 | Modul | Verantwortlichkeit | Zeilen |
 |-------|-------------------|---------|
 | `index.html` | HTML-Struktur, Module-Orchestrierung | ~160 |
-| `app/questionnaire-app.js` | Hauptanwendungslogik, Event-Management | ~350 |
+| `app/questionnaire-app.js` | Hauptanwendungslogik, Event-Management | ~380 |
 | `components/question-renderer.js` | UI-Rendering (Tabelle/Karten-Modus) | ~150 |
-| `components/form-handler.js` | Form-Validation, Fehlermarkierung | ~120 |
+| `components/form-handler.js` | Form-Validation, Auto-Save | ~140 |
 | `charts/chart-renderer.js` | Chart-Management, Container-Isolation | ~180 |
 | `charts/gauge-chart.js` | D3.js Gauge-Chart mit bewährtem Pattern | ~140 |
+| `services/persistence-manager.js` | LocalStorage-Persistierung | ~120 |
 | `css/styles.css` | Alle Styles (Chart, UI, Responsive) | ~100 |
 
 ## 🔧 Module im Detail
@@ -93,14 +132,40 @@ QuestionRenderer.render(questions, config, container);
 ```
 
 ### FormHandler (`components/form-handler.js`)
-**Form-Validation** - Fehlermarkierung und Scroll-Navigation
+**Form-Validation & Auto-Save** - Fehlermarkierung und automatische Persistierung
 ```javascript
 const handler = new FormHandler(questions, config);
 handler.handleSubmit(event, onSuccessCallback);
 // ✅ Visual error marking, smooth scroll to first error
+// ✅ Auto-save on radio button changes (wenn persistence aktiviert)
+```
+
+### PersistenceManager (`services/persistence-manager.js`)
+**LocalStorage-Persistierung** - Automatische Antwortenspeicherung und intelligente UI-Kontrolle
+```javascript
+import { PersistenceManager } from './services/persistence-manager.js';
+
+// Automatische Speicherung (wird von FormHandler aufgerufen)
+PersistenceManager.saveAnswers(folder, answers, config);
+
+// Laden gespeicherter Antworten (automatisch beim Laden)
+const savedAnswers = PersistenceManager.loadAnswers(folder, config);
+
+// Intelligente Button-Sichtbarkeit
+PersistenceManager.isPersistenceEnabled(config) && hasStoredAnswers;
+// ✅ Button nur sichtbar wenn Persistierung aktiviert UND Daten vorhanden
+// ✅ Stille Hintergrund-Operation ohne Debug-Ausgaben
+// ✅ Automatische Datenvalidierung und Cleanup
 ```
 
 ### 🛡️ Technische Verbesserungen
+
+#### LocalStorage-Persistierung (Production Ready)
+- **Automatische Speicherung:** Antworten werden bei Eingabe automatisch gespeichert
+- **Intelligente UI:** "Gespeicherte Antworten löschen"-Button nur bei vorhandenen Daten sichtbar
+- **Konfigurations-gesteuert:** Aktivierung über `"persistence": {"enabled": true, "type": "localstorage"}`
+- **Silent Operation:** Läuft komplett im Hintergrund ohne Debug-Ausgaben
+- **Pro Fragebogen:** Separate Speicherung für jeden Fragebogen-Ordner
 
 #### Chart-Interferenz-Schutz
 - **Problem gelöst:** Chart-Rendering-Konflikte durch Container-Isolation
@@ -215,6 +280,10 @@ Format: `<Kategorie-ID>|<Fragetext>`
   "input": {
     "display": "responsive",
     "header_repeating_rows": 5
+  },
+  "persistence": {
+    "enabled": true,
+    "type": "localstorage"
   }
 }
 ```
@@ -223,6 +292,11 @@ Format: `<Kategorie-ID>|<Fragetext>`
 - `"column"`: Immer Tabellen-Modus
 - `"inline"`: Immer Karten-Modus  
 - `"responsive"`: Automatische Umschaltung bei 900px Breakpoint
+
+**Persistierung-Optionen:**
+- `"persistence": {"enabled": false}`: Keine Speicherung (Standard)
+- `"persistence": {"enabled": true, "type": "localstorage"}`: Automatische LocalStorage-Speicherung
+- Smart UI: Button "Gespeicherte Antworten löschen" nur bei vorhandenen Daten sichtbar
 
 ## 🎨 Chart-Typen
 
@@ -312,6 +386,8 @@ Die Anwendung (`index.html`) verwendet eine schlanke modulare Architektur:
 - ✅ **Modularität:** Klare Trennung der Verantwortlichkeiten
 - ✅ **Chart-Stabilität:** Container-Isolation verhindert Rendering-Konflikte
 - ✅ **D3.js Best Practices:** Bewährte Coordinate-System-Pattern implementiert
+- ✅ **LocalStorage-Persistierung:** Automatische Antwortenspeicherung mit intelligenter UI
+- ✅ **Production Ready:** Saubere Implementierung ohne Debug-Ausgaben
 
 **Breaking Changes:**
 - Umstellung auf ES6-Module (requires moderne Browser)

@@ -7,6 +7,35 @@
 - **Questionnaires:** Located in `quests/<name>/` (each with `questions.txt` and `config.json`)
 - **No backend/server**: All logic is client-side, fetches static files
 
+## ⚠️ CRITICAL: Configuration Implementation Rule
+**BEFORE implementing any new configuration feature, ALWAYS check and ensure that the new configuration option is properly parsed and processed in `services/config-parser.js`.** 
+
+The ConfigParser is the central bottleneck for all configuration-to-application mappings. New config options MUST be:
+1. Added to the initial `result` object structure
+2. Processed in the `parse()` method with appropriate defaults
+3. Validated (if needed) in the `validate()` method
+
+**Example Pattern:**
+```javascript
+// 1. Add to result object
+const result = { 
+    // existing properties...
+    newFeature: {}  // ADD HERE FIRST
+};
+
+// 2. Process in parse method
+if (jsonData.newFeature && typeof jsonData.newFeature === 'object') {
+    result.newFeature = {
+        enabled: jsonData.newFeature.enabled === true,
+        type: jsonData.newFeature.type || 'default'
+    };
+} else {
+    result.newFeature = { enabled: false, type: 'default' };
+}
+```
+
+This rule prevents configuration-related bugs where settings are defined in JSON but not processed by the application.
+
 ## Modular Architecture (Version 2.0 - Sep 2025)
 
 ### Key Modules
@@ -518,6 +547,64 @@ const incomplete = this.questions.filter(q => !(q.id in answersObject));
 5. ✅ Array/Object conversions handled explicitly
 6. ✅ RenderingId checks prevent outdated renders
 7. ✅ No mixing of chart containers between chart types
+
+## LocalStorage Persistence Feature - PRODUCTION READY ✅ (Sep 2025)
+
+### Overview
+Complete localStorage persistence implementation for questionnaire answers. Automatically saves and restores user answers when enabled in configuration.
+
+### Configuration Pattern
+```json
+{
+  "persistence": {
+    "enabled": true,
+    "type": "localstorage"
+  }
+}
+```
+
+⚠️ **CRITICAL**: The persistence configuration is processed through ConfigParser. New features must be implemented there first.
+
+### Implementation Modules (All Complete)
+- **`services/persistence-manager.js`** ✅ - Core localStorage operations
+- **`services/config-parser.js`** ✅ - Configuration parsing 
+- **`components/form-handler.js`** ✅ - Auto-save on user interactions
+- **`app/questionnaire-app.js`** ✅ - UI integration and smart button management
+- **`components/question-renderer.js`** ✅ - Color reset functionality
+
+### Smart Button Behavior (Advanced Implementation)
+The "Gespeicherte Antworten löschen" button demonstrates intelligent UI:
+- **Visibility Logic**: Only visible when persistence enabled AND saved answers exist
+- **Dynamic Updates**: Appears/disappears based on actual data state
+- **Auto-Hide**: Hidden on evaluation page, shown on form page only
+- **Instant Feedback**: Updates immediately after save/clear operations
+- **Complete Cleanup**: Clears form data AND color highlighting
+
+### Key API Methods
+```javascript
+// Smart visibility check
+PersistenceManager.isPersistenceEnabled(config)
+
+// Data operations (auto-called)
+PersistenceManager.saveAnswers(folder, answers, config)
+PersistenceManager.loadAnswers(folder, config) 
+PersistenceManager.clearAnswers(folder)
+
+// Button management
+app.updateClearButtonVisibility() // Updates smart button
+```
+
+### Clean Production Implementation
+- **No Debug Output**: All console.log statements removed
+- **Silent Operation**: Runs completely in background
+- **Error Handling**: Only critical errors logged
+- **User Feedback**: Temporary toast messages for actions
+
+### Storage Architecture
+- **Per-questionnaire**: Separate storage keys per folder (`quest_answers_autonomie`)
+- **Structured Data**: JSON with answers, timestamp, version
+- **Data Validation**: Automatic cleanup of corrupted data
+- **Browser Standard**: Uses standard localStorage API
 
 ## Key Files/Dirs
 - `index.html` — main entry point (~160 lines), module bootstrap
