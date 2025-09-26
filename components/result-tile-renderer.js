@@ -20,7 +20,7 @@ export class ResultTileRenderer {
     }
     
     static createTile(categoryData, config) {
-        const { categoryKey, categoryName, percentage, trafficLightColor } = categoryData;
+        const { categoryKey, categoryName, percentage, trafficLightColor, score } = categoryData;
                 
         // Apply category-specific evaluation text if configured
         let content = "";
@@ -34,11 +34,19 @@ export class ResultTileRenderer {
         const tile = document.createElement('div');
         tile.className = 'bg-white rounded-lg shadow p-4 flex-1 min-w-[220px] max-w-xs';
         
-        // Show percentage only if configured
+        // Show percentage, score, and category ID based on configuration
         const showPercentage = config.resulttiles.show_percentage === true;
-        const headerText = showPercentage 
-            ? `${categoryKey}: ${categoryName} ${Math.round(percentage)}%`
-            : `${categoryKey}: ${categoryName}`;
+        const showScore = config.resulttiles.show_score === true;
+        const showCategoryId = config.resulttiles.show_categoryid === true; // Show only if explicitly set to true
+        
+        let headerText = showCategoryId ? `${categoryKey}: ${categoryName}` : categoryName;
+        if (showPercentage && showScore) {
+            headerText += ` ${Math.round(percentage)}% (${score}P)`;
+        } else if (showPercentage) {
+            headerText += ` ${Math.round(percentage)}%`;
+        } else if (showScore) {
+            headerText += ` (${score}P)`;
+        }
             
         tile.innerHTML = `
             <div class="font-bold text-lg mb-2 flex items-center justify-between">

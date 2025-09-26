@@ -51,7 +51,9 @@
   "resulttiles": {
     "enabled": true,
     "evaluation_gauge": false,
-    "show_percentage": false,
+    "show_percentage": true,
+    "show_categoryid": true,
+    "show_score": false,
     "evaluation": {
       "A": { "ranges": [ 0, 33, 66, 100 ], 
         "texts": [ 
@@ -94,7 +96,7 @@
     {
       "categories": "D,E,F",
       "green": 33,
-      "orange": 33
+      "orange": 66
     }
   ],
   "resulttable": {
