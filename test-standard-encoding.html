@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Standard Bookmark Encoding Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            max-width: 1200px;
+        }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+        }
+        .result { 
+            margin: 10px 0; 
+            padding: 10px; 
+            background: #f8f9fa; 
+            border-radius: 5px; 
+        }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .url { 
+            word-break: break-all; 
+            font-family: monospace; 
+            font-size: 12px; 
+            background: #f1f1f1;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .stats { font-weight: bold; color: #007bff; }
+    </style>
+</head>
+<body>
+    <h1>Universal Bookmark Encoding Test</h1>
+    <p>Testet universelle Lesefähigkeit (beide Formate werden gelesen) und konfigurierbare Generierung neuer Links.</p>
+    
+    <div id="results"></div>
+    
+    <script type="module">
+        import { URLHashManager } from './utils/url-hash-manager.js';
+        
+        // Test-Daten: Autonomie-Fragebogen (vereinfacht)
+        const questions = [
+            {id: 'A1', category: 'A'},
+            {id: 'A2', category: 'A'},
+            {id: 'B1', category: 'B'},
+            {id: 'B2', category: 'B'},
+            {id: 'C1', category: 'C'},
+            {id: 'C2', category: 'C'}
+        ];
+        
+        const baseConfig = {
+            title: "Test Autonomie",
+            answers: [
+                {label: "trifft nicht zu", value: 0},
+                {label: "stimmt selten", value: 1},
+                {label: "manchmal", value: 2},
+                {label: "stimmt häufig", value: 3},
+                {label: "stimmt fast immer", value: 4}
+            ],
+            categories: [
+                {"A": "gesunde Abgrenzung"},
+                {"B": "gesunder Egoismus"},
+                {"C": "gesunde Aggression"}
+            ]
+        };
+        
+        // Test-Antworten
+        const answers = {
+            'A1': 4,
+            'A2': 3,
+            'B1': 2,
+            'B2': 1,
+            'C1': 4,
+            'C2': 3
+        };
+        
+        const resultsDiv = document.getElementById('results');
+        
+        function runTests() {
+            // Test 1: Standard Encoding Configuration
+            console.log('=== Test 1: Standard Encoding ===');
+            const standardConfig = { ...baseConfig, bookmark_encoding: 'standard' };
+            
+            const standardURL = URLHashManager.createShareLink(answers, questions, standardConfig);
+            console.log('Standard URL:', standardURL);
+            
+            // Test 2: Base64 Encoding Configuration  
+            console.log('=== Test 2: Base64 Encoding ===');
+            const base64Config = { ...baseConfig, bookmark_encoding: 'base64' };
+            
+            const base64URL = URLHashManager.createShareLink(answers, questions, base64Config);
+            console.log('Base64 URL:', base64URL);
+            
+            // Test 3: updateHash Method with Standard Config
+            console.log('=== Test 3: updateHash Method ===');
+            URLHashManager.updateHash(answers, questions, standardConfig);
+            const standardHashAfterUpdate = window.location.hash;
+            console.log('Standard Hash after updateHash:', standardHashAfterUpdate);
+            
+            // Reset hash
+            window.history.replaceState(null, null, '#');
+            
+            // Test 4: updateHash Method with Base64 Config
+            URLHashManager.updateHash(answers, questions, base64Config);
+            const base64HashAfterUpdate = window.location.hash;
+            console.log('Base64 Hash after updateHash:', base64HashAfterUpdate);
+            
+            // Test 5: parseScoresFromHash with Standard Config
+            console.log('=== Test 5: parseScoresFromHash ===');
+            
+            // Set standard hash
+            const standardParams = new URLSearchParams();
+            Object.entries(answers).forEach(([questionId, value]) => {
+                standardParams.set(questionId, value.toString());
+            });
+            window.history.replaceState(null, null, `#${standardParams.toString()}`);
+            
+            const scoresFromStandard = URLHashManager.parseScoresFromHash(questions, standardConfig);
+            console.log('Scores from standard hash:', scoresFromStandard);
+            
+            // Test 6: setAnswersFromHash with Standard Config
+            console.log('=== Test 6: setAnswersFromHash ===');
+            
+            // Create mock DOM elements for testing
+            const testContainer = document.createElement('div');
+            testContainer.innerHTML = questions.map(q => 
+                `<input type="radio" name="question-${q.id}" value="0">
+                 <input type="radio" name="question-${q.id}" value="1">
+                 <input type="radio" name="question-${q.id}" value="2">
+                 <input type="radio" name="question-${q.id}" value="3">
+                 <input type="radio" name="question-${q.id}" value="4">`
+            ).join('');
+            document.body.appendChild(testContainer);
+            
+            URLHashManager.setAnswersFromHash(questions, standardConfig);
+            
+            // Check if answers were set correctly
+            let answersSetCorrectly = true;
+            questions.forEach(q => {
+                const expectedValue = answers[q.id];
+                const selectedRadio = document.querySelector(`input[name="question-${q.id}"][value="${expectedValue}"]`);
+                if (!selectedRadio || !selectedRadio.checked) {
+                    answersSetCorrectly = false;
+                }
+            });
+            
+            console.log('Answers set correctly from standard hash:', answersSetCorrectly);
+            
+            // Test 7: Universal Reading - Base64 URL with Standard Config
+            console.log('=== Test 7: Universal Reading (Base64 URL + Standard Config) ===');
+            
+            // Set a Base64 hash but use standard config - should still work!
+            const base64Values = questions.map(q => answers[q.id] || 0).join('');
+            const base64Encoded = btoa(base64Values);
+            window.history.replaceState(null, null, `#c=${base64Encoded}`);
+            
+            const scoresFromBase64WithStandardConfig = URLHashManager.parseScoresFromHash(questions, standardConfig);
+            console.log('Scores from Base64 URL with Standard config:', scoresFromBase64WithStandardConfig);
+            
+            // Test 8: Universal Reading - Standard URL with Base64 Config
+            console.log('=== Test 8: Universal Reading (Standard URL + Base64 Config) ===');
+            
+            // Set standard hash but use base64 config - should work as fallback
+            window.history.replaceState(null, null, `#${standardParams.toString()}`);
+            
+            const scoresFromStandardWithBase64Config = URLHashManager.parseScoresFromHash(questions, base64Config);
+            console.log('Scores from Standard URL with Base64 config:', scoresFromStandardWithBase64Config);
+            
+            // Clean up
+            testContainer.remove();
+            
+            // Display Results
+            const standardHash = standardURL.split('#')[1];
+            const base64Hash = base64URL.split('#')[1];
+            const compression = base64Hash.length > 0 ? Math.round((1 - base64Hash.length/standardHash.length) * 100) : 0;
+            
+            resultsDiv.innerHTML = `
+                <div class="test-section">
+                    <h3>📊 URL-Vergleich</h3>
+                    <div class="stats">
+                        Standard URL: ${standardHash.length} Zeichen<br>
+                        Base64 URL: ${base64Hash.length} Zeichen<br>
+                        Komprimierung: ${compression}% ${compression > 0 ? 'weniger' : 'mehr'} Zeichen
+                    </div>
+                </div>
+                
+                <div class="test-section">
+                    <h3>🔗 Standard URL ("bookmark_encoding": "standard")</h3>
+                    <div class="url">${standardURL}</div>
+                    <div class="result ${standardHash.includes('A1=4') && standardHash.includes('B1=2') ? 'success' : 'error'}">
+                        ✓ Verwendet standard URL-Parameter: ${standardHash.includes('A1=4') && standardHash.includes('B1=2') ? 'Ja' : 'Nein'}
+                    </div>
+                </div>
+                
+                <div class="test-section">
+                    <h3>✨ Base64 URL ("bookmark_encoding": "base64")</h3>
+                    <div class="url">${base64URL}</div>
+                    <div class="result ${base64Hash.startsWith('c=') ? 'success' : 'error'}">
+                        ✓ Verwendet Base64-Komprimierung: ${base64Hash.startsWith('c=') ? 'Ja' : 'Nein'}
+                    </div>
+                </div>
+                
+                <div class="test-section">
+                    <h3>🧪 Funktionale Tests</h3>
+                    <div class="result ${standardHashAfterUpdate.includes('A1=4') ? 'success' : 'error'}">
+                        ✓ updateHash mit Standard-Config: ${standardHashAfterUpdate.includes('A1=4') ? 'Funktioniert' : 'Fehler'}
+                    </div>
+                    <div class="result ${base64HashAfterUpdate.startsWith('#c=') ? 'success' : 'error'}">
+                        ✓ updateHash mit Base64-Config: ${base64HashAfterUpdate.startsWith('#c=') ? 'Funktioniert' : 'Fehler'}
+                    </div>
+                    <div class="result ${scoresFromStandard && Object.keys(scoresFromStandard).length > 0 ? 'success' : 'error'}">
+                        ✓ parseScoresFromHash mit Standard-Config: ${scoresFromStandard && Object.keys(scoresFromStandard).length > 0 ? 'Funktioniert' : 'Fehler'}
+                    </div>
+                    <div class="result ${answersSetCorrectly ? 'success' : 'error'}">
+                        ✓ setAnswersFromHash mit Standard-Config: ${answersSetCorrectly ? 'Funktioniert' : 'Fehler'}
+                    </div>
+                    <div class="result ${scoresFromBase64WithStandardConfig && Object.keys(scoresFromBase64WithStandardConfig).length > 0 ? 'success' : 'error'}">
+                        ✓ Universelles Lesen (Base64 URL + Standard Config): ${scoresFromBase64WithStandardConfig && Object.keys(scoresFromBase64WithStandardConfig).length > 0 ? 'Funktioniert' : 'Fehler'}
+                    </div>
+                    <div class="result ${scoresFromStandardWithBase64Config && Object.keys(scoresFromStandardWithBase64Config).length > 0 ? 'success' : 'error'}">
+                        ✓ Universelles Lesen (Standard URL + Base64 Config): ${scoresFromStandardWithBase64Config && Object.keys(scoresFromStandardWithBase64Config).length > 0 ? 'Funktioniert' : 'Fehler'}
+                    </div>
+                </div>
+                
+                <div class="test-section">
+                    <h3>📈 Berechnete Scores (Standard-Config)</h3>
+                    <div class="result">
+                        ${scoresFromStandard ? Object.entries(scoresFromStandard).map(([cat, score]) => `${cat}: ${score}`).join('<br>') : 'Keine Scores berechnet'}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Run tests when page loads
+        runTests();
+    </script>
+</body>
+</html>

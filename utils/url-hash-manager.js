@@ -10,13 +10,13 @@ export class URLHashManager {
      * @returns {Object|null} Scores nach Kategorien oder null bei unvollständigen Daten
      */
     static parseScoresFromHash(questions, config = null) {
-        // Versuche zuerst kompakte Base64-Version
+        // Versuche zuerst kompakte Base64-Version (universelle Lesefähigkeit)
         const compactAnswers = this.parseCompactHash(questions);
         if (compactAnswers && config) {
             return this.calculateScoresFromAnswers(compactAnswers, questions, config);
         }
         
-        // Fallback zur ursprünglichen Standard-Hash-Methode
+        // Fallback zur Standard-Hash-Methode
         const hash = window.location.hash.substring(1);
         if (!hash) return null;
 
@@ -130,9 +130,10 @@ export class URLHashManager {
     /**
      * Setzt Antworten aus dem URL-Hash in die Form-Elemente
      * @param {Array} questions - Die verfügbaren Fragen
+     * @param {Object} config - Konfiguration (für universelle Lesefähigkeit)
      */
-    static setAnswersFromHash(questions) {
-        // Versuche zuerst kompakte Base64-Version
+    static setAnswersFromHash(questions, config = null) {
+        // Versuche zuerst kompakte Base64-Version (universelle Lesefähigkeit)
         const compactAnswers = this.parseCompactHash(questions);
         if (compactAnswers) {
             Object.entries(compactAnswers).forEach(([questionId, answerIndex]) => {
@@ -142,7 +143,7 @@ export class URLHashManager {
             return;
         }
         
-        // Fallback zur ursprünglichen Standard-Hash-Methode
+        // Fallback zur Standard-Hash-Methode
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         questions.forEach(q => {
             const idx = hashParams.get(q.id);
@@ -168,9 +169,9 @@ export class URLHashManager {
             hasQuestions: !!questions
         });
         
-        // Check if Base64 encoding is enabled
+        // Check if Base64 encoding is enabled for NEW links
         if (config && config.bookmark_encoding === 'base64' && questions) {
-            console.log('✨ [DEBUG] Base64 encoding detected, creating compact URL...');
+            console.log('✨ [DEBUG] Base64 encoding configured for new links, creating compact URL...');
             
             const values = questions.map(question => {
                 const answerIndex = answers[question.id];
@@ -206,7 +207,7 @@ export class URLHashManager {
             return;
         }
         
-        console.log('📝 [DEBUG] Using standard URL encoding (no Base64)');
+        console.log('📝 [DEBUG] Using standard URL encoding for new links (no Base64)');
         
         // Default behavior - standard URL parameters
         const hashParams = new URLSearchParams();

@@ -48,7 +48,7 @@ class QuestionnaireForm extends HTMLElement {
         this.render();
         
         // Antworten aus Hash setzen, falls vorhanden
-        URLHashManager.setAnswersFromHash(this.questions);
+        URLHashManager.setAnswersFromHash(this.questions, this.config);
         this.updateHighlighting();
     }
 
@@ -534,7 +534,7 @@ class QuestionnaireForm extends HTMLElement {
      * Setzt Antworten aus dem URL-Hash
      */
     setAnswersFromHash() {
-        URLHashManager.setAnswersFromHash(this.questions);
+        URLHashManager.setAnswersFromHash(this.questions, this.config);
         this.updateHighlighting();
     }
 }

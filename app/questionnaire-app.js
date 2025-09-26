@@ -199,7 +199,7 @@ export class QuestionnaireApp {
         const container = document.getElementById('questions-container');
         QuestionRenderer.render(this.questions, this.config, container);
         
-        URLHashManager.setAnswersFromHash(this.questions);
+        URLHashManager.setAnswersFromHash(this.questions, this.config);
     }
     
     renderEvaluation(scores) {
@@ -368,7 +368,7 @@ export class QuestionnaireApp {
             this.showEvaluation();
         } else {
             this.showForm();
-            URLHashManager.setAnswersFromHash(this.questions);
+            URLHashManager.setAnswersFromHash(this.questions, this.config);
         }
     }
     
