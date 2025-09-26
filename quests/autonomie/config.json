@@ -1,7 +1,7 @@
 {
   "title": "Autonomie",
   "description": "Autonomie-Fragebogen von Dr. Langlotz",
-  "bookmark_encoding": "standard",
+  "bookmark_encoding": "base64",
   "answers": [
     {
       "label": "stimmt fast immer", 
