@@ -160,54 +160,23 @@ export class URLHashManager {
      * @param {Array} questions - Fragen-Array für Base64-Encoding
      * @param {Object} config - Konfiguration mit bookmark_encoding Option
      */
-    static updateHash(answers, questions = null, config = null) {
-        console.log('🔧 [DEBUG] URLHashManager.updateHash called with:', {
-            answersCount: Object.keys(answers || {}).length,
-            questionsCount: questions?.length,
-            configBookmarkEncoding: config?.bookmark_encoding,
-            hasConfig: !!config,
-            hasQuestions: !!questions
-        });
-        
+    static updateHash(answers, questions = null, config = null) {        
         // Check if Base64 encoding is enabled for NEW links
         if (config && config.bookmark_encoding === 'base64' && questions) {
-            console.log('✨ [DEBUG] Base64 encoding configured for new links, creating compact URL...');
-            
             const values = questions.map(question => {
                 const answerIndex = answers[question.id];
                 const value = answerIndex !== undefined ? answerIndex.toString() : '0';
                 return value;
             }).join('');
             
-            console.log('📊 [DEBUG] Base64 values string:', {
-                valuesString: values,
-                length: values.length,
-                firstChars: values.substring(0, 10) + '...',
-                questionsUsed: questions.length
-            });
-            
             const compressed = btoa(values);
             const newHash = `#c=${compressed}`;
             
-            console.log('🗜️ [DEBUG] Base64 compression complete:', {
-                originalLength: values.length,
-                compressedLength: compressed.length,
-                compressionRatio: Math.round((1 - compressed.length/values.length) * 100) + '%',
-                newHash: newHash,
-                currentHash: window.location.hash
-            });
-            
             if (window.location.hash !== newHash) {
-                console.log('🔄 [DEBUG] Setting new Base64 hash:', newHash);
                 window.history.replaceState(null, null, newHash);
-                console.log('✅ [DEBUG] Base64 hash set successfully, new URL:', window.location.href);
-            } else {
-                console.log('⚠️ [DEBUG] Hash unchanged, no update needed');
             }
             return;
         }
-        
-        console.log('📝 [DEBUG] Using standard URL encoding for new links (no Base64)');
         
         // Default behavior - standard URL parameters
         const hashParams = new URLSearchParams();
@@ -217,11 +186,9 @@ export class URLHashManager {
         
         // Hash setzen ohne Page-Reload
         const newHash = `#${hashParams.toString()}`;
-        console.log('🔄 [DEBUG] Setting standard hash:', newHash);
         
         if (window.location.hash !== newHash) {
             window.history.replaceState(null, null, newHash);
-            console.log('✅ [DEBUG] Standard hash set successfully');
         }
     }
 

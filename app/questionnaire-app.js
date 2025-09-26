@@ -5,6 +5,7 @@ import { QuestionRenderer } from '../components/question-renderer.js';
 import { ResultRenderer } from '../components/result-renderer.js';
 import { FormHandler } from '../components/form-handler.js';
 import { RadarLegend } from '../charts/radar/radar-legend.js';
+import { PersistenceManager } from '../services/persistence-manager.js';
 
 /**
  * QuestionnaireApp - Main application class
@@ -68,6 +69,43 @@ export class QuestionnaireApp {
         this.elements.error.style.display = 'block';
         this.elements.errorMessage.textContent = message;
     }
+    
+    showTemporaryMessage(message, type = 'info') {
+        // Create or get temporary message element
+        let messageEl = document.getElementById('temp-message');
+        if (!messageEl) {
+            messageEl = document.createElement('div');
+            messageEl.id = 'temp-message';
+            messageEl.className = 'fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg text-white font-medium transform translate-x-full transition-transform duration-300';
+            document.body.appendChild(messageEl);
+        }
+        
+        // Set colors based on type
+        const colors = {
+            success: 'bg-green-600',
+            error: 'bg-red-600',
+            info: 'bg-blue-600',
+            warning: 'bg-yellow-600'
+        };
+        
+        messageEl.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg text-white font-medium transition-transform duration-300 ${colors[type] || colors.info}`;
+        messageEl.textContent = message;
+        
+        // Show message
+        setTimeout(() => {
+            messageEl.style.transform = 'translateX(0)';
+        }, 50);
+        
+        // Hide message after 3 seconds
+        setTimeout(() => {
+            messageEl.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 300);
+        }, 3000);
+    }
 
     showContent() {
         this.elements.loading.style.display = 'none';
@@ -88,6 +126,9 @@ export class QuestionnaireApp {
             const btn = document.getElementById(id);
             if (btn) btn.style.display = '';
         });
+        
+        // Show/hide clear saved button based on persistence settings and saved data
+        this.updateClearButtonVisibility();
         
         // Navigation Menu wieder anzeigen
         if (this.elements.questionnaireMenu && this.elements.questionnaireMenu.parentElement) {
@@ -111,7 +152,7 @@ export class QuestionnaireApp {
         }
 
         // Buttons ausblenden
-        ['min-answers-btn', 'random-answers-btn', 'max-answers-btn'].forEach(id => {
+        ['min-answers-btn', 'random-answers-btn', 'max-answers-btn', 'clear-saved-btn'].forEach(id => {
             const btn = document.getElementById(id);
             if (btn) btn.style.display = 'none';
         });
@@ -199,26 +240,36 @@ export class QuestionnaireApp {
         const container = document.getElementById('questions-container');
         QuestionRenderer.render(this.questions, this.config, container);
         
-        URLHashManager.setAnswersFromHash(this.questions, this.config);
+        // Try to load saved answers from localStorage first, then from URL hash
+        const savedAnswers = PersistenceManager.loadAnswers(this.currentFolder, this.config);
+        if (savedAnswers && Object.keys(savedAnswers).length > 0) {
+            // Set saved answers in the form
+            QuestionRenderer.setAnswers(savedAnswers);
+            
+            // Apply colors based on display mode
+            const displayMode = localStorage.getItem('displayMode') || 'column';
+            const effectiveMode = this.getEffectiveDisplayMode(displayMode);
+            if (effectiveMode === 'column') {
+                QuestionRenderer.applyAnswerColors(this.config);
+            } else {
+                QuestionRenderer.applyInlineAnswerColors(this.config);
+            }
+            
+            // Show user feedback about loaded answers
+            this.showTemporaryMessage('Gespeicherte Antworten wurden wiederhergestellt.', 'success');
+        } else {
+            // Fallback to URL hash if no saved answers
+            URLHashManager.setAnswersFromHash(this.questions, this.config);
+        }
     }
     
     renderEvaluation(scores) {
         const chartType = this.config.chart?.type || 'radar';
         
         // Share link aktualisieren
-        console.log('🔗 [DEBUG] Updating share link...');
         if (this.elements.shareLinkInput) {
             const currentUrl = window.location.href;
-            console.log('📱 [DEBUG] Share link update:', {
-                currentUrl: currentUrl,
-                hash: window.location.hash,
-                hashLength: window.location.hash.length,
-                isBase64Hash: window.location.hash.startsWith('#c=')
-            });
             this.elements.shareLinkInput.value = currentUrl;
-            console.log('✅ [DEBUG] Share link input updated to:', this.elements.shareLinkInput.value);
-        } else {
-            console.log('❌ [DEBUG] Share link input element not found!');
         }
         
         // Ensure evaluation page is visible before rendering chart
@@ -256,14 +307,7 @@ export class QuestionnaireApp {
         });
 
         // Form handler
-        // Setup form handler mit Debug-Informationen
-        console.log('🎯 [DEBUG] Setting up FormHandler with:', {
-            questionsCount: this.questions.length,
-            configKeys: Object.keys(this.config),
-            bookmarkEncoding: this.config.bookmark_encoding
-        });
-        
-        this.formHandler = new FormHandler(this.questions, this.config);
+        this.formHandler = new FormHandler(this.questions, this.config, this.currentFolder);
         this.formHandler.setupRadioChangeListeners();
         
         // Form submission
@@ -291,6 +335,15 @@ export class QuestionnaireApp {
             } else {
                 QuestionRenderer.applyInlineAnswerColors(this.config);
             }
+            
+            // Auto-save to localStorage if persistence is enabled
+            if (this.currentFolder && PersistenceManager.isPersistenceEnabled(this.config)) {
+                const answers = {};
+                this.questions.forEach(question => {
+                    answers[question.id] = 0; // min value
+                });
+                PersistenceManager.saveAnswers(this.currentFolder, answers, this.config);
+            }
         });
         document.getElementById('random-answers-btn')?.addEventListener('click', () => {
             QuestionRenderer.setAllAnswers(this.questions, 'random');
@@ -301,6 +354,22 @@ export class QuestionnaireApp {
                 QuestionRenderer.applyAnswerColors(this.config);
             } else {
                 QuestionRenderer.applyInlineAnswerColors(this.config);
+            }
+            
+            // Auto-save to localStorage if persistence is enabled
+            if (this.currentFolder && PersistenceManager.isPersistenceEnabled(this.config)) {
+                const form = document.getElementById('quiz-form');
+                if (form) {
+                    const formData = new FormData(form);
+                    const answers = {};
+                    this.questions.forEach(question => {
+                        const value = formData.get(`question-${question.id}`);
+                        if (value !== null) {
+                            answers[question.id] = parseInt(value, 10);
+                        }
+                    });
+                    PersistenceManager.saveAnswers(this.currentFolder, answers, this.config);
+                }
             }
         });
         document.getElementById('max-answers-btn')?.addEventListener('click', () => {
@@ -313,6 +382,36 @@ export class QuestionnaireApp {
             } else {
                 QuestionRenderer.applyInlineAnswerColors(this.config);
             }
+            
+            // Auto-save to localStorage if persistence is enabled
+            if (this.currentFolder && PersistenceManager.isPersistenceEnabled(this.config)) {
+                const maxValue = this.config.answers ? this.config.answers.length - 1 : 4;
+                const answers = {};
+                this.questions.forEach(question => {
+                    answers[question.id] = maxValue; // max value
+                });
+                PersistenceManager.saveAnswers(this.currentFolder, answers, this.config);
+            }
+        });
+
+        // Clear saved answers button
+        document.getElementById('clear-saved-btn')?.addEventListener('click', () => {
+            PersistenceManager.clearAnswers(this.currentFolder);
+            
+            // Clear current form answers
+            const radioInputs = document.querySelectorAll('input[type="radio"]');
+            radioInputs.forEach(input => {
+                input.checked = false;
+            });
+            
+            // Reset all colors (both table and inline mode)
+            QuestionRenderer.resetAllColors();
+            
+            // Update button visibility (should hide now since no saved answers exist)
+            this.updateClearButtonVisibility();
+            
+            // Show success message
+            this.showTemporaryMessage('Gespeicherte Antworten wurden gelöscht.', 'success');
         });
 
         // Back and copy buttons
@@ -398,6 +497,8 @@ export class QuestionnaireApp {
     
     // Initialize application
     async init() {
+        // Set global reference for backward compatibility
+        window.questionnaireApp = this;
         await this.loadQuestionnaire();
     }
     
@@ -406,6 +507,22 @@ export class QuestionnaireApp {
             return window.innerWidth > 900 ? 'column' : 'inline';
         }
         return displayMode;
+    }
+    
+    updateClearButtonVisibility() {
+        const clearSavedBtn = document.getElementById('clear-saved-btn');
+        if (clearSavedBtn) {
+            if (PersistenceManager.isPersistenceEnabled(this.config)) {
+                const savedAnswers = PersistenceManager.loadAnswers(this.currentFolder, this.config);
+                if (savedAnswers && Object.keys(savedAnswers).length > 0) {
+                    clearSavedBtn.style.display = '';
+                } else {
+                    clearSavedBtn.style.display = 'none';
+                }
+            } else {
+                clearSavedBtn.style.display = 'none';
+            }
+        }
     }
 }
 

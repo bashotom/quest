@@ -293,8 +293,8 @@ export class QuestionRenderer {
         }
     }
     
-    static setAllAnswers(questions, mode) {
-        // First reset all colors (both table and inline mode)
+    static resetAllColors() {
+        // Reset all colors (both table and inline mode)
         const allRadios = document.querySelectorAll('input[type="radio"]');
         allRadios.forEach(radio => {
             // Reset table cells
@@ -313,6 +313,11 @@ export class QuestionRenderer {
                 label.classList.remove('font-medium');
             }
         });
+    }
+    
+    static setAllAnswers(questions, mode) {
+        // First reset all colors (both table and inline mode)
+        QuestionRenderer.resetAllColors();
         
         // Then set the new answers
         questions.forEach(question => {

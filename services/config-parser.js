@@ -17,7 +17,8 @@ export class ConfigParser {
             description: '',
             chart: {},
             input: {},
-            resulttable: {}
+            resulttable: {},
+            persistence: {}
         };
             // trafficlights initialisieren
             result.trafficlights = [];
@@ -92,6 +93,19 @@ export class ConfigParser {
                 size: 5,
                 display: 'column',
                 header_repeating_rows: 0
+            };
+        }
+        
+        // Persistence-Konfiguration verarbeiten
+        if (jsonData.persistence && typeof jsonData.persistence === 'object') {
+            result.persistence = {
+                enabled: jsonData.persistence.enabled === true,
+                type: jsonData.persistence.type || 'localstorage'
+            };
+        } else {
+            result.persistence = {
+                enabled: false,
+                type: 'localstorage'
             };
         }
         

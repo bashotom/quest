@@ -109,5 +109,9 @@
     "element": "radiobox",
     "display": "column",
     "header_repeating_rows": 5
+  },
+  "persistence": {  
+    "enabled": true,
+    "type": "localstorage"
   }
 }
