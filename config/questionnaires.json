@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2025-09-26",
+  "questionnaires": [
+    {
+      "name": "Autonomie",
+      "folder": "autonomie",
+      "description": "Selbstbestimmung und Eigenständigkeit",
+      "category": "personality",
+      "enabled": true,
+      "order": 1
+    },
+    {
+      "name": "ACE", 
+      "folder": "ace",
+      "description": "Adverse Childhood Experiences",
+      "category": "trauma",
+      "enabled": true,
+      "order": 2
+    },
+    {
+      "name": "Resilienz",
+      "folder": "resilienz", 
+      "description": "Widerstandsfähigkeit und Anpassung",
+      "category": "resilience",
+      "enabled": true,
+      "order": 3
+    }
+  ],
+  "settings": {
+    "defaultQuestionnaire": "autonomie",
+    "showDescriptions": true,
+    "enableCategorization": false
+  }
+}

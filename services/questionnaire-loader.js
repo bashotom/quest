@@ -5,6 +5,8 @@ import { ConfigParser } from './config-parser.js';
  * Extrahiert aus der ursprünglichen index.html-Logik
  */
 export class QuestionnaireLoader {
+    static questionnairesConfig = null; // Cache für die Konfiguration
+
     /**
      * Lädt einen vollständigen Fragebogen (Fragen + Konfiguration)
      * @param {string} folder - Der Ordnername des Fragebogens
@@ -62,25 +64,88 @@ export class QuestionnaireLoader {
     }
 
     /**
+     * Lädt die Fragebogen-Konfiguration aus der JSON-Datei
+     * @returns {Promise<Object>} Die Fragebogen-Konfiguration
+     */
+    static async loadQuestionnairesConfig() {
+        if (this.questionnairesConfig) {
+            return this.questionnairesConfig; // Bereits geladen
+        }
+
+        const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+        const cacheBuster = '?v=' + Date.now();
+        const configUrl = new URL(`config/questionnaires.json${cacheBuster}`, base).toString();
+
+        try {
+            const response = await fetch(configUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            this.questionnairesConfig = await response.json();
+            return this.questionnairesConfig;
+        } catch (error) {
+            console.error('Fehler beim Laden der Fragebogen-Konfiguration:', error);
+            // Fallback zur statischen Liste
+            return this.getFallbackQuestionnaires();
+        }
+    }
+
+    /**
      * Holt alle verfügbaren Fragebogen-Ordner
-     * TODO: In Zukunft könnte dies dynamisch über eine API erfolgen
+     * @returns {Promise<Array<{name: string, folder: string, description?: string}>>}
+     */
+    static async getQuestionnaireFolders() {
+        try {
+            const config = await this.loadQuestionnairesConfig();
+            if (config.questionnaires) {
+                return config.questionnaires
+                    .filter(q => q.enabled !== false) // Deaktivierte ausblenden
+                    .sort((a, b) => (a.order || 999) - (b.order || 999)) // Nach Reihenfolge sortieren
+                    .map(q => ({
+                        name: q.name,
+                        folder: q.folder,
+                        description: q.description
+                    }));
+            } else {
+                return this.getFallbackQuestionnaires();
+            }
+        } catch (error) {
+            console.warn('Verwende Fallback-Liste:', error);
+            return this.getFallbackQuestionnaires();
+        }
+    }
+
+    /**
+     * Ermittelt den aktiven Fragebogen aus URL-Parametern oder Konfiguration
+     * @returns {Promise<string>} Der Ordnername des aktiven Fragebogens
+     */
+    static async getActiveQuestionnaire() {
+        const params = new URLSearchParams(window.location.search);
+        const urlParam = params.get('q');
+        
+        if (urlParam) {
+            return urlParam;
+        }
+
+        // Fallback aus Konfiguration
+        try {
+            const config = await this.loadQuestionnairesConfig();
+            return config.settings?.defaultQuestionnaire || 'autonomie';
+        } catch (error) {
+            return 'autonomie'; // Hard fallback
+        }
+    }
+
+    /**
+     * Fallback-Liste für den Fall, dass die Konfigurationsdatei nicht geladen werden kann
      * @returns {Array<{name: string, folder: string}>}
      */
-    static getQuestionnaireFolders() {
-        // Statische Liste - könnte später dynamisch werden
+    static getFallbackQuestionnaires() {
         return [
             { name: 'Autonomie', folder: 'autonomie' },
             { name: 'ACE', folder: 'ace' },
             { name: 'Resilienz', folder: 'resilienz' }
         ];
-    }
-
-    /**
-     * Ermittelt den aktiven Fragebogen aus URL-Parametern
-     * @returns {string} Der Ordnername des aktiven Fragebogens
-     */
-    static getActiveQuestionnaire() {
-        const params = new URLSearchParams(window.location.search);
-        return params.get('q') || 'autonomie';
     }
 }

@@ -139,20 +139,31 @@ export class QuestionnaireApp {
     }
     
     // UI Rendering
-    renderMenu() {
+    async renderMenu() {
         this.elements.questionnaireMenu.innerHTML = '';
-        const folders = QuestionnaireLoader.getQuestionnaireFolders();
         
-        folders.forEach(folder => {
-            const li = document.createElement('li');
-            const link = document.createElement('a');
-            link.href = `?q=${folder.folder}`;
-            link.textContent = folder.name;
-            link.className = `px-4 py-2 rounded-lg ${folder.folder === this.currentFolder ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-blue-100'}`;
-            link.addEventListener('click', (e) => this.handleMenuNavigation(e, folder.folder));
-            li.appendChild(link);
-            this.elements.questionnaireMenu.appendChild(li);
-        });
+        try {
+            const folders = await QuestionnaireLoader.getQuestionnaireFolders();
+            
+            folders.forEach(folder => {
+                const li = document.createElement('li');
+                const link = document.createElement('a');
+                link.href = `?q=${folder.folder}`;
+                link.textContent = folder.name;
+                
+                // Optional: Tooltip mit Beschreibung
+                if (folder.description) {
+                    link.title = folder.description;
+                }
+                
+                link.className = `px-4 py-2 rounded-lg ${folder.folder === this.currentFolder ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-blue-100'}`;
+                link.addEventListener('click', (e) => this.handleMenuNavigation(e, folder.folder));
+                li.appendChild(link);
+                this.elements.questionnaireMenu.appendChild(li);
+            });
+        } catch (error) {
+            console.error('Fehler beim Rendern des Menüs:', error);
+        }
     }
     
     renderForm() {
@@ -361,33 +372,24 @@ export class QuestionnaireApp {
         }
     }
     
-    // Main Application Methods
+        // Main Application Methods
     async loadQuestionnaire() {
         try {
-            this.currentFolder = QuestionnaireLoader.getActiveQuestionnaire();
+            this.currentFolder = await QuestionnaireLoader.getActiveQuestionnaire();
             const data = await QuestionnaireLoader.loadQuestionnaire(this.currentFolder);
             
             this.questions = data.questions;
             this.config = data.config;
             
-            // Update meta info
-            this.elements.questionnaireTitle.textContent = this.config.title;
-            this.elements.questionnaireDescription.textContent = this.config.description;
+            this.elements.questionnaireTitle.textContent = this.config.title || 'Fragebogen';
+            this.elements.questionnaireDescription.textContent = this.config.description || '';
             
-            this.renderMenu();
+            await this.renderMenu();
             this.renderForm();
-            
-            // Check for existing answers in hash
-            const scores = URLHashManager.parseScoresFromHash(this.questions, this.config);
-            if (scores) {
-                this.renderEvaluation(scores);
-                this.showEvaluation();
-            } else {
-                this.showForm();
-            }
-            
             this.showContent();
             
+            // Handle initial hash if present
+            this.handleHashChange();
         } catch (error) {
             console.error('Error loading questionnaire:', error);
             this.showError(error.message);
