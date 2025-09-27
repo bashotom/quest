@@ -1,4 +1,5 @@
 -- Quest Questionnaire Database Schema
+-- Compatible with MariaDB 10.11+ and MySQL 8.0+
 -- Generic schema for all questionnaire types (autonomie, ace, resilienz)
 -- Supports hybrid localStorage + server persistence
 
@@ -21,13 +22,16 @@ CREATE TABLE questionnaire_answers (
     questionnaire_name VARCHAR(100) NOT NULL COMMENT 'Questionnaire folder name (autonomie, ace, resilienz, etc.)',
     
     -- Answer data (JSON format for flexibility)
-    answers_json JSON NOT NULL COMMENT 'Question answers in JSON format {"A1": 3, "B2": 5}',
+    -- MariaDB 10.11: Use LONGTEXT with JSON validation
+    answers_json LONGTEXT NOT NULL COMMENT 'Question answers in JSON format {"A1": 3, "B2": 5}',
     
     -- Timestamps
     client_timestamp TIMESTAMP NULL COMMENT 'Timestamp from client when answers were saved',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Server timestamp when record was first created',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Server timestamp when record was last updated',
-    expires_at TIMESTAMP GENERATED ALWAYS AS (created_at + INTERVAL 90 DAY) STORED COMMENT 'Auto-calculated expiration date (90 days from creation)',
+    
+    -- MariaDB 10.11 compatible expiration (computed column)
+    expires_at TIMESTAMP AS (DATE_ADD(created_at, INTERVAL 90 DAY)) PERSISTENT COMMENT 'Auto-calculated expiration date (90 days from creation)',
     
     -- Constraints
     UNIQUE KEY unique_session_questionnaire (session_token, questionnaire_name) COMMENT 'One record per session per questionnaire',
@@ -39,7 +43,7 @@ CREATE TABLE questionnaire_answers (
     INDEX idx_created_at (created_at) COMMENT 'Fast lookup by creation date',
     INDEX idx_updated_at (updated_at) COMMENT 'Fast lookup by update date',
     
-    -- JSON constraints (MySQL 5.7+)
+    -- MariaDB 10.11: JSON validation constraint
     CONSTRAINT chk_answers_json CHECK (JSON_VALID(answers_json))
     
 ) ENGINE=InnoDB 
@@ -79,7 +83,7 @@ ON DUPLICATE KEY UPDATE
 -- GRANT SELECT ON quest_app.questionnaire_metadata TO 'quest_user'@'localhost';
 -- FLUSH PRIVILEGES;
 
--- Example data structure for reference
+-- Example data structure for reference (MariaDB 10.11 compatible)
 -- INSERT INTO questionnaire_answers (session_token, questionnaire_name, answers_json, client_timestamp) VALUES
 -- ('550e8400-e29b-41d4-a716-446655440000', 'autonomie', '{"A1": 3, "A2": 4, "B1": 2, "B2": 5}', NOW()),
 -- ('550e8400-e29b-41d4-a716-446655440001', 'ace', '{"A1": 1, "A2": 3, "C1": 4}', NOW()),
@@ -110,16 +114,24 @@ ON DUPLICATE KEY UPDATE
 -- WHERE DATE(created_at) = CURDATE() 
 -- GROUP BY questionnaire_name;
 
--- 5. Average completion time analysis (if you add completion_time field later)
+-- 5. JSON queries (MariaDB 10.11 compatible)
+-- SELECT session_token, questionnaire_name, 
+--        JSON_EXTRACT(answers_json, '$.A1') as answer_A1,
+--        JSON_EXTRACT(answers_json, '$.B1') as answer_B1
+-- FROM questionnaire_answers 
+-- WHERE questionnaire_name = 'autonomie';
+
+-- 6. Average completion time analysis (if you add completion_time field later)
 -- ALTER TABLE questionnaire_answers ADD COLUMN completion_time_seconds INT UNSIGNED NULL COMMENT 'Time taken to complete questionnaire in seconds';
 
 -- Performance optimization: Partition by questionnaire_name (for large datasets)
+-- Note: MariaDB 10.11 supports partitioning
 -- ALTER TABLE questionnaire_answers 
 -- PARTITION BY HASH(CRC32(questionnaire_name)) 
 -- PARTITIONS 4;
 
--- Backup and maintenance
--- Set up automated cleanup job (run daily)
+-- MariaDB 10.11 specific: Event scheduler for automated cleanup
+-- Note: Enable event scheduler with: SET GLOBAL event_scheduler = ON;
 -- CREATE EVENT IF NOT EXISTS cleanup_expired_answers
 -- ON SCHEDULE EVERY 1 DAY
 -- STARTS CURRENT_TIMESTAMP
