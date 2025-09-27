@@ -76,7 +76,7 @@ export class QuestionnaireApp {
         if (!messageEl) {
             messageEl = document.createElement('div');
             messageEl.id = 'temp-message';
-            messageEl.className = 'fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg text-white font-medium transform translate-x-full transition-transform duration-300';
+            messageEl.className = 'fixed bottom-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg text-white font-medium transform translate-x-full transition-transform duration-300';
             document.body.appendChild(messageEl);
         }
         
@@ -88,7 +88,7 @@ export class QuestionnaireApp {
             warning: 'bg-yellow-600'
         };
         
-        messageEl.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg text-white font-medium transition-transform duration-300 ${colors[type] || colors.info}`;
+        messageEl.className = `fixed bottom-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg text-white font-medium transition-transform duration-300 ${colors[type] || colors.info}`;
         messageEl.textContent = message;
         
         // Show message
@@ -467,6 +467,10 @@ export class QuestionnaireApp {
         window.history.pushState(null, null, url);
         
         this.currentFolder = folder;
+        
+        // Set flag to force showing form after questionnaire load
+        this._forceShowForm = true;
+        
         this.loadQuestionnaire();
     }
 
@@ -501,8 +505,14 @@ export class QuestionnaireApp {
             await this.renderForm();
             this.showContent();
             
-            // Handle initial hash if present
-            await this.handleHashChange();
+            // Check if we should force showing the form (e.g., after menu navigation)
+            if (this._forceShowForm) {
+                this._forceShowForm = false; // Clear the flag
+                await this.showForm();
+            } else {
+                // Handle initial hash if present
+                await this.handleHashChange();
+            }
         } catch (error) {
             console.error('Error loading questionnaire:', error);
             this.showError(error.message);

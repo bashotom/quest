@@ -4,6 +4,11 @@
  * Compatible with the existing Quest API architecture
  */
 export class ServerPersistenceManager {
+    // Request deduplication and caching
+    static activeRequests = new Map(); // Track ongoing requests
+    static cache = new Map(); // Cache loaded answers
+    static cacheTimeout = 30000; // 30 seconds cache timeout
+
     /**
      * Generates or retrieves a session token for server communication
      * @returns {string} UUID v4 session token
@@ -60,7 +65,25 @@ export class ServerPersistenceManager {
     }
 
     /**
-     * Save answers exclusively to server
+     * Clear cache for a specific folder
+     * @private
+     */
+    static _clearCacheForFolder(folder) {
+        const cacheKey = `load_${folder}`;
+        this.cache.delete(cacheKey);
+        console.log('[ServerPersistenceManager] Cleared cache for folder:', folder);
+    }
+    
+    /**
+     * Clear all cache
+     */
+    static clearCache() {
+        this.cache.clear();
+        console.log('[ServerPersistenceManager] Cleared all cache');
+    }
+
+    /**
+     * Save answers exclusively to server (with request deduplication)
      * @param {string} folder - The questionnaire folder name
      * @param {Object} answers - Answers as key-value pairs {questionId: answerValue}
      * @param {Object} config - The questionnaire configuration
@@ -78,6 +101,35 @@ export class ServerPersistenceManager {
             return false;
         }
 
+        // Request deduplication: Check if identical save request is already in progress
+        const requestKey = `save_${folder}_${JSON.stringify(answers)}`;
+        if (this.activeRequests.has(requestKey)) {
+            console.log('[ServerPersistenceManager] 🚫 Identical SAVE request already in progress, waiting...');
+            return await this.activeRequests.get(requestKey);
+        }
+
+        // Create and track the request promise
+        const requestPromise = this._performSaveRequest(folder, answers, config, endpoint);
+        this.activeRequests.set(requestKey, requestPromise);
+        
+        try {
+            const result = await requestPromise;
+            
+            // Clear cache for this folder since data changed
+            this._clearCacheForFolder(folder);
+            
+            return result;
+        } finally {
+            // Always cleanup the active request
+            this.activeRequests.delete(requestKey);
+        }
+    }
+    
+    /**
+     * Internal method to perform the actual save request
+     * @private
+     */
+    static async _performSaveRequest(folder, answers, config, endpoint) {
         try {
             const sessionToken = this.getOrCreateSessionToken();
             const timeout = config.persistence.server?.timeout || 5000;
@@ -92,7 +144,7 @@ export class ServerPersistenceManager {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), timeout);
             
-            console.log('[ServerPersistenceManager] Saving to server:', {
+            console.log('[ServerPersistenceManager] 📤 Saving to server:', {
                 endpoint,
                 questionnaire: folder,
                 answerCount: Object.keys(answers).length
@@ -120,11 +172,11 @@ export class ServerPersistenceManager {
                 throw new Error(result.error || 'Server save failed');
             }
             
-            console.log('[ServerPersistenceManager] Successfully saved to server:', result.message);
+            console.log('[ServerPersistenceManager] ✅ Successfully saved to server:', result.message);
             return true;
             
         } catch (error) {
-            console.error('[ServerPersistenceManager] Failed to save to server:', error);
+            console.error('[ServerPersistenceManager] ❌ Failed to save to server:', error);
             
             // Show user-friendly error message
             if (window.questionnaireApp) {
@@ -146,7 +198,7 @@ export class ServerPersistenceManager {
     }
 
     /**
-     * Load answers exclusively from server
+     * Load answers exclusively from server (with request deduplication and caching)
      * @param {string} folder - The questionnaire folder name
      * @param {Object} config - The questionnaire configuration
      * @returns {Promise<Object|null>} Loaded answers or null
@@ -162,6 +214,46 @@ export class ServerPersistenceManager {
             return null;
         }
 
+        // Check cache first
+        const cacheKey = `load_${folder}`;
+        const cached = this.cache.get(cacheKey);
+        if (cached && (Date.now() - cached.timestamp) < this.cacheTimeout) {
+            console.log('[ServerPersistenceManager] 💾 Returning cached data for:', folder);
+            return cached.data;
+        }
+
+        // Request deduplication: Check if identical load request is already in progress
+        const requestKey = cacheKey;
+        if (this.activeRequests.has(requestKey)) {
+            console.log('[ServerPersistenceManager] 🚫 Identical LOAD request already in progress, waiting...');
+            return await this.activeRequests.get(requestKey);
+        }
+
+        // Create and track the request promise
+        const requestPromise = this._performLoadRequest(folder, config, endpoint);
+        this.activeRequests.set(requestKey, requestPromise);
+        
+        try {
+            const result = await requestPromise;
+            
+            // Cache the result
+            this.cache.set(cacheKey, {
+                data: result,
+                timestamp: Date.now()
+            });
+            
+            return result;
+        } finally {
+            // Always cleanup the active request
+            this.activeRequests.delete(requestKey);
+        }
+    }
+    
+    /**
+     * Internal method to perform the actual load request
+     * @private
+     */
+    static async _performLoadRequest(folder, config, endpoint) {
         try {
             const sessionToken = this.getOrCreateSessionToken();
             const timeout = config.persistence.server?.timeout || 5000;
@@ -173,7 +265,7 @@ export class ServerPersistenceManager {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), timeout);
             
-            console.log('[ServerPersistenceManager] Loading from server:', {
+            console.log('[ServerPersistenceManager] 📥 Loading from server:', {
                 endpoint: url.toString(),
                 questionnaire: folder
             });
@@ -186,7 +278,7 @@ export class ServerPersistenceManager {
             clearTimeout(timeoutId);
             
             if (response.status === 404) {
-                console.log('[ServerPersistenceManager] No saved answers found on server');
+                console.log('[ServerPersistenceManager] 📭 No saved answers found on server');
                 return null; // No saved data available
             }
             
@@ -198,12 +290,12 @@ export class ServerPersistenceManager {
             const result = await response.json();
             
             if (!result.success) {
-                console.log('[ServerPersistenceManager] Server returned no data:', result.message);
+                console.log('[ServerPersistenceManager] 📭 Server returned no data:', result.message);
                 return null;
             }
             
             if (result.data && result.data.answers) {
-                console.log('[ServerPersistenceManager] Successfully loaded from server:', {
+                console.log('[ServerPersistenceManager] ✅ Successfully loaded from server:', {
                     answerCount: Object.keys(result.data.answers).length,
                     timestamp: result.data.timestamp
                 });
@@ -213,7 +305,7 @@ export class ServerPersistenceManager {
             return null;
             
         } catch (error) {
-            console.error('[ServerPersistenceManager] Failed to load from server:', error);
+            console.error('[ServerPersistenceManager] ❌ Failed to load from server:', error);
             
             // Show user-friendly error message
             if (window.questionnaireApp) {
@@ -235,7 +327,7 @@ export class ServerPersistenceManager {
     }
 
     /**
-     * Clear answers exclusively from server
+     * Clear answers exclusively from server (with request deduplication)
      * @param {string} folder - The questionnaire folder name
      * @param {Object} config - The questionnaire configuration
      * @returns {Promise<boolean>} True if successful
@@ -251,6 +343,35 @@ export class ServerPersistenceManager {
             return false;
         }
 
+        // Request deduplication: Check if identical clear request is already in progress
+        const requestKey = `clear_${folder}`;
+        if (this.activeRequests.has(requestKey)) {
+            console.log('[ServerPersistenceManager] 🚫 Identical CLEAR request already in progress, waiting...');
+            return await this.activeRequests.get(requestKey);
+        }
+
+        // Create and track the request promise
+        const requestPromise = this._performClearRequest(folder, config, endpoint);
+        this.activeRequests.set(requestKey, requestPromise);
+        
+        try {
+            const result = await requestPromise;
+            
+            // Clear cache for this folder since data was deleted
+            this._clearCacheForFolder(folder);
+            
+            return result;
+        } finally {
+            // Always cleanup the active request
+            this.activeRequests.delete(requestKey);
+        }
+    }
+    
+    /**
+     * Internal method to perform the actual clear request
+     * @private
+     */
+    static async _performClearRequest(folder, config, endpoint) {
         try {
             const sessionToken = this.getOrCreateSessionToken();
             const timeout = config.persistence.server?.timeout || 5000;
@@ -262,7 +383,7 @@ export class ServerPersistenceManager {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), timeout);
             
-            console.log('[ServerPersistenceManager] Clearing from server:', {
+            console.log('[ServerPersistenceManager] 🗑️ Clearing from server:', {
                 endpoint: url.toString(),
                 questionnaire: folder
             });
@@ -281,11 +402,11 @@ export class ServerPersistenceManager {
             
             const result = await response.json();
             
-            console.log('[ServerPersistenceManager] Successfully cleared from server:', result.message);
+            console.log('[ServerPersistenceManager] ✅ Successfully cleared from server:', result.message);
             return true;
             
         } catch (error) {
-            console.error('[ServerPersistenceManager] Failed to clear from server:', error);
+            console.error('[ServerPersistenceManager] ❌ Failed to clear from server:', error);
             
             // Show user-friendly error message
             if (window.questionnaireApp) {
@@ -338,7 +459,9 @@ export class ServerPersistenceManager {
             timeout: config.persistence.server?.timeout || 5000,
             sync: config.persistence.server?.sync || 'auto',
             authentication: config.persistence.server?.authentication || 'session',
-            sessionToken: this.getOrCreateSessionToken()
+            sessionToken: this.getOrCreateSessionToken(),
+            activeRequests: this.activeRequests.size,
+            cacheSize: this.cache.size
         };
     }
 
