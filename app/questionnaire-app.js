@@ -1,10 +1,7 @@
 import { QuestionnaireLoader } from '../services/questionnaire-loader.js';
 import { URLHashManager } from '../utils/url-hash-manager.js';
-import { ChartRenderer } from '../charts/chart-renderer.js';
 import { QuestionRenderer } from '../components/question-renderer.js';
-import { ResultRenderer } from '../components/result-renderer.js';
 import { FormHandler } from '../components/form-handler.js';
-import { RadarLegend } from '../charts/radar/radar-legend.js';
 import { PersistenceManagerFactory } from '../services/persistence-manager-factory.js';
 
 /**
@@ -30,17 +27,9 @@ export class QuestionnaireApp {
             errorMessage: document.getElementById('error-message'),
             appContent: document.getElementById('app-content'),
             questionnaireForm: document.getElementById('questionnaire-form'),
-            evaluationPage: document.getElementById('evaluation-page'),
-            shareLinkInput: document.getElementById('share-link'),
-            copyButton: document.getElementById('copy-button'),
-            backButton: document.getElementById('back-button'),
-            backButtonTop: document.getElementById('back-button-top'),
             questionnaireTitle: document.getElementById('questionnaire-title'),
             questionnaireDescription: document.getElementById('questionnaire-description'),
-            questionnaireMenu: document.getElementById('questionnaire-menu'),
-            labelToggleButtons: document.getElementById('label-toggle-buttons'),
-            shortLabelsBtn: document.getElementById('short-labels-btn'),
-            longLabelsBtn: document.getElementById('long-labels-btn')
+            questionnaireMenu: document.getElementById('questionnaire-menu')
         };
     }
     
@@ -57,9 +46,7 @@ export class QuestionnaireApp {
             console.error('Unhandled Promise Rejection:', event.reason);
         });
 
-        // Label toggle buttons
-        this.elements.shortLabelsBtn?.addEventListener('click', () => this.setLabelState('short'));
-        this.elements.longLabelsBtn?.addEventListener('click', () => this.setLabelState('long'));
+
     }
     
     // Utility Methods
@@ -115,11 +102,6 @@ export class QuestionnaireApp {
     
     async showForm() {
         this.elements.questionnaireForm.classList.remove('hidden');
-        this.elements.evaluationPage.classList.add('hidden');
-        
-        if (this.elements.labelToggleButtons) {
-            this.elements.labelToggleButtons.classList.add('hidden');
-        }
 
         // Buttons wieder anzeigen
         ['min-answers-btn', 'random-answers-btn', 'max-answers-btn'].forEach(id => {
@@ -136,48 +118,7 @@ export class QuestionnaireApp {
         }
     }
 
-    showEvaluation() {
-        // Remove any existing legend before showing new evaluation
-        RadarLegend.remove();
 
-        this.elements.questionnaireForm.classList.add('hidden');
-        this.elements.evaluationPage.classList.remove('hidden');
-        
-        if (this.elements.labelToggleButtons) {
-            if (this.config.chart?.type === 'radar') {
-                this.elements.labelToggleButtons.classList.remove('hidden');
-            } else {
-                this.elements.labelToggleButtons.classList.add('hidden');
-            }
-        }
-
-        // Buttons ausblenden
-        ['min-answers-btn', 'random-answers-btn', 'max-answers-btn', 'clear-saved-btn'].forEach(id => {
-            const btn = document.getElementById(id);
-            if (btn) btn.style.display = 'none';
-        });
-        
-        // Navigation Menu ausblenden
-        if (this.elements.questionnaireMenu && this.elements.questionnaireMenu.parentElement) {
-            this.elements.questionnaireMenu.parentElement.style.display = 'none';
-        }
-        
-        // Render result table if not already present
-        const tableContainer = document.getElementById('result-table-container');
-        if (tableContainer && !tableContainer.hasChildNodes()) {
-            const scores = URLHashManager.parseScoresFromHash(this.questions, this.config);
-            if (scores) {
-                ResultRenderer.render(scores, this.questions, this.config, tableContainer);
-            }
-        }
-
-        // DOM-Update abwarten
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                window.dispatchEvent(new Event('resize'));
-            });
-        });
-    }
     
     // UI Rendering
     async renderMenu() {
@@ -264,30 +205,7 @@ export class QuestionnaireApp {
         }
     }
     
-    renderEvaluation(scores) {
-        const chartType = this.config.chart?.type || 'radar';
-        
-        // Share link aktualisieren
-        if (this.elements.shareLinkInput) {
-            const currentUrl = window.location.href;
-            this.elements.shareLinkInput.value = currentUrl;
-        }
-        
-        // Ensure evaluation page is visible before rendering chart
-        const evaluationPage = this.elements.evaluationPage;
-        if (evaluationPage.classList.contains('hidden')) {
-            setTimeout(() => this.renderEvaluation(scores), 100);
-            return;
-        }
-        
-        // Clear only chart and legend containers
-        const radarContainer = document.getElementById('radar-chart-container');
-        const legendContainer = document.getElementById('radar-legend-container');
-        if (radarContainer) radarContainer.innerHTML = '<div id="radarChart" class="w-full h-full radar-chart flex justify-center items-center"></div>';
-        if (legendContainer) legendContainer.innerHTML = '';
 
-        ChartRenderer.render(chartType, scores, this.questions, this.config, { labelState: this.labelState });
-    }
     
     // Event Handlers
     setupFormEvents() {
@@ -314,14 +232,10 @@ export class QuestionnaireApp {
         // Form submission
         document.getElementById('quiz-form')?.addEventListener('submit', async (event) => {
             await this.formHandler.handleSubmit(event, (scores) => {
-                this.showEvaluation();
-                
-                // Wait for UI transition to complete
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        this.renderEvaluation(scores);
-                    });
-                });
+                // Build hash from scores and redirect to result page
+                const hashData = URLHashManager.buildHashFromScores(scores);
+                const resultUrl = `result.html?q=${this.currentFolder}#${hashData}`;
+                window.location.href = resultUrl;
             });
         });
 
@@ -428,35 +342,10 @@ export class QuestionnaireApp {
             this.showTemporaryMessage('Gespeicherte Antworten wurden gelöscht.', 'success');
         });
 
-        // Back and copy buttons
-        this.elements.backButton?.addEventListener('click', async () => {
-            await this.showForm();
-            window.history.replaceState(null, null, window.location.pathname + window.location.search);
-        });
 
-        this.elements.backButtonTop?.addEventListener('click', async () => {
-            await this.showForm();
-            window.history.replaceState(null, null, window.location.pathname + window.location.search);
-        });
-
-        this.elements.copyButton?.addEventListener('click', () => {
-            this.elements.shareLinkInput.select();
-            navigator.clipboard.writeText(this.elements.shareLinkInput.value).then(() => {
-                this.elements.copyButton.textContent = 'Kopiert!';
-                setTimeout(() => this.elements.copyButton.textContent = 'Kopieren', 2000);
-            }).catch(err => console.error('Fehler beim Kopieren:', err));
-        });
     }
 
-    setLabelState(state) {
-        this.labelState = state;
-        const scores = URLHashManager.parseScoresFromHash(this.questions, this.config);
-        if (scores) {
-            // Only re-render the chart, not the whole evaluation page
-            const chartType = this.config.chart?.type || 'radar';
-            ChartRenderer.render(chartType, scores, this.questions, this.config, { labelState: this.labelState });
-        }
-    }
+
     
     handleMenuNavigation(event, folder) {
         event.preventDefault();
@@ -479,14 +368,9 @@ export class QuestionnaireApp {
             return;
         }
         
-        const scores = URLHashManager.parseScoresFromHash(this.questions, this.config);
-        if (scores) {
-            this.renderEvaluation(scores);
-            this.showEvaluation();
-        } else {
-            await this.showForm();
-            URLHashManager.setAnswersFromHash(this.questions, this.config);
-        }
+        // On the form page, we only handle setting answers from hash
+        await this.showForm();
+        URLHashManager.setAnswersFromHash(this.questions, this.config);
     }
     
         // Main Application Methods

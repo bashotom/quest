@@ -42,9 +42,12 @@ export class TachometerGauge {
      * @private
      */
     _getContainerDimensions() {
+        const width = this.container.offsetWidth || 400; // Fallback width
+        const height = this.container.offsetHeight || 350; // Fallback height
+        
         return {
-            width: this.container.offsetWidth,
-            height: this.container.offsetHeight
+            width: Math.max(width, 300),  // Minimum width
+            height: Math.max(height, 200) // Minimum height
         };
     }
 

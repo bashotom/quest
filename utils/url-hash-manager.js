@@ -4,6 +4,37 @@
  */
 export class URLHashManager {
     /**
+     * Parst Category-Scores direkt aus dem URL-Hash
+     * @param {Array} questions - Die Fragen für die Validierung der Kategorien
+     * @param {Object} config - Konfiguration
+     * @returns {Object|null} Scores nach Kategorien oder null bei ungültigen Daten
+     */
+    static parseCategoryScoresFromHash(questions, config = null) {
+        const hash = window.location.hash.substring(1);
+        if (!hash) return null;
+
+        const scores = {};
+        const params = new URLSearchParams(hash);
+        let hasValidData = false;
+        
+        // Sammle alle verfügbaren Kategorien aus den Fragen
+        const availableCategories = new Set(questions.map(q => q.category));
+        
+        for (const [category, value] of params.entries()) {
+            // Prüfe ob die Kategorie in den Fragen existiert
+            if (availableCategories.has(category)) {
+                const score = parseInt(value, 10);
+                if (!isNaN(score) && score >= 0) {
+                    scores[category] = score;
+                    hasValidData = true;
+                }
+            }
+        }
+
+        return hasValidData ? scores : null;
+    }
+
+    /**
      * Parst Scores aus dem URL-Hash
      * @param {Array} questions - Die Fragen für die Validierung
      * @param {Object} config - Konfiguration für Score-Berechnung
@@ -328,6 +359,26 @@ export class URLHashManager {
         const searchParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
         return searchParams.get('debug') === '1' || hashParams.get('debug') === '1';
+    }
+
+    /**
+     * Erstellt Hash-String aus Scores für URL-Sharing
+     * @param {Object} scores - Scores nach Kategorien
+     * @returns {string} URL-Hash String
+     */
+    static buildHashFromScores(scores) {
+        if (!scores || typeof scores !== 'object') {
+            return '';
+        }
+        
+        const params = new URLSearchParams();
+        for (const [category, score] of Object.entries(scores)) {
+            if (typeof score === 'number' && !isNaN(score)) {
+                params.append(category, score.toString());
+            }
+        }
+        
+        return params.toString();
     }
 
     /**

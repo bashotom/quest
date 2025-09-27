@@ -32,7 +32,11 @@
     {"A": "Resilienz-Wert"}
   ],
   "chart": {
-    "type": "gauge"
+    "type": "gauge",
+    "style": "simple",
+    "ranges": [0, 25, 50, 75, 100],
+    "range_colors": ["#ef4444", "#f97316", "#eab308", "#22c55e"],
+    "explanation": "Der Resilienz-Wert zeigt die Stabilität des psychischen Immunsystems an."
   },
   "input": {
     "element": "radiobox",

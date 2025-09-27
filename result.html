@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auswertung - Fragebogen</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Loading State -->
+    <div id="loading" class="flex items-center justify-center min-h-screen">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p class="text-gray-600">Lade Auswertung...</p>
+        </div>
+    </div>
+    
+    <!-- Error State -->
+    <div id="error" class="min-h-screen flex items-center justify-center hidden">
+        <div class="max-w-md mx-auto text-center p-8 bg-white rounded-lg shadow">
+            <div class="text-red-600 mb-4">
+                <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+            </div>
+            <h2 class="text-xl font-semibold text-gray-900 mb-2">Fehler beim Laden</h2>
+            <p id="error-message" class="text-gray-600 mb-4"></p>
+            <a href="/" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Zur Startseite
+            </a>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div id="app-content" class="hidden">
+        <!-- Header -->
+        <header class="bg-white shadow-sm">
+            <div class="max-w-4xl mx-auto px-4 py-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 id="questionnaire-title" class="text-2xl font-bold text-gray-900"></h1>
+                        <p id="questionnaire-description" class="text-gray-600 mt-1"></p>
+                    </div>
+                    <button id="back-button-top" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200">
+                        Zurück zum Fragebogen
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Evaluation Page -->
+        <main class="max-w-6xl mx-auto px-4 py-8">
+            <div id="evaluation-page">
+                <!-- Label Toggle Buttons (for radar charts) -->
+                <div id="label-toggle-buttons" class="flex justify-center mb-6 hidden">
+                    <div class="bg-white rounded-lg p-1 shadow">
+                        <button id="short-labels-btn" class="px-4 py-2 rounded-md text-sm font-medium transition-colors bg-blue-600 text-white">
+                            Kurze Labels
+                        </button>
+                        <button id="long-labels-btn" class="px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 hover:text-gray-900">
+                            Lange Labels
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Chart Container -->
+                <div class="bg-white rounded-lg shadow p-6 mb-8 min-h-[400px]">
+                    <!-- Radar Chart Container -->
+                    <div id="radar-chart-container" class="chart-type-container w-full h-full min-h-[350px] hidden">
+                        <div id="radarChart" class="w-full h-full radar-chart flex justify-center items-center"></div>
+                    </div>
+                    
+                    <!-- Gauge Chart Container -->
+                    <div id="gauge-chart-container" class="chart-type-container w-full h-full min-h-[350px] hidden">
+                        <div id="gaugeChart" class="w-full h-full"></div>
+                    </div>
+                    
+                    <!-- Bar Chart Container -->
+                    <div id="bar-chart-container" class="chart-type-container w-full h-full min-h-[350px] hidden">
+                        <canvas id="barChart" class="w-full h-full"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Mobile Legend for Radar Charts -->
+                <div id="radar-legend-container" class="mb-6"></div>
+                
+                <!-- Result Table -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Detaillierte Ergebnisse</h2>
+                    <div id="result-table-container"></div>
+                </div>
+                
+                <!-- Share Section -->
+                <div class="bg-white rounded-lg shadow p-6 mt-8">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Ergebnis teilen</h3>
+                    <div class="flex gap-2">
+                        <input id="share-link" type="text" readonly 
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm">
+                        <button id="copy-button" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition duration-200">
+                            Kopieren
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Back Button -->
+                <div class="text-center mt-8">
+                    <button id="back-button" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                        Zurück zum Fragebogen
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Result App Module -->
+    <script type="module">
+        import { ResultApp } from './app/result-app.js';
+        
+        // Initialize result app
+        const app = new ResultApp();
+        app.init();
+    </script>
+</body>
+</html>

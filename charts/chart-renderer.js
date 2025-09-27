@@ -156,9 +156,12 @@ export class ChartRenderer {
         }
         
         // Use first category for Gauge
-        const firstCategoryKey = Object.keys(config.categories)[0];
+        const categories = Array.isArray(config.categories)
+            ? config.categories.reduce((acc, cat) => ({ ...acc, ...cat }), {})
+            : config.categories;
+        const firstCategoryKey = Object.keys(categories)[0];
         const value = scores[firstCategoryKey] || 0;
-        const categoryLabel = config.categories[firstCategoryKey];
+        const categoryLabel = categories[firstCategoryKey];
         
         // Calculate max score for this category
         const categoryQuestions = questions.filter(q => q.category === firstCategoryKey);
