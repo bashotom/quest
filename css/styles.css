@@ -183,3 +183,20 @@ body {
 .simple-gauge .chart-color3 {
     fill: #22c55e;
 }
+
+/* Debug Mode Styles */
+.debug-only {
+    display: none !important;
+}
+
+.debug-only.debug-visible {
+    display: flex !important;
+}
+
+.debug-only.debug-visible.flex {
+    display: flex !important;
+}
+
+.debug-only.debug-visible.block {
+    display: block !important;
+}
