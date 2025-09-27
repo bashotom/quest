@@ -16,6 +16,9 @@
   "categories": [
     {"A": "ACE-Gesamtwert"}
   ],
+  "question-ui": {
+    "autoscroll": true
+  },
   "chart": {
     "type": "gauge",
     "style": "simple",

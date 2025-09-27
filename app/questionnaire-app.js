@@ -119,6 +119,46 @@ export class QuestionnaireApp {
     set formHandler(value) { this.appState.formHandler = value; }
 }
 
+// Helper function for autoscroll to next question
+window.scrollToNextQuestion = function(currentQuestionId) {
+    const app = window.questionnaireApp;
+    if (!app || !app.config || !app.config.questionUi || !app.config.questionUi.autoscroll) {
+        return; // Autoscroll not enabled
+    }
+    
+    if (!app.questions || app.questions.length === 0) {
+        return; // No questions available
+    }
+    
+    // Find current question index
+    const currentIndex = app.questions.findIndex(q => q.id === currentQuestionId);
+    if (currentIndex === -1 || currentIndex >= app.questions.length - 1) {
+        return; // Current question not found or is the last question
+    }
+    
+    // Get next question
+    const nextQuestion = app.questions[currentIndex + 1];
+    if (!nextQuestion) {
+        return;
+    }
+    
+    // Find the next question element and scroll to it
+    setTimeout(() => {
+        const nextQuestionElement = document.querySelector(`input[name="question-${nextQuestion.id}"]`);
+        if (nextQuestionElement) {
+            // Find the row or card container
+            const container = nextQuestionElement.closest('tr') || nextQuestionElement.closest('.border');
+            if (container) {
+                container.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center',
+                    inline: 'nearest'
+                });
+            }
+        }
+    }, 200); // Small delay to allow for DOM updates
+};
+
 // Global function for table mode (backward compatibility)
 window.selectRadio = function(qid, aval) {
     const radio = document.querySelector(`input[name='question-${qid}'][value='${aval}']`);
@@ -151,6 +191,9 @@ window.selectRadio = function(qid, aval) {
                 }
             }
         }
+        
+        // Trigger autoscroll to next question
+        window.scrollToNextQuestion(qid);
     }
 };
 

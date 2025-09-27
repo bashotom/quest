@@ -413,6 +413,12 @@ export class QuestionRenderer {
             radio.addEventListener('change', () => {
                 if (radio.checked) {
                     QuestionRenderer.applyInlineAnswerColor(radio, config);
+                    
+                    // Trigger autoscroll to next question
+                    const questionId = radio.name.replace('question-', '');
+                    if (window.scrollToNextQuestion) {
+                        window.scrollToNextQuestion(questionId);
+                    }
                 }
             });
         });

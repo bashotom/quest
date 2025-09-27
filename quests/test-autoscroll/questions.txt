@@ -1,0 +1,10 @@
+A1|Erste Testfrage - Finden Sie das Autoscroll-Feature nützlich?
+A2|Zweite Testfrage - Scrollt die Seite automatisch zur nächsten Frage?
+A3|Dritte Testfrage - Ist die Scroll-Geschwindigkeit angemessen?
+A4|Vierte Testfrage - Funktioniert das Feature in beiden Modi (Tabelle und Karten)?
+A5|Fünfte Testfrage - Sollte das Feature standardmäßig aktiviert sein?
+A6|Sechste Testfrage - Ist das Autoscroll störend oder hilfreich?
+A7|Siebte Testfrage - Würden Sie das Feature weiterempfehlen?
+A8|Achte Testfrage - Funktioniert das Autoscroll auch bei langen Fragebogen?
+A9|Neunte Testfrage - Ist die Positionierung der nächsten Frage optimal?
+A10|Zehnte Testfrage - Hat das Feature Ihre Erwartungen erfüllt?

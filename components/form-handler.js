@@ -173,6 +173,11 @@ export class FormHandler {
                 // Hash-Update für Bookmarking
                 await this.updateHashFromCurrentAnswers();
                 
+                // Trigger autoscroll to next question
+                if (window.scrollToNextQuestion) {
+                    window.scrollToNextQuestion(questionId);
+                }
+                
                 // Auto-save to localStorage if persistence is enabled
                 if (this.currentFolder) {
                     const formData = new FormData(document.getElementById('quiz-form'));

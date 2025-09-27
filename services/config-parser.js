@@ -38,7 +38,8 @@ export class ConfigParser {
             chart: {},
             input: {},
             resulttable: {},
-            persistence: {}
+            persistence: {},
+            questionUi: {} // Add question-ui configuration
         };
             // trafficlights initialisieren
             result.trafficlights = [];
@@ -97,6 +98,17 @@ export class ConfigParser {
         // Spezialfall: scale_angles für GaugeChart an die oberste Ebene kopieren
         if (jsonData.chart && Array.isArray(jsonData.chart.scale_angles)) {
             result.scale_angles = jsonData.chart.scale_angles;
+        }
+        
+        // Question-UI Konfiguration verarbeiten
+        if (jsonData['question-ui'] && typeof jsonData['question-ui'] === 'object') {
+            result.questionUi = {
+                autoscroll: jsonData['question-ui'].autoscroll === true
+            };
+        } else {
+            result.questionUi = {
+                autoscroll: false
+            };
         }
         
         // Input-Konfiguration verarbeiten

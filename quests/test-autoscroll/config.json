@@ -1,0 +1,44 @@
+{
+  "title": "Autoscroll Test",
+  "description": "Test für das Autoscroll-Feature",
+  "answers": [
+    {
+      "label": "Ja", 
+      "value": 1,
+      "color": "#bbf7d0"
+    },
+    {
+      "label": "Nein", 
+      "value": 0,
+      "color": "#fecaca"
+    }
+  ],
+  "categories": [
+    {"A": "Testkategorie"}
+  ],
+  "question-ui": {
+    "autoscroll": true
+  },
+  "chart": {
+    "type": "radar",
+    "explanation": "Dies ist ein Test für das Autoscroll-Feature."
+  },
+  "resulttable": {
+    "enabled": true
+  },
+  "resulttiles": {
+    "enabled": true,
+    "evaluation_gauge": false,
+    "show_percentage": false,
+    "show_score": true,
+    "show_categoryid": false
+  },
+  "input": {
+    "element": "radiobox",
+    "size": 5,
+    "display": "responsive"
+  },
+  "persistence": {
+    "enabled": false
+  }
+}
