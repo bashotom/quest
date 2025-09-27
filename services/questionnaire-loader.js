@@ -13,7 +13,6 @@ export class QuestionnaireLoader {
      * Clears all configuration caches
      */
     static clearConfigCache() {
-        console.log('[QuestionnaireLoader] Clearing configuration cache');
         this.questionnairesConfig = null;
         this.isLoading = false;
         this.loadingPromise = null;
@@ -38,7 +37,6 @@ export class QuestionnaireLoader {
             const timestamp = Date.now();
             const random = Math.random().toString(36).substring(7);
             cacheBuster = `?v=${timestamp}&r=${random}&nocache=1&_cb=${timestamp}`;
-            console.log('[QuestionnaireLoader] config_cache=false - using aggressive cache busting for', folder);
         } else {
             // Standard cache busting
             cacheBuster = '?v=' + Date.now();
@@ -109,7 +107,6 @@ export class QuestionnaireLoader {
     static async loadQuestionnairesConfig() {
         // If already loading, return the same promise to prevent double loading
         if (this.isLoading && this.loadingPromise) {
-            console.log('[QuestionnaireLoader] Already loading questionnaires.json - reusing promise');
             return this.loadingPromise;
         }
 
@@ -118,7 +115,6 @@ export class QuestionnaireLoader {
             // If cache is explicitly disabled, we still use cached version within same session
             // to prevent double loading while respecting the cache setting
             if (this.questionnairesConfig.settings?.config_cache === false) {
-                console.log('[QuestionnaireLoader] config_cache=false - using cached version to prevent double load');
                 return this.questionnairesConfig;
             } else {
                 return this.questionnairesConfig;

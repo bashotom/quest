@@ -2,6 +2,7 @@ import { TachometerGauge } from './gauge/tachometer-gauge.js';
 import { SimpleGauge } from './gauge/simple-gauge.js';
 import { RadarChart } from './radar-chart.js';
 import { ResultRenderer } from '../components/result-renderer.js';
+import { DebugManager } from '../utils/debug-manager.js';
 
 /**
  * ChartRenderer - Manages all chart rendering with container isolation
@@ -17,6 +18,14 @@ export class ChartRenderer {
     static render(chartType, scores, questions, config, options = {}) {
         const renderingId = ++ChartRenderer.currentRenderingId;
         
+        DebugManager.log(`Rendering ${chartType} chart`, {
+            renderingId,
+            scores,
+            chartConfig: config?.chart,
+            container: `${chartType}-chart-container`,
+            questionsCount: questions?.length
+        });
+        
         // Cancel all previous timeouts to prevent race conditions
         ChartRenderer.activeTimeouts.forEach(timeoutId => {
             clearTimeout(timeoutId);
@@ -28,6 +37,11 @@ export class ChartRenderer {
         
         // Render result table if configured
         ChartRenderer.renderResultTable(scores, questions, config);
+        
+        // Add debug buttons for evaluation if debug mode is active
+        if (DebugManager.isDebugMode()) {
+            ChartRenderer.addEvaluationDebugButtons(chartType, scores, questions, config);
+        }
         
         // Render chart explanation if configured
         ChartRenderer.renderChartExplanation(config);
@@ -263,5 +277,63 @@ export class ChartRenderer {
         } else {
             explanationContainer.classList.add('hidden');
         }
+    }
+    
+    /**
+     * Add debug buttons specifically for evaluation phase
+     */
+    static addEvaluationDebugButtons(chartType, scores, questions, config) {
+        // Create or find debug container for evaluation
+        let debugContainer = document.getElementById('evaluation-debug-controls');
+        if (!debugContainer) {
+            debugContainer = document.createElement('div');
+            debugContainer.id = 'evaluation-debug-controls';
+            debugContainer.className = 'debug-only mt-4 p-3 bg-gray-100 rounded';
+            debugContainer.innerHTML = '<h4 class="font-semibold mb-2">🐛 Evaluation Debug Controls</h4>';
+            
+            // Insert after result renderer if it exists
+            const resultRenderer = document.querySelector('[id*="result"]');
+            if (resultRenderer && resultRenderer.parentNode) {
+                resultRenderer.parentNode.appendChild(debugContainer);
+            } else {
+                // Fallback: add to main content
+                const mainContent = document.querySelector('main') || document.body;
+                mainContent.appendChild(debugContainer);
+            }
+        }
+        
+        // Clear existing buttons
+        const existingButtons = debugContainer.querySelectorAll('button');
+        existingButtons.forEach(btn => btn.remove());
+        
+        // Add chart-specific debug buttons
+        DebugManager.addDebugButton('Export Chart Data', () => {
+            const data = { 
+                chartType, 
+                scores, 
+                questions: questions?.map(q => ({ id: q.id, text: q.text })), 
+                config: config?.chart,
+                timestamp: new Date().toISOString()
+            };
+            DebugManager.exportData(data, `chart-data-${chartType}.json`);
+        }, debugContainer);
+        
+        DebugManager.addDebugButton('Show Chart Config', () => {
+            console.log('🐛 Chart Configuration:', config?.chart);
+        }, debugContainer);
+        
+        DebugManager.addDebugButton('Show Scores', () => {
+            console.table(scores);
+        }, debugContainer);
+        
+        DebugManager.addDebugButton('Re-render Chart', () => {
+            console.log('🐛 Re-rendering chart...');
+            ChartRenderer.render(chartType, scores, questions, config);
+            DebugManager.showNotification('Chart re-rendered!', 'success');
+        }, debugContainer);
+        
+        DebugManager.addDebugButton('Test Chart Error', () => {
+            throw new Error(`🐛 Debug chart error for ${chartType}`);
+        }, debugContainer);
     }
 }

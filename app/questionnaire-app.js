@@ -3,6 +3,7 @@ import { URLHashManager } from '../utils/url-hash-manager.js';
 import { QuestionRenderer } from '../components/question-renderer.js';
 import { FormHandler } from '../components/form-handler.js';
 import { PersistenceManagerFactory } from '../services/persistence-manager-factory.js';
+import { DebugManager } from '../utils/debug-manager.js';
 
 /**
  * QuestionnaireApp - Main application class
@@ -17,8 +18,15 @@ export class QuestionnaireApp {
         this.labelState = null; // Default label state is unset
         this._suppressHashUpdates = false; // Flag to prevent hash updates during restore
         
+        // Initialize debug mode
+        DebugManager.showDebugElements();
+        
         this.initializeElements();
         this.setupEventListeners();
+        
+        if (DebugManager.isDebugMode()) {
+            this.setupDebugFeatures();
+        }
     }
     
     initializeElements() {
@@ -546,6 +554,47 @@ export class QuestionnaireApp {
             container.remove();
         }
     }
+    
+    setupDebugFeatures() {
+        DebugManager.log('QuestionnaireApp Debug Features Initialized', {
+            currentFolder: this.currentFolder,
+            questions: this.questions?.length,
+            config: this.config
+        });
+
+        // Add debug buttons to main debug panel
+        DebugManager.addDebugButton('Show App State', () => {
+            console.table({
+                currentFolder: this.currentFolder,
+                questionsCount: this.questions?.length || 0,
+                configType: typeof this.config,
+                labelState: this.labelState
+            });
+        });
+
+        DebugManager.addDebugButton('Show Config', () => {
+            console.log('🐛 Full Config:', this.config);
+        });
+
+        DebugManager.addDebugButton('Show Questions', () => {
+            console.log('🐛 All Questions:', this.questions);
+        });
+
+        DebugManager.addDebugButton('Clear LocalStorage', () => {
+            const keys = Object.keys(localStorage);
+            localStorage.clear();
+            DebugManager.showNotification(`LocalStorage cleared! (${keys.length} items)`, 'success');
+        });
+
+        DebugManager.addDebugButton('Test Error', () => {
+            throw new Error('🐛 Debug test error - this is intentional!');
+        });
+        
+        // Add debug info
+        DebugManager.addDebugInfo('App Version', '2.0 (Modular)');
+        DebugManager.addDebugInfo('Current URL', window.location.href);
+        DebugManager.addDebugInfo('URL Params', Object.fromEntries(new URLSearchParams(window.location.search)));
+    }
 }
 
 // Global function for table mode (backward compatibility)
@@ -563,6 +612,7 @@ window.selectRadio = function(qid, aval) {
             }
         });
         
+        // Set the selected radio button
         radio.checked = true;
         radio.dispatchEvent(new Event('change', { bubbles: true }));
         
@@ -581,3 +631,4 @@ window.selectRadio = function(qid, aval) {
         }
     }
 };
+

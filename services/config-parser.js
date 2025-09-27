@@ -1,6 +1,21 @@
 /**
  * Service für das Parsen und Normalisieren von Fragebogen-Konfigurationen
- * Extrahiert aus der               const rawTryReloading = jsonData.persistence.try_reloading;
+ * Extrahiert aus der                  /            const parsedTryReloading = rawTryReloading !== false;
+            
+            result.persistence = {ce-Konfiguration verarbeiten
+        if (jsonData.persistence && typeof jsonData.persistence === 'object') {
+            const rawTryReloading = jsonData.persistence.try_reloading;
+            const parsedTryReloading = rawTryReloading !== false;
+            
+            result.persistence = {
+                enabled: jsonData.persistence.enabled === true,persistence && typeof jsonData.persistence === 'object') {
+            const rawTryReloading = jsonData.persistence.try_reloading;
+            const parsedTryReloading = rawTryReloading !== false;
+            
+            result.persistence = {
+                enabled: jsonData.persistence.enabled === true,
+                type: jsonData.persistence.type || 'localstorage',
+                try_reloading: rawTryReloading === true, // Explicit check: only true if explicitly set to true rawTryReloading = jsonData.persistence.try_reloading;
             
             result.persistence = {ult.persistence = {
                 enabled: jsonData.persistence.enabled === true,
@@ -105,14 +120,6 @@ export class ConfigParser {
         if (jsonData.persistence && typeof jsonData.persistence === 'object') {
             const rawTryReloading = jsonData.persistence.try_reloading;
             const parsedTryReloading = rawTryReloading !== false;
-            
-            console.log('� [ConfigParser DEBUG v2] try_reloading parsing:', {
-                raw: rawTryReloading,
-                type: typeof rawTryReloading,
-                parsed: parsedTryReloading,
-                logic: `${rawTryReloading} !== false = ${parsedTryReloading}`,
-                timestamp: Date.now()
-            });
             
             result.persistence = {
                 enabled: jsonData.persistence.enabled === true,

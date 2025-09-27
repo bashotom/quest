@@ -1,5 +1,6 @@
 import { URLHashManager } from '../utils/url-hash-manager.js';
 import { PersistenceManagerFactory } from '../services/persistence-manager-factory.js';
+import { DebugManager } from '../utils/debug-manager.js';
 
 /**
  * FormHandler - Manages form submission and validation
@@ -14,8 +15,19 @@ export class FormHandler {
     async handleSubmit(event, onSuccess) {
         event.preventDefault();
         
+        DebugManager.log('Form submission started', {
+            questionsCount: this.questions?.length,
+            currentFolder: this.currentFolder,
+            configType: typeof this.config
+        });
+        
         // Pass both questions and config to collectAnswersFromForm
         const answersArray = URLHashManager.collectAnswersFromForm(this.questions, this.config);
+        
+        DebugManager.log('Answers collected', { 
+            answersArray,
+            isArray: Array.isArray(answersArray) 
+        });
         
         // Safety check
         if (!Array.isArray(answersArray)) {
