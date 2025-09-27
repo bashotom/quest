@@ -164,20 +164,13 @@ export class URLHashManager {
      * @param {Object} config - Konfiguration (für universelle Lesefähigkeit)
      */
     static setAnswersFromHash(questions, config = null) {
-        console.log('[DEBUG URLHashManager.setAnswersFromHash] START');
-        console.log('[DEBUG URLHashManager.setAnswersFromHash] Current hash:', window.location.hash);
-        console.log('[DEBUG URLHashManager.setAnswersFromHash] Questions count:', questions?.length);
-        
         // Versuche zuerst kompakte Base64-Version (universelle Lesefähigkeit)
         const compactAnswers = this.parseCompactHash(questions);
-        console.log('[DEBUG URLHashManager.setAnswersFromHash] Compact answers:', compactAnswers);
         
         if (compactAnswers) {
-            console.log('[DEBUG URLHashManager.setAnswersFromHash] Using compact answers from hash');
             Object.entries(compactAnswers).forEach(([questionId, answerIndex]) => {
                 const radio = document.querySelector(`input[name="question-${questionId}"][value="${answerIndex}"]`);
                 if (radio) {
-                    console.log('[DEBUG URLHashManager.setAnswersFromHash] Setting radio:', questionId, '=', answerIndex);
                     radio.checked = true;
                 }
             });
@@ -185,18 +178,14 @@ export class URLHashManager {
         }
         
         // Fallback zur Standard-Hash-Methode
-        console.log('[DEBUG URLHashManager.setAnswersFromHash] Using standard hash method');
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         questions.forEach(q => {
             const idx = hashParams.get(q.id);
             if (idx !== null) {
-                console.log('[DEBUG URLHashManager.setAnswersFromHash] Setting radio from standard hash:', q.id, '=', idx);
                 const radio = document.querySelector(`input[name="question-${q.id}"][value="${idx}"]`);
                 if (radio) radio.checked = true;
             }
         });
-        
-        console.log('[DEBUG URLHashManager.setAnswersFromHash] END');
     }
 
     /**
@@ -206,44 +195,28 @@ export class URLHashManager {
      * @param {Object} config - Konfiguration mit bookmark_encoding Option
      */
     static updateHash(answers, questions = null, config = null) {        
-        console.log('[DEBUG URLHashManager.updateHash] START');
-        console.log('[DEBUG URLHashManager.updateHash] answers:', answers);
-        console.log('[DEBUG URLHashManager.updateHash] questions count:', questions?.length);
-        console.log('[DEBUG URLHashManager.updateHash] config.bookmark_encoding:', config?.bookmark_encoding);
-        console.log('[DEBUG URLHashManager.updateHash] Current URL before:', window.location.href);
-        
         // Check if hash updates are suppressed (during answer restoration)
         if (window.questionnaire?._suppressHashUpdates) {
-            console.log('[DEBUG URLHashManager.updateHash] Hash updates suppressed - skipping');
             return;
         }
         
         // Check if Base64 encoding is enabled for NEW links
         if (config && config.bookmark_encoding === 'base64' && questions) {
-            console.log('[DEBUG URLHashManager.updateHash] Using Base64 encoding');
             const values = questions.map(question => {
                 const answerIndex = answers[question.id];
                 const value = answerIndex !== undefined ? answerIndex.toString() : '0';
                 return value;
             }).join('');
             
-            console.log('[DEBUG URLHashManager.updateHash] Values string:', values);
             const compressed = btoa(values);
-            console.log('[DEBUG URLHashManager.updateHash] Compressed Base64:', compressed);
             const newHash = `#c=${compressed}`;
-            console.log('[DEBUG URLHashManager.updateHash] New hash to set:', newHash);
             
             if (window.location.hash !== newHash) {
-                console.log('[DEBUG URLHashManager.updateHash] Setting new Base64 hash');
                 window.history.replaceState(null, null, newHash);
-            } else {
-                console.log('[DEBUG URLHashManager.updateHash] Base64 hash unchanged, skipping');
             }
-            console.log('[DEBUG URLHashManager.updateHash] Final URL after Base64:', window.location.href);
             return;
         }
         
-        console.log('[DEBUG URLHashManager.updateHash] Using standard URL parameters');
         // Default behavior - standard URL parameters
         const hashParams = new URLSearchParams();
         Object.entries(answers).forEach(([questionId, answerIndex]) => {
@@ -252,15 +225,10 @@ export class URLHashManager {
         
         // Hash setzen ohne Page-Reload
         const newHash = `#${hashParams.toString()}`;
-        console.log('[DEBUG URLHashManager.updateHash] New standard hash:', newHash);
         
         if (window.location.hash !== newHash) {
-            console.log('[DEBUG URLHashManager.updateHash] Setting new standard hash');
             window.history.replaceState(null, null, newHash);
-        } else {
-            console.log('[DEBUG URLHashManager.updateHash] Standard hash unchanged, skipping');
         }
-        console.log('[DEBUG URLHashManager.updateHash] Final URL after standard:', window.location.href);
     }
 
     /**
