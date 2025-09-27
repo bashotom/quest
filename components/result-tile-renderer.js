@@ -6,8 +6,10 @@ export class ResultTileRenderer {
         tilesWrapper.id = 'resulttiles';
         tilesWrapper.className = 'flex flex-wrap gap-4 mt-8';
 
+        const isSingleCategory = processedData.categoryData.length === 1;
+
         processedData.categoryData.forEach(categoryData => {
-            const tile = this.createTile(categoryData, config);
+            const tile = this.createTile(categoryData, config, isSingleCategory);
             tilesWrapper.appendChild(tile);
             
             // Render gauge if enabled
@@ -19,7 +21,7 @@ export class ResultTileRenderer {
         container.appendChild(tilesWrapper);
     }
     
-    static createTile(categoryData, config) {
+    static createTile(categoryData, config, isSingleCategory = false) {
         const { categoryKey, categoryName, percentage, trafficLightColor, score } = categoryData;
                 
         // Apply category-specific evaluation text if configured
@@ -33,7 +35,11 @@ export class ResultTileRenderer {
         const trafficLightHtml = shouldShowTrafficLight ? this.createTrafficLight(categoryData, config) : '';
         
         const tile = document.createElement('div');
-        tile.className = 'bg-white rounded-lg shadow p-4 flex-1 min-w-[220px] max-w-xs';
+        // For single category: use max width, for multiple categories: keep current behavior
+        const tileClasses = isSingleCategory 
+            ? 'bg-white rounded-lg shadow p-4 w-full' 
+            : 'bg-white rounded-lg shadow p-4 flex-1 min-w-[220px] max-w-xs';
+        tile.className = tileClasses;
         
         // Show percentage, score, and category ID based on configuration
         const showPercentage = config.resulttiles.show_percentage === true;

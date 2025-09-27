@@ -1,0 +1,5 @@
+A1: Dies ist die erste Frage für Kategorie A
+A2: Dies ist die zweite Frage für Kategorie A  
+B1: Dies ist die erste Frage für Kategorie B
+B2: Dies ist die zweite Frage für Kategorie B
+C1: Dies ist die erste Frage für Kategorie C

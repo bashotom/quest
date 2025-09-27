@@ -25,7 +25,7 @@
     "scale_angles": [210, 270, 330]
   },
   "resulttable": {
-    "enabled": true
+    "enabled": false
   },
   "resulttiles": {
     "enabled": true,
