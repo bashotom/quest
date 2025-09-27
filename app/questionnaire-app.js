@@ -20,6 +20,7 @@ export class QuestionnaireApp {
         this._suppressHashUpdates = false; // Flag to prevent hash updates during restore
         
         // Initialize debug mode
+        DebugManager.initialize();
         DebugManager.showDebugElements();
         
         this.initializeElements();
@@ -596,6 +597,35 @@ export class QuestionnaireApp {
         DebugManager.addDebugInfo('App Version', '2.0 (Modular)');
         DebugManager.addDebugInfo('Current URL', window.location.href);
         DebugManager.addDebugInfo('URL Params', Object.fromEntries(new URLSearchParams(window.location.search)));
+    }
+    
+    showEvaluation(scores) {
+        // Hide form and show evaluation section
+        this.elements.questionnaireForm.classList.add('hidden');
+
+        // Hide menu and buttons
+        if (this.elements.questionnaireMenu && this.elements.questionnaireMenu.parentElement) {
+            this.elements.questionnaireMenu.parentElement.style.display = 'none';
+        }
+        ['min-answers-btn', 'random-answers-btn', 'max-answers-btn', 'clear-saved-btn'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.style.display = 'none';
+        });
+
+        // Construct result URL with hash
+        const hash = window.location.hash;
+        let resultUrl = `result.html?q=${this.currentFolder}`;
+
+        // Append debug parameter if in debug mode
+        if (DebugManager.isDebugMode()) {
+            resultUrl += '&debug=true';
+        }
+
+        // Add hash at the end
+        resultUrl += hash;
+
+        // Redirect to result page
+        window.location.href = resultUrl;
     }
 }
 

@@ -3,22 +3,40 @@
  * Handles debug mode detection and UI element visibility
  */
 export class DebugManager {
+    static debugMode = false;
+
     static isDebugMode() {
+        return this.debugMode;
+    }
+
+    static initialize() {
         const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get('debug') === 'on' || urlParams.get('debug') === 'true';
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        
+        // Check URL parameters (both search and hash)
+        const debugParam = urlParams.get('debug') || hashParams.get('debug');
+        if (debugParam !== null && (debugParam === 'true' || debugParam === 'on' || debugParam === '1' || debugParam === '')) {
+            this.debugMode = true;
+            console.log('Debug mode activated from URL:', debugParam);
+        }
+    }
+    
+    static initializeFromUrl() {
+        // Alias for backwards compatibility
+        this.initialize();
     }
 
     static showDebugElements() {
-        if (!this.isDebugMode()) return;
-        
-        // Show all elements with debug class
-        document.querySelectorAll('.debug-only').forEach(element => {
-            element.classList.remove('hidden');
-            element.classList.add('debug-visible');
-        });
+        if (this.debugMode) {
+            // Show all elements with debug class
+            document.querySelectorAll('.debug-only').forEach(element => {
+                element.classList.remove('hidden');
+                element.classList.add('debug-visible');
+            });
 
-        // Add debug indicator to page
-        this.addDebugIndicator();
+            // Add debug indicator to page
+            this.addDebugIndicator();
+        }
     }
 
     static hideDebugElements() {

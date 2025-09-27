@@ -3,6 +3,7 @@ import { URLHashManager } from '../utils/url-hash-manager.js';
 import { ChartRenderer } from '../charts/chart-renderer.js';
 import { ResultRenderer } from '../components/result-renderer.js';
 import { RadarLegend } from '../charts/radar/radar-legend.js';
+import { DebugManager } from '../utils/debug-manager.js';
 
 /**
  * ResultApp - Application class for the separate result page
@@ -15,8 +16,15 @@ export class ResultApp {
         this.currentFolder = '';
         this.labelState = 'short'; // Default label state
         
+        // Initialize debug mode based on URL
+        DebugManager.initializeFromUrl();
+
         this.initializeElements();
         this.setupEventListeners();
+
+        if (DebugManager.isDebugMode()) {
+            this.elements.labelToggleButtons?.classList.remove('hidden');
+        }
     }
     
     initializeElements() {

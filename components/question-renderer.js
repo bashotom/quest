@@ -4,7 +4,7 @@
  */
 export class QuestionRenderer {
     static render(questions, config, container) {
-        const displayMode = localStorage.getItem('displayMode') || 'column';
+        const displayMode = localStorage.getItem('displayMode') || 'responsive';
         const currentAnswers = QuestionRenderer.collectCurrentAnswers(questions);
 
         // Clean up previous responsive listener if not in responsive mode
