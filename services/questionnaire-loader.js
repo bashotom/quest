@@ -6,6 +6,8 @@ import { ConfigParser } from './config-parser.js';
  */
 export class QuestionnaireLoader {
     static questionnairesConfig = null; // Cache für die Konfiguration
+    static isLoading = false; // Loading state to prevent concurrent requests
+    static loadingPromise = null; // Shared promise for concurrent calls
     
     /**
      * Clears all configuration caches
@@ -13,6 +15,8 @@ export class QuestionnaireLoader {
     static clearConfigCache() {
         console.log('[QuestionnaireLoader] Clearing configuration cache');
         this.questionnairesConfig = null;
+        this.isLoading = false;
+        this.loadingPromise = null;
     }
 
     /**
@@ -103,23 +107,49 @@ export class QuestionnaireLoader {
      * @returns {Promise<Object>} Die Fragebogen-Konfiguration
      */
     static async loadQuestionnairesConfig() {
-        // First load: Check if we have cached config and if caching might be disabled
-        if (this.questionnairesConfig) {
-            // If cache is explicitly disabled in the config, reload anyway
+        // If already loading, return the same promise to prevent double loading
+        if (this.isLoading && this.loadingPromise) {
+            console.log('[QuestionnaireLoader] Already loading questionnaires.json - reusing promise');
+            return this.loadingPromise;
+        }
+
+        // Check cache only if not currently loading
+        if (!this.isLoading && this.questionnairesConfig) {
+            // If cache is explicitly disabled, we still use cached version within same session
+            // to prevent double loading while respecting the cache setting
             if (this.questionnairesConfig.settings?.config_cache === false) {
-                console.log('[QuestionnaireLoader] config_cache=false - bypassing cache');
-                this.questionnairesConfig = null; // Clear cache
+                console.log('[QuestionnaireLoader] config_cache=false - using cached version to prevent double load');
+                return this.questionnairesConfig;
             } else {
-                return this.questionnairesConfig; // Use cached version
+                return this.questionnairesConfig;
             }
         }
 
+        // Set loading state and create shared promise
+        this.isLoading = true;
+        this.loadingPromise = this._performLoad();
+        
+        try {
+            const config = await this.loadingPromise;
+            return config;
+        } finally {
+            // Reset loading state
+            this.isLoading = false;
+            this.loadingPromise = null;
+        }
+    }
+
+    /**
+     * Performs the actual loading of questionnaires.json
+     * @returns {Promise<Object>} Die Fragebogen-Konfiguration
+     */
+    static async _performLoad() {
         const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
         
-        // Enhanced cache busting for questionnaires.json when we suspect caching is disabled
-        // (We don't know yet, so we use moderate cache busting initially)
+        // Enhanced cache busting for questionnaires.json
         const timestamp = Date.now();
-        const cacheBuster = `?v=${timestamp}&initial_load=1`;
+        const random = Math.random().toString(36).substring(7);
+        const cacheBuster = `?v=${timestamp}&r=${random}&nocache=1`;
         const configUrl = new URL(`config/questionnaires.json${cacheBuster}`, base).toString();
 
         try {
@@ -140,10 +170,9 @@ export class QuestionnaireLoader {
             
             const config = await response.json();
             
-            // Only cache if config_cache is not explicitly disabled
-            if (config.settings?.config_cache !== false) {
-                this.questionnairesConfig = config;
-            }
+            // Always cache the result (even if config_cache=false)
+            // This prevents double loading within the same session
+            this.questionnairesConfig = config;
             
             return config;
         } catch (error) {
