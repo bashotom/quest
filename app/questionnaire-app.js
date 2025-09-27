@@ -159,7 +159,7 @@ export class QuestionnaireApp {
     
     async renderForm() {
         this.elements.questionnaireForm.innerHTML = `
-            <div class="mb-4 flex justify-center gap-2 flex-wrap">
+            <div class="mb-4 flex justify-center gap-2 flex-wrap debug-only hidden">
                 <button type="button" id="btn-column" class="border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Tabellen-Modus</button>
                 <button type="button" id="btn-inline" class="border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Karten-Modus</button>
                 <button type="button" id="btn-responsive" class="border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Responsive-Modus</button>
@@ -184,6 +184,7 @@ export class QuestionnaireApp {
 
         await this.renderQuestions();
         this.setupFormEvents();
+        DebugManager.showDebugElements();
     }
     
     async renderQuestions() {
