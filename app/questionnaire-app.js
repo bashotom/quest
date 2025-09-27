@@ -11,6 +11,7 @@ import { DebugManager } from '../utils/debug-manager.js';
  */
 export class QuestionnaireApp {
     constructor() {
+        window.questionnaireApp = this; // Expose instance for debugging
         this.questions = [];
         this.config = {};
         this.currentFolder = '';

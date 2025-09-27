@@ -28,22 +28,44 @@ export class DebugManager {
         });
         
         // Remove debug indicator
-        const indicator = document.getElementById('debug-indicator');
+        const indicator = document.getElementById('debug-indicator-container');
         if (indicator) indicator.remove();
     }
 
     static addDebugIndicator() {
         // Remove existing indicator first
-        const existing = document.getElementById('debug-indicator');
+        const existing = document.getElementById('debug-indicator-container');
         if (existing) existing.remove();
         
+        const container = document.createElement('div');
+        container.id = 'debug-indicator-container';
+        container.className = 'fixed top-2 right-2 z-50 flex items-center space-x-2';
+
         const indicator = document.createElement('div');
         indicator.id = 'debug-indicator';
-        indicator.className = 'fixed top-2 right-2 bg-red-500 text-white px-3 py-1 text-sm rounded z-50';
+        indicator.className = 'bg-red-500 text-white px-3 py-1 text-sm rounded';
         indicator.textContent = 'DEBUG MODE';
         indicator.style.animation = 'pulse 2s infinite';
         indicator.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.5)';
-        document.body.appendChild(indicator);
+        
+        const stopButton = document.createElement('button');
+        stopButton.id = 'stop-debug-button';
+        stopButton.className = 'bg-gray-700 hover:bg-gray-800 text-white px-3 py-1 text-sm rounded';
+        stopButton.textContent = 'Stop Debugging';
+        stopButton.title = 'Stop Debugging';
+        stopButton.onclick = () => {
+            // Hide all debug-related elements
+            this.hideDebugElements();
+
+            // Also remove the debug parameter from the URL without reloading the page
+            const url = new URL(window.location.href);
+            url.searchParams.delete('debug');
+            history.pushState({}, '', url.toString());
+        };
+
+        container.appendChild(indicator);
+        container.appendChild(stopButton);
+        document.body.appendChild(container);
     }
 
     static log(message, data = null) {
@@ -80,7 +102,17 @@ export class DebugManager {
             panel.className = 'debug-only fixed bottom-4 left-4 bg-gray-800 text-white p-3 rounded max-w-sm z-50';
             panel.style.border = '2px solid #7c3aed';
             panel.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
-            panel.innerHTML = '<h4 class="font-bold mb-2">🐛 Debug Panel</h4>';
+            
+            const title = document.createElement('h4');
+            title.className = 'font-bold mb-2';
+            title.innerHTML = '🐛 Debug Panel';
+            
+            const infoContainer = document.createElement('div');
+            infoContainer.id = 'debug-panel-info';
+            infoContainer.className = 'text-xs space-y-1';
+
+            panel.appendChild(title);
+            panel.appendChild(infoContainer);
             document.body.appendChild(panel);
         }
         return panel;
@@ -89,30 +121,38 @@ export class DebugManager {
     static addDebugInfo(key, value) {
         if (!this.isDebugMode()) return;
         
-        let infoDiv = document.getElementById('debug-info');
-        if (!infoDiv) {
-            infoDiv = document.createElement('div');
-            infoDiv.id = 'debug-info';
-            infoDiv.className = 'debug-only hidden bg-yellow-100 border border-yellow-400 p-4 mb-4';
-            infoDiv.innerHTML = '<h3 class="font-bold text-yellow-800">🐛 Debug Information</h3><div id="debug-info-content" class="text-sm text-yellow-700 mt-2"></div>';
-            
-            // Insert at top of main content
-            const mainContent = document.querySelector('main') || document.body;
-            mainContent.insertBefore(infoDiv, mainContent.firstChild);
-            infoDiv.classList.remove('hidden');
+        const panel = this.getOrCreateDebugPanel();
+        const infoContainer = panel.querySelector('#debug-panel-info');
+        if (!infoContainer) return;
+
+        // Remove existing entry for the key
+        const existingEntry = infoContainer.querySelector(`[data-debug-key="${key}"]`);
+        if (existingEntry) {
+            existingEntry.remove();
         }
+
+        const infoLine = document.createElement('div');
+        infoLine.className = 'flex justify-between items-center';
+        infoLine.setAttribute('data-debug-key', key);
         
-        const content = document.getElementById('debug-info-content');
-        const item = document.createElement('div');
-        item.className = 'mb-1';
-        item.innerHTML = `<strong>${key}:</strong> ${typeof value === 'object' ? JSON.stringify(value, null, 2) : value}`;
-        content.appendChild(item);
+        const keySpan = document.createElement('span');
+        keySpan.className = 'font-semibold text-gray-400 mr-2';
+        keySpan.textContent = `${key}:`;
+        
+        const valueSpan = document.createElement('span');
+        valueSpan.className = 'text-purple-300 font-mono';
+        valueSpan.textContent = value;
+        
+        infoLine.appendChild(keySpan);
+        infoLine.appendChild(valueSpan);
+        infoContainer.appendChild(infoLine);
     }
 
     static clearDebugInfo() {
-        const infoDiv = document.getElementById('debug-info-content');
-        if (infoDiv) {
-            infoDiv.innerHTML = '';
+        if (!this.isDebugMode()) return;
+        const infoContainer = document.getElementById('debug-panel-info');
+        if (infoContainer) {
+            infoContainer.innerHTML = '';
         }
     }
 
