@@ -1,6 +1,9 @@
 /**
  * Service für das Parsen und Normalisieren von Fragebogen-Konfigurationen
- * Extrahiert aus der ursprünglichen parseJsonConfig-Funktion
+ * Extrahiert aus der            result.persistence = {
+                enabled: jsonData.persistence.enabled === true,
+                type: jsonData.persistence.type || 'localstorage',
+                try_reloading: jsonData.persistence.try_reloading === true // Explicit check: only true if explicitly set to true parseJsonConfig-Funktion
  */
 export class ConfigParser {
     /**
@@ -98,9 +101,21 @@ export class ConfigParser {
         
         // Persistence-Konfiguration verarbeiten
         if (jsonData.persistence && typeof jsonData.persistence === 'object') {
+            const rawTryReloading = jsonData.persistence.try_reloading;
+            const parsedTryReloading = rawTryReloading !== false;
+            
+            console.log('� [ConfigParser DEBUG v2] try_reloading parsing:', {
+                raw: rawTryReloading,
+                type: typeof rawTryReloading,
+                parsed: parsedTryReloading,
+                logic: `${rawTryReloading} !== false = ${parsedTryReloading}`,
+                timestamp: Date.now()
+            });
+            
             result.persistence = {
                 enabled: jsonData.persistence.enabled === true,
-                type: jsonData.persistence.type || 'localstorage'
+                type: jsonData.persistence.type || 'localstorage',
+                try_reloading: rawTryReloading === true // Explicit check: only true if explicitly set to true
             };
             
             // Server-Konfiguration für Hybrid-Modus
@@ -123,7 +138,8 @@ export class ConfigParser {
         } else {
             result.persistence = {
                 enabled: false,
-                type: 'localstorage'
+                type: 'localstorage',
+                try_reloading: false // Default: false (no persistence = no reloading)
             };
         }
         

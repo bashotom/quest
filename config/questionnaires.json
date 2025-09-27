@@ -30,6 +30,7 @@
   "settings": {
     "defaultQuestionnaire": "autonomie",
     "showDescriptions": true,
-    "enableCategorization": false
+    "enableCategorization": false,
+    "config_cache": false
   }
 }

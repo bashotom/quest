@@ -182,25 +182,31 @@ export class QuestionnaireApp {
         QuestionRenderer.render(this.questions, this.config, container);
         
         // Try to load saved answers using appropriate persistence manager
-        const PersistenceManager = PersistenceManagerFactory.create(this.config);
-        const savedAnswers = await PersistenceManager.loadAnswers(this.currentFolder, this.config);
-        if (savedAnswers && Object.keys(savedAnswers).length > 0) {
-            // Set saved answers in the form
-            QuestionRenderer.setAnswers(savedAnswers);
-            
-            // Apply colors based on display mode
-            const displayMode = localStorage.getItem('displayMode') || 'column';
-            const effectiveMode = this.getEffectiveDisplayMode(displayMode);
-            if (effectiveMode === 'column') {
-                QuestionRenderer.applyAnswerColors(this.config);
+        // Only if try_reloading is explicitly enabled
+        if (this.config.persistence?.try_reloading === true) {
+            const PersistenceManager = PersistenceManagerFactory.create(this.config);
+            const savedAnswers = await PersistenceManager.loadAnswers(this.currentFolder, this.config);
+            if (savedAnswers && Object.keys(savedAnswers).length > 0) {
+                // Set saved answers in the form
+                QuestionRenderer.setAnswers(savedAnswers);
+                
+                // Apply colors based on display mode
+                const displayMode = localStorage.getItem('displayMode') || 'column';
+                const effectiveMode = this.getEffectiveDisplayMode(displayMode);
+                if (effectiveMode === 'column') {
+                    QuestionRenderer.applyAnswerColors(this.config);
+                } else {
+                    QuestionRenderer.applyInlineAnswerColors(this.config);
+                }
+                
+                // Show user feedback about loaded answers
+                this.showTemporaryMessage('Gespeicherte Antworten wurden wiederhergestellt.', 'success');
             } else {
-                QuestionRenderer.applyInlineAnswerColors(this.config);
+                // Fallback to URL hash if no saved answers
+                URLHashManager.setAnswersFromHash(this.questions, this.config);
             }
-            
-            // Show user feedback about loaded answers
-            this.showTemporaryMessage('Gespeicherte Antworten wurden wiederhergestellt.', 'success');
         } else {
-            // Fallback to URL hash if no saved answers
+            // try_reloading is disabled or not set, only use URL hash
             URLHashManager.setAnswersFromHash(this.questions, this.config);
         }
     }
@@ -420,7 +426,8 @@ export class QuestionnaireApp {
     async updateClearButtonVisibility() {
         const clearSavedBtn = document.getElementById('clear-saved-btn');
         if (clearSavedBtn) {
-            if (PersistenceManagerFactory.isEnabled(this.config)) {
+            // Only show button if persistence is enabled AND try_reloading is explicitly enabled
+            if (PersistenceManagerFactory.isEnabled(this.config) && this.config.persistence?.try_reloading === true) {
                 const PersistenceManager = PersistenceManagerFactory.create(this.config);
                 const savedAnswers = await PersistenceManager.loadAnswers(this.currentFolder, this.config);
                 if (savedAnswers && Object.keys(savedAnswers).length > 0) {

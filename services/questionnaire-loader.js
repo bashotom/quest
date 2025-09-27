@@ -6,6 +6,14 @@ import { ConfigParser } from './config-parser.js';
  */
 export class QuestionnaireLoader {
     static questionnairesConfig = null; // Cache für die Konfiguration
+    
+    /**
+     * Clears all configuration caches
+     */
+    static clearConfigCache() {
+        console.log('[QuestionnaireLoader] Clearing configuration cache');
+        this.questionnairesConfig = null;
+    }
 
     /**
      * Lädt einen vollständigen Fragebogen (Fragen + Konfiguration)
@@ -14,14 +22,41 @@ export class QuestionnaireLoader {
      */
     static async loadQuestionnaire(folder) {
         const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
-        const cacheBuster = '?v=' + Date.now(); // Cache-Busting
+        
+        // Check if caching is disabled in questionnaires config
+        const questionnairesConfig = await this.loadQuestionnairesConfig();
+        const cacheDisabled = questionnairesConfig?.settings?.config_cache === false;
+        
+        // Enhanced cache busting when caching is disabled
+        let cacheBuster;
+        if (cacheDisabled) {
+            // Aggressive cache busting: timestamp + random + explicit nocache flags
+            const timestamp = Date.now();
+            const random = Math.random().toString(36).substring(7);
+            cacheBuster = `?v=${timestamp}&r=${random}&nocache=1&_cb=${timestamp}`;
+            console.log('[QuestionnaireLoader] config_cache=false - using aggressive cache busting for', folder);
+        } else {
+            // Standard cache busting
+            cacheBuster = '?v=' + Date.now();
+        }
+        
         const questionsUrl = new URL(`quests/${folder}/questions.txt${cacheBuster}`, base).toString();
         const configUrl = new URL(`quests/${folder}/config.json${cacheBuster}`, base).toString();
 
         try {
+            // Prepare fetch options with anti-cache headers when caching is disabled
+            const fetchOptions = cacheDisabled ? {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            } : {};
+            
             const [questionsResponse, configResponse] = await Promise.all([
-                fetch(questionsUrl),
-                fetch(configUrl)
+                fetch(questionsUrl, fetchOptions),
+                fetch(configUrl, fetchOptions)
             ]);
 
             const questionsText = await questionsResponse.text();
@@ -68,22 +103,49 @@ export class QuestionnaireLoader {
      * @returns {Promise<Object>} Die Fragebogen-Konfiguration
      */
     static async loadQuestionnairesConfig() {
+        // First load: Check if we have cached config and if caching might be disabled
         if (this.questionnairesConfig) {
-            return this.questionnairesConfig; // Bereits geladen
+            // If cache is explicitly disabled in the config, reload anyway
+            if (this.questionnairesConfig.settings?.config_cache === false) {
+                console.log('[QuestionnaireLoader] config_cache=false - bypassing cache');
+                this.questionnairesConfig = null; // Clear cache
+            } else {
+                return this.questionnairesConfig; // Use cached version
+            }
         }
 
         const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
-        const cacheBuster = '?v=' + Date.now();
+        
+        // Enhanced cache busting for questionnaires.json when we suspect caching is disabled
+        // (We don't know yet, so we use moderate cache busting initially)
+        const timestamp = Date.now();
+        const cacheBuster = `?v=${timestamp}&initial_load=1`;
         const configUrl = new URL(`config/questionnaires.json${cacheBuster}`, base).toString();
 
         try {
-            const response = await fetch(configUrl);
+            // Use anti-cache headers for questionnaires.json fetch
+            const fetchOptions = {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            };
+            
+            const response = await fetch(configUrl, fetchOptions);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
-            this.questionnairesConfig = await response.json();
-            return this.questionnairesConfig;
+            const config = await response.json();
+            
+            // Only cache if config_cache is not explicitly disabled
+            if (config.settings?.config_cache !== false) {
+                this.questionnairesConfig = config;
+            }
+            
+            return config;
         } catch (error) {
             console.error('Fehler beim Laden der Fragebogen-Konfiguration:', error);
             // Fallback zur statischen Liste
