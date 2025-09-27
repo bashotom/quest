@@ -24,11 +24,6 @@ export class ResultApp {
 
         // Show debug elements after DOM is ready
         DebugManager.showDebugElements();
-        
-        // Show label toggle buttons if in debug mode
-        if (DebugManager.isDebugMode()) {
-            this.elements.labelToggleButtons?.classList.remove('hidden');
-        }
     }
     
     initializeElements() {

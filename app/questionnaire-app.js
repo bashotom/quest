@@ -169,7 +169,7 @@ export class QuestionnaireApp {
             <p id="error-message" class="text-red-600 text-sm mb-4 hidden"></p>
             <form id="quiz-form">
                 <div class="mb-6 sm:mb-8 flex justify-center">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 text-sm sm:text-base">
+                    <button type="submit" class="debug-only hidden bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 text-sm sm:text-base">
                         Fragebogen auswerten
                     </button>
                 </div>

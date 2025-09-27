@@ -249,7 +249,7 @@ class QuestionnaireForm extends HTMLElement {
 
                 <form id="questionnaire-form">
                     <div class="submit-buttons">
-                        <button type="submit" class="submit-button">
+                        <button type="submit" class="submit-button debug-only hidden">
                             Fragebogen auswerten
                         </button>
                     </div>
