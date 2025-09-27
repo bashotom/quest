@@ -299,7 +299,11 @@ export class ServerPersistenceManager {
                     answerCount: Object.keys(result.data.answers).length,
                     timestamp: result.data.timestamp
                 });
-                return result.data.answers;
+                // Return full data structure with timestamp for ask_reloading feature
+                return {
+                    ...result.data.answers,
+                    timestamp: result.data.timestamp
+                };
             }
             
             return null;

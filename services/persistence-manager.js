@@ -79,7 +79,11 @@ export class PersistenceManager {
                 return null;
             }
 
-            return persistenceData.answers;
+            // Return full data structure with timestamp for ask_reloading feature
+            return {
+                ...persistenceData.answers,
+                timestamp: persistenceData.timestamp
+            };
         } catch (error) {
             console.error('❌ [PersistenceManager] Failed to load answers from localStorage:', error);
             return null;

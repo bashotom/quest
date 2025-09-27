@@ -229,7 +229,11 @@ export class HybridPersistenceManager {
                 return null;
             }
 
-            return persistenceData.answers;
+            // Return full data structure with timestamp for ask_reloading feature
+            return {
+                ...persistenceData.answers,
+                timestamp: persistenceData.timestamp
+            };
         } catch (error) {
             console.error('[HybridPersistenceManager] LocalStorage load failed:', error);
             return null;
@@ -332,7 +336,11 @@ export class HybridPersistenceManager {
                 return null; // No data or error
             }
             
-            return result.data.answers;
+            // Return full data structure with timestamp for ask_reloading feature
+            return {
+                ...result.data.answers,
+                timestamp: result.data.timestamp
+            };
         } catch (error) {
             clearTimeout(timeoutId);
             throw error;

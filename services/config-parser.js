@@ -1,6 +1,8 @@
 /**
  * Service für das Parsen und Normalisieren von Fragebogen-Konfigurationen
- * Extrahiert aus der            result.persistence = {
+ * Extrahiert aus der               const rawTryReloading = jsonData.persistence.try_reloading;
+            
+            result.persistence = {ult.persistence = {
                 enabled: jsonData.persistence.enabled === true,
                 type: jsonData.persistence.type || 'localstorage',
                 try_reloading: jsonData.persistence.try_reloading === true // Explicit check: only true if explicitly set to true parseJsonConfig-Funktion
@@ -115,7 +117,8 @@ export class ConfigParser {
             result.persistence = {
                 enabled: jsonData.persistence.enabled === true,
                 type: jsonData.persistence.type || 'localstorage',
-                try_reloading: rawTryReloading === true // Explicit check: only true if explicitly set to true
+                try_reloading: rawTryReloading === true, // Explicit check: only true if explicitly set to true
+                ask_reloading: jsonData.persistence.ask_reloading === true // Ask before loading saved answers
             };
             
             // Server-Konfiguration für Hybrid-Modus
@@ -139,7 +142,8 @@ export class ConfigParser {
             result.persistence = {
                 enabled: false,
                 type: 'localstorage',
-                try_reloading: false // Default: false (no persistence = no reloading)
+                try_reloading: false, // Default: false (no persistence = no reloading)
+                ask_reloading: false // Default: false
             };
         }
         

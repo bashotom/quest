@@ -189,27 +189,16 @@ export class QuestionnaireApp {
             const savedAnswers = await PersistenceManager.loadAnswers(this.currentFolder, this.config);
             
             if (savedAnswers && Object.keys(savedAnswers).length > 0) {
-                // Suppress hash updates during answer restoration
-                this._suppressHashUpdates = true;
-                window.questionnaire = this; // Make app instance accessible to URLHashManager
-                
-                // Set saved answers in the form
-                QuestionRenderer.setAnswers(savedAnswers);
-                
-                // Re-enable hash updates
-                this._suppressHashUpdates = false;
-                
-                // Apply colors based on display mode
-                const displayMode = localStorage.getItem('displayMode') || 'column';
-                const effectiveMode = this.getEffectiveDisplayMode(displayMode);
-                if (effectiveMode === 'column') {
-                    QuestionRenderer.applyAnswerColors(this.config);
+                // Check if user confirmation is required
+                if (this.config.persistence?.ask_reloading === true) {
+                    // Show button to load answers manually
+                    this.showLoadAnswersButton(savedAnswers);
+                    // Still load URL hash if available
+                    URLHashManager.setAnswersFromHash(this.questions, this.config);
                 } else {
-                    QuestionRenderer.applyInlineAnswerColors(this.config);
+                    // Automatic loading (existing behavior)
+                    await this.loadSavedAnswers(savedAnswers);
                 }
-                
-                // Show user feedback about loaded answers
-                this.showTemporaryMessage('Gespeicherte Antworten wurden wiederhergestellt.', 'success');
             } else {
                 // Fallback to URL hash if no saved answers
                 URLHashManager.setAnswersFromHash(this.questions, this.config);
@@ -365,6 +354,9 @@ export class QuestionnaireApp {
     handleMenuNavigation(event, folder) {
         event.preventDefault();
         
+        // Clean up any existing load answers button from previous questionnaire
+        this.cleanupLoadAnswersButton();
+        
         // Create completely clean URL with only the questionnaire parameter
         const cleanUrl = `${window.location.origin}${window.location.pathname}?q=${folder}`;
         window.history.pushState(null, null, cleanUrl);
@@ -396,6 +388,9 @@ export class QuestionnaireApp {
         try {
             this.currentFolder = await QuestionnaireLoader.getActiveQuestionnaire();
             const data = await QuestionnaireLoader.loadQuestionnaire(this.currentFolder);
+            
+            // Clean up any existing load answers button from previous questionnaire
+            this.cleanupLoadAnswersButton();
             
             this.questions = data.questions;
             this.config = data.config;
@@ -454,6 +449,101 @@ export class QuestionnaireApp {
             } else {
                 clearSavedBtn.style.display = 'none';
             }
+        }
+    }
+
+    /**
+     * Shows a button to manually load saved answers
+     * @param {Object} savedAnswers - The saved answers data
+     */
+    showLoadAnswersButton(savedAnswers) {
+        // Get or create load answers container
+        let container = document.getElementById('load-answers-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'load-answers-container';
+            container.className = 'mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg';
+            
+            // Insert after questionnaire description
+            const description = document.getElementById('questionnaire-description');
+            if (description && description.parentNode) {
+                description.parentNode.insertBefore(container, description.nextSibling);
+            } else {
+                // Fallback: insert at beginning of questions container
+                const questionsContainer = document.getElementById('questions-container');
+                if (questionsContainer && questionsContainer.parentNode) {
+                    questionsContainer.parentNode.insertBefore(container, questionsContainer);
+                }
+            }
+        }
+
+        // Format timestamp for display
+        let timestampText = '';
+        if (savedAnswers.timestamp) {
+            const date = new Date(savedAnswers.timestamp);
+            timestampText = ` vom ${date.toLocaleDateString('de-DE')} ${date.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}`;
+        }
+
+        container.innerHTML = `
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-medium text-blue-900 mb-1">Gespeicherte Antworten gefunden</h3>
+                    <p class="text-blue-700">Frühere Antworten${timestampText} sind verfügbar.</p>
+                </div>
+                <button id="load-answers-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                    Frühere Antworten laden
+                </button>
+            </div>
+        `;
+
+        // Add click handler
+        const loadButton = document.getElementById('load-answers-btn');
+        if (loadButton) {
+            loadButton.addEventListener('click', async () => {
+                await this.loadSavedAnswers(savedAnswers);
+                container.remove(); // Remove the button after loading
+            });
+        }
+    }
+
+    /**
+     * Loads saved answers into the form (extracted from original renderQuestions logic)
+     * @param {Object} savedAnswers - The saved answers data with potential timestamp
+     */
+    async loadSavedAnswers(savedAnswers) {
+        // Suppress hash updates during answer restoration
+        this._suppressHashUpdates = true;
+        window.questionnaire = this; // Make app instance accessible to URLHashManager
+        
+        // Remove timestamp from answers object before setting answers
+        const { timestamp, ...answersOnly } = savedAnswers;
+        
+        // Set saved answers in the form
+        QuestionRenderer.setAnswers(answersOnly);
+        
+        // Re-enable hash updates
+        this._suppressHashUpdates = false;
+        
+        // Apply colors based on display mode
+        const displayMode = localStorage.getItem('displayMode') || 'column';
+        const effectiveMode = this.getEffectiveDisplayMode(displayMode);
+        if (effectiveMode === 'column') {
+            QuestionRenderer.applyAnswerColors(this.config);
+        } else {
+            QuestionRenderer.applyInlineAnswerColors(this.config);
+        }
+        
+        // Show user feedback about loaded answers
+        this.showTemporaryMessage('Gespeicherte Antworten wurden wiederhergestellt.', 'success');
+    }
+
+    /**
+     * Cleans up the load answers button when switching questionnaires
+     */
+    cleanupLoadAnswersButton() {
+        const container = document.getElementById('load-answers-container');
+        if (container) {
+            container.remove();
         }
     }
 }
