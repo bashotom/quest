@@ -5,10 +5,23 @@ Eine schlanke, einseitige Web-Anwendung für dynamische Fragebögen mit Chart-Vi
 ## 🎯 Projektübersicht
 
 - **Typ:** Dynamische Fragebogen-Web-App (Single-Page, kein Build-Step)
-- **Architektur:** Modulare ES6-Module, client-seitig, statische Dateien
+- **Architektur:** Modulare ES6-Module mit Hybrid-Backend-Support
 - **Charts:** D3.js Radar-Charts & Gauge-Charts, Chart.js für Fallbacks
-- **Styling:** TailwindCSS (CDN) + modulare CSS-Dateien
-- **Persistierung:** LocalStorage-basierte Antwortenspeicherung (optional konfigurierbar)
+-## 📈 Externe Abhängigkeiten
+
+### Frontend (CDN)
+- [TailwindCSS](https://cdn.tailwindcss.com) (CDN)
+- [Chart.js](https://cdn.jsdelivr.net/npm/chart.js) (CDN) 
+- [D3.js](https://d3js.org) (für Radar-Charts)
+- [Google Fonts: Inter](https://fonts.googleapis.com/css2?family=Inter)
+
+### Backend (Server-Persistierung)
+- **PHP 7.4+** (für API-Backend)
+- **MySQL 8.0+ oder MariaDB 10.11+** (für Datenhaltung)
+- **Web Server** (Apache/Nginx mit PHP-Support)
+- **CORS-Support** (für Client-Server-Kommunikation)ling:** TailwindCSS (CDN) + modulare CSS-Dateien
+- **Persistierung:** Hybrid-System (LocalStorage + Server-Backup) oder reine Server-Persistierung
+- **API-Backend:** PHP-REST-API mit MySQL/MariaDB für Datensicherheit und Geräte-Synchronisation
 
 ## 📁 Modulare Dateistruktur
 
@@ -57,10 +70,20 @@ quest/
 │   ├── finale-universal-encoding-summary.md # Encoding-Finale
 │   ├── d3-simple-gauge-integration.md # D3-Gauge Integration
 │   └── gauge-validation.js       # Gauge-Validierung
+├── api/                          # Server-Backend (PHP)
+│   ├── questionnaire-data-prod.php # Production API (MySQL/MariaDB)
+│   ├── questionnaire-data.php    # Development API
+│   ├── mariadb-config.php        # Database configuration
+│   └── test-mariadb.php          # Database connection test
+├── database/
+│   └── schema.sql                # MySQL/MariaDB database schema
 ├── services/                     # Backend-Services
 │   ├── questionnaire-loader.js   # Datenlade-Service
 │   ├── config-parser.js          # JSON-Parsing & Konfiguration
-│   ├── persistence-manager.js    # LocalStorage-Persistierung
+│   ├── persistence-manager.js    # LocalStorage-Persistierung (Legacy)
+│   ├── hybrid-persistence-manager.js # Hybrid LocalStorage + Server
+│   ├── server-persistence-manager.js # Pure Server Persistence
+│   ├── persistence-manager-factory.js # Persistence Strategy Factory
 │   └── result-data-processor.js  # Ergebnis-Datenverarbeitung
 ├── utils/                        # Hilfsfunktionen
 │   └── url-hash-manager.js       # URL-Hash-Management
@@ -97,6 +120,45 @@ quest/
 | `charts/gauge-chart.js` | D3.js Gauge-Chart mit bewährtem Pattern | ~140 |
 | `services/persistence-manager.js` | LocalStorage-Persistierung | ~120 |
 | `css/styles.css` | Alle Styles (Chart, UI, Responsive) | ~100 |
+
+## 🔧 API-Backend
+
+### PHP-REST-API (`api/questionnaire-data-prod.php`)
+**Production-Ready Server-Backend** mit MySQL/MariaDB-Integration
+```php
+// Endpoints:
+// POST   /api/questionnaire-data-prod.php - Save questionnaire answers
+// GET    /api/questionnaire-data-prod.php - Load questionnaire answers  
+// DELETE /api/questionnaire-data-prod.php - Delete questionnaire answers
+
+// ✅ MySQL 8.0+ und MariaDB 10.11+ kompatibel
+// ✅ CORS-Support für Client-Integration
+// ✅ Session-Token-basierte Zuordnung
+// ✅ Automatische Cleanup alter Daten (90 Tage)
+// ✅ Error Handling und JSON-Response
+```
+
+### Database Schema (`database/schema.sql`)
+**MySQL/MariaDB Schema** für Fragebogen-Daten
+```sql
+-- Tabelle: questionnaire_responses
+-- ✅ UUID-basierte Session-Tokens
+-- ✅ JSON-Storage für flexible Antworten
+-- ✅ Timestamp-Tracking für Cleanup
+-- ✅ Optimierte Indizierung für Performance
+```
+
+### Setup & Installation
+```bash
+# 1. Database erstellen
+mysql -u root -p < database/schema.sql
+
+# 2. API-Konfiguration anpassen
+# Editieren Sie api/questionnaire-data-prod.php
+
+# 3. Web-Server mit PHP-Support
+# Apache/Nginx + PHP 7.4+ + MySQL/MariaDB
+```
 
 ## 🔧 Module im Detail
 
@@ -140,22 +202,39 @@ handler.handleSubmit(event, onSuccessCallback);
 // ✅ Auto-save on radio button changes (wenn persistence aktiviert)
 ```
 
-### PersistenceManager (`services/persistence-manager.js`)
-**LocalStorage-Persistierung** - Automatische Antwortenspeicherung und intelligente UI-Kontrolle
+### Persistence Services
+
+#### PersistenceManagerFactory (`services/persistence-manager-factory.js`)
+**Strategy Pattern** - Automatische Auswahl der Persistierungs-Strategie
 ```javascript
-import { PersistenceManager } from './services/persistence-manager.js';
+import { PersistenceManagerFactory } from './services/persistence-manager-factory.js';
 
-// Automatische Speicherung (wird von FormHandler aufgerufen)
-PersistenceManager.saveAnswers(folder, answers, config);
+// Automatische Manager-Auswahl basierend auf Konfiguration
+const manager = PersistenceManagerFactory.createManager(config);
 
-// Laden gespeicherter Antworten (automatisch beim Laden)
-const savedAnswers = PersistenceManager.loadAnswers(folder, config);
+// Einheitliche API für alle Persistierungs-Modi
+manager.saveAnswers(folder, answers, config);
+const savedAnswers = await manager.loadAnswers(folder, config);
+manager.clearAnswers(folder);
+```
 
-// Intelligente Button-Sichtbarkeit
-PersistenceManager.isPersistenceEnabled(config) && hasStoredAnswers;
-// ✅ Button nur sichtbar wenn Persistierung aktiviert UND Daten vorhanden
-// ✅ Stille Hintergrund-Operation ohne Debug-Ausgaben
-// ✅ Automatische Datenvalidierung und Cleanup
+#### HybridPersistenceManager (`services/hybrid-persistence-manager.js`)
+**Hybrid-Modus** - LocalStorage + Server-Backup für optimale Performance und Datensicherheit
+```javascript
+// ✅ Beste Performance durch LocalStorage-Cache
+// ✅ Datensicherheit durch automatisches Server-Backup
+// ✅ Geräte-Synchronisation möglich
+// ✅ Fallback bei Server-Ausfall
+// ✅ Intelligent retry mit "try_reloading" Feature
+```
+
+#### ServerPersistenceManager (`services/server-persistence-manager.js`)
+**Server-Modus** - Reine Server-basierte Persistierung
+```javascript
+// ✅ Zentrale Datenhaltung
+// ✅ Request-Deduplication und Caching
+// ✅ Session-Token-basierte Zuordnung
+// ✅ Automatische Cleanup-Mechanismen
 ```
 
 ### 🛡️ Technische Verbesserungen
@@ -283,7 +362,9 @@ Format: `<Kategorie-ID>|<Fragetext>`
   },
   "persistence": {
     "enabled": true,
-    "type": "localstorage"
+    "type": "localstorage|hybrid|server",
+    "server_endpoint": "api/questionnaire-data-prod.php",
+    "try_reloading": true
   }
 }
 ```
@@ -295,8 +376,11 @@ Format: `<Kategorie-ID>|<Fragetext>`
 
 **Persistierung-Optionen:**
 - `"persistence": {"enabled": false}`: Keine Speicherung (Standard)
-- `"persistence": {"enabled": true, "type": "localstorage"}`: Automatische LocalStorage-Speicherung
-- Smart UI: Button "Gespeicherte Antworten löschen" nur bei vorhandenen Daten sichtbar
+- `"persistence": {"enabled": true, "type": "localstorage"}`: Reine LocalStorage-Speicherung
+- `"persistence": {"enabled": true, "type": "hybrid"}`: LocalStorage + Server-Backup (empfohlen)
+- `"persistence": {"enabled": true, "type": "server"}`: Reine Server-Persistierung
+- `"try_reloading": true`: "Erneut versuchen"-Button bei Server-Verbindungsfehlern
+- Smart UI: Intelligente Button-Sichtbarkeit basierend auf Daten-Verfügbarkeit und Persistierungs-Modus
 
 ## 🎨 Chart-Typen
 
@@ -379,9 +463,21 @@ Die Anwendung (`index.html`) verwendet eine schlanke modulare Architektur:
 
 ## 📈 Entwicklungshistorie
 
+### Version 2.1 - Hybrid-Persistierung & API-Backend (September 2025)
+
+**Neue Features:**
+- ✅ **Hybrid-Persistierung:** LocalStorage + Server-Backup für optimale Performance
+- ✅ **Server-Persistierung:** Reine Server-basierte Speicherung für zentrale Datenhaltung
+- ✅ **PHP-REST-API:** Production-ready Backend mit MySQL/MariaDB-Support
+- ✅ **Strategy Pattern:** PersistenceManagerFactory für flexible Persistierungs-Strategien
+- ✅ **Try-Reloading:** Intelligente Retry-Mechanismen bei Server-Verbindungsfehlern
+- ✅ **Session-Management:** UUID-basierte Session-Tokens für Benutzer-Zuordnung
+- ✅ **Request-Deduplication:** Optimierte Server-Kommunikation mit Caching
+- ✅ **Database-Schema:** Vollständiges MySQL/MariaDB-Setup mit Cleanup-Mechanismen
+
 ### Version 2.0 - Modulare Architektur (September 2025)
 
-**Hauptziele erreicht:**
+**Grundlegende Modernisierung:**
 - ✅ **Wartbarkeit:** Von 800+ auf 160 Zeilen in `index.html` reduziert
 - ✅ **Modularität:** Klare Trennung der Verantwortlichkeiten
 - ✅ **Chart-Stabilität:** Container-Isolation verhindert Rendering-Konflikte

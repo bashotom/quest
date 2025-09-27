@@ -1,11 +1,12 @@
 # Copilot AI Coding Agent Instructions for `quest`
 
 ## Project Overview
-- **Type:** Dynamic questionnaire web app (single-page, no build step)
-- **Architecture:** Modular ES6 structure with dedicated modules (Sep 2025 refactor)
+- **Type:** Dynamic questionnaire web app with hybrid persistence architecture
+- **Architecture:** Modular ES6 structure with three persistence strategies (September 2025)
 - **Main Entry:** `index.html` (~160 lines) + `app/questionnaire-app.js` (main orchestrator)
 - **Questionnaires:** Located in `quests/<name>/` (each with `questions.txt` and `config.json`)
-- **No backend/server**: All logic is client-side, fetches static files
+- **Persistence:** LocalStorage-only, Hybrid (LocalStorage + Server), or Server-only modes
+- **Backend:** PHP-REST-API with MySQL/MariaDB for server persistence
 
 ## ⚠️ CRITICAL: Configuration Implementation Rule
 **BEFORE implementing any new configuration feature, ALWAYS check and ensure that the new configuration option is properly parsed and processed in `services/config-parser.js`.** 
@@ -42,13 +43,17 @@ This rule prevents configuration-related bugs where settings are defined in JSON
 - **`index.html`**: HTML structure + ES6 module bootstrapping (no inline JS logic)
 - **`app/questionnaire-app.js`**: Main application class, orchestrates all modules
 - **`components/question-renderer.js`**: UI rendering (table/card/responsive mode)
-- **`components/form-handler.js`**: Form validation, error handling
+- **`components/form-handler.js`**: Form validation, error handling, auto-save
 - **`charts/chart-renderer.js`**: Chart management with container isolation
 - **`charts/gauge-chart.js`**: D3.js gauge chart implementation
 - **`charts/radar-chart.js`**: Modular radar chart orchestrator (uses radar/ modules)
 - **`css/styles.css`**: All styles (extracted from index.html)
 - **`services/questionnaire-loader.js`**: Data loading service
+- **`services/persistence-manager-factory.js`**: Strategy factory for persistence modes
+- **`services/hybrid-persistence-manager.js`**: LocalStorage + Server backup persistence
+- **`services/server-persistence-manager.js`**: Pure server-based persistence
 - **`utils/url-hash-manager.js`**: URL hash persistence
+- **`api/questionnaire-data-prod.php`**: PHP REST API for server persistence
 
 ### Radar Chart Modular Structure (Sep 2025)
 The radar chart has been fully modularized into specialized components:
@@ -192,15 +197,17 @@ handler.handleSubmit(event, onSuccessCallback);
 - **Features**: Visual error marking, smooth scroll to errors
 - **Manages**: Radio button change listeners, validation state
 - **Critical**: Handles questions/config parameter separation correctly
-## Data Flow (Modular Version)
+## Data Flow (Hybrid Architecture)
 - **Bootstrap**: `index.html` loads `QuestionnaireApp` via ES6 import
 - **Initialization**: QuestionnaireApp coordinates all services and components  
+- **Strategy Selection**: PersistenceManagerFactory chooses strategy based on config
 - **Data Loading**: QuestionnaireLoader fetches `questions.txt` and `config.json`
+- **Answer Restoration**: Selected PersistenceManager loads saved answers
 - **UI Rendering**: QuestionRenderer generates form based on display mode
-- **Form Handling**: FormHandler manages validation and submission
+- **Form Handling**: FormHandler manages validation, auto-save, and server sync
 - **Chart Rendering**: ChartRenderer selects appropriate chart type and container
 - **Radar Chart Flow**: RadarChart orchestrates all radar modules for rendering
-- **Persistence**: URLHashManager handles URL hash for sharing/bookmarking
+- **Persistence**: URLHashManager + PersistenceManager handle storage and sharing
 
 ## Patterns & Conventions
 
@@ -326,12 +333,48 @@ scaleAngles.forEach((angleDeg) => {
 
 ## Examples (Modular Approach)
 
-### Adding a New Questionnaire
+### Adding Server Persistence to Existing Questionnaire
+```json
+// In quests/autonomie/config.json
+{
+  "title": "Autonomie-Fragebogen",
+  // ... existing config ...
+  "persistence": {
+    "enabled": true,
+    "type": "hybrid",
+    "server_endpoint": "api/questionnaire-data-prod.php",
+    "try_reloading": true
+  }
+}
+```
+
+### Setting up Server Backend
 ```bash
-# Create new questionnaire folder
-mkdir quests/new-questionnaire
-echo "A1|Sample question text" > quests/new-questionnaire/questions.txt
-# Create config.json with same structure as existing questionnaires
+# 1. Create database
+mysql -u root -p < database/schema.sql
+
+# 2. Configure API
+# Edit api/questionnaire-data-prod.php database settings
+
+# 3. Test API endpoint
+curl -X POST http://localhost/quest/api/questionnaire-data-prod.php \
+  -H "Content-Type: application/json" \
+  -d '{"session_token":"550e8400-e29b-41d4-a716-446655440000","questionnaire":"autonomie","answers":{"A1":3}}'
+```
+
+### Extending Persistence Strategies
+```javascript
+// Create new persistence strategy: services/custom-persistence-manager.js
+export class CustomPersistenceManager {
+    static isPersistenceEnabled(config) { /* logic */ }
+    static async saveAnswers(folder, answers, config) { /* logic */ }
+    static async loadAnswers(folder, config) { /* logic */ }
+    static clearAnswers(folder) { /* logic */ }
+}
+
+// Register in PersistenceManagerFactory
+import { CustomPersistenceManager } from './custom-persistence-manager.js';
+// Add case 'custom': return CustomPersistenceManager;
 ```
 
 ### Adding a New Chart Type
@@ -388,31 +431,59 @@ validateCustomLogic(questions) {
 }
 ```
 
-### Debugging Module Issues
+### Debugging Hybrid/Server Persistence Issues
 ```javascript
-// Check module loading
-console.log('Module loaded:', typeof QuestionnaireApp);
+// Check persistence strategy selection
+const manager = PersistenceManagerFactory.createManager(config);
+console.log('Selected manager:', manager.constructor.name);
 
-// Check component initialization  
-const app = new QuestionnaireApp();
-console.log('App initialized:', app);
+// Test server connectivity (Hybrid/Server modes)
+if (config.persistence?.type === 'hybrid' || config.persistence?.type === 'server') {
+    const endpoint = config.persistence.server_endpoint || 'api/questionnaire-data-prod.php';
+    fetch(endpoint, { method: 'OPTIONS' })
+        .then(r => console.log('Server connectivity:', r.status))
+        .catch(e => console.log('Server error:', e));
+}
 
-// Check chart rendering
-ChartRenderer.currentRenderingId // Should increment on each render
+// Check session token generation
+console.log('Session token:', HybridPersistenceManager.getOrCreateSessionToken());
 
-// Check radar chart modules
-console.log('RadarChart modules:', {
-    ConfigParser: typeof RadarConfigParser,
-    DataProcessor: typeof RadarDataProcessor,
-    Grid: typeof RadarGrid,
-    Arrows: typeof RadarArrows
-});
+// Monitor request deduplication (Server mode)
+const activeRequests = ServerPersistenceManager.activeRequests;
+console.log('Active server requests:', activeRequests.size);
+
+// Check cache state (Server mode)
+const cache = ServerPersistenceManager.cache;
+console.log('Cached answers:', cache.size);
+```
+
+### Server-Side Debugging
+```bash
+# Check PHP error log
+tail -f /var/log/apache2/error.log
+
+# Test database connection
+php api/test-mariadb.php
+
+# Monitor database queries
+sudo tail -f /var/log/mysql/general.log
+
+# Test API endpoints
+curl -v -X GET "http://localhost/quest/api/questionnaire-data-prod.php?session_token=test&questionnaire=autonomie"
 ```
 
 ## External Dependencies
+
+### Frontend (CDN)
 - [TailwindCSS](https://cdn.tailwindcss.com) (CDN)
 - [Chart.js](https://cdn.jsdelivr.net/npm/chart.js) (CDN)
 - [Google Fonts: Inter](https://fonts.googleapis.com/css2?family=Inter)
+
+### Backend (Server Persistence)
+- **PHP 7.4+** (for REST API)
+- **MySQL 8.0+ or MariaDB 10.11+** (for data storage)
+- **Web Server** (Apache/Nginx with PHP support)
+- **PHP Extensions**: php-pdo, php-mysql, php-json
 
 ## Project-Specific Advice
 - Do not add a build step or server logic
@@ -551,19 +622,44 @@ const incomplete = this.questions.filter(q => !(q.id in answersObject));
 ## LocalStorage Persistence Feature - PRODUCTION READY ✅ (Sep 2025)
 
 ### Overview
-Complete localStorage persistence implementation for questionnaire answers. Automatically saves and restores user answers when enabled in configuration.
+LocalStorage persistence is now part of a larger hybrid persistence architecture. It serves as the base for both standalone localStorage-only mode and as the client-side component of the hybrid mode (LocalStorage + Server backup).
 
-### Configuration Pattern
+### Three Persistence Modes
+1. **LocalStorage-Only**: Original implementation, standalone client-side storage
+2. **Hybrid Mode**: LocalStorage (primary) + Server backup for data safety
+3. **Server-Only**: Pure server-based storage, no localStorage usage
+
+### Configuration Pattern (Extended)
 ```json
+// LocalStorage-only (legacy)
 {
   "persistence": {
     "enabled": true,
     "type": "localstorage"
   }
 }
+
+// Hybrid mode (recommended)
+{
+  "persistence": {
+    "enabled": true,
+    "type": "hybrid",
+    "server_endpoint": "api/questionnaire-data-prod.php",
+    "try_reloading": true
+  }
+}
+
+// Server-only mode
+{
+  "persistence": {
+    "enabled": true,
+    "type": "server",
+    "server_endpoint": "api/questionnaire-data-prod.php"
+  }
+}
 ```
 
-⚠️ **CRITICAL**: The persistence configuration is processed through ConfigParser. New features must be implemented there first.
+⚠️ **CRITICAL**: All persistence configuration is processed through ConfigParser and routed via PersistenceManagerFactory.
 
 ### Implementation Modules (All Complete)
 - **`services/persistence-manager.js`** ✅ - Core localStorage operations

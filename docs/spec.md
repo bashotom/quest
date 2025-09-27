@@ -2,10 +2,30 @@
 # Produktspezifikation: Dynamischer Fragebogen
 
 **Datum:** September 2025  
-**Version:** 2.0 (Modulare Architektur)
+**Version:** 2.1 (Hybrid-Persistierung & API-Backend)
 
 ## 1. Zielsetzung
-Die Anwendung ermöglicht das browserbasierte Ausfüllen, Auswerten und Visualisieren von beliebigen Fragebögen, die rein aus statischen Dateien bestehen. Sie ist vollständig clientseitig, benötigt keinen Build-Schritt und keinen Server. Mit Version 2.0 (September 2025) wurde eine modulare ES6-Architektur eingeführt, die bessere Wartbarkeit und Erweiterbarkeit bietet.
+Die Anwendung ermöglicht das bro## 10. Roadmap
+
+### 10.1 Version 2.1 (Abgeschlossen - September 2025)
+- ✅ **Hybrid-Persistierung**: LocalStorage + Server-Backup implementiert
+- ✅ **Server-Persistierung**: Reine Server-basierte Speicherung
+- ✅ **PHP-REST-API**: Production-ready Backend mit MySQL/MariaDB
+- ✅ **Strategy Pattern**: PersistenceManagerFactory für flexible Strategien
+- ✅ **Try-Reloading**: Intelligente Retry-Mechanismen bei Server-Fehlern
+- ✅ **Request-Deduplication**: Optimierte Server-Kommunikation
+
+### 10.2 Version 2.2 (geplant)
+- **Bar Chart Implementation**: Vollständige `charts/bar-chart.js` Implementierung
+- **Unit Tests**: Test-Suite für alle Module inkl. Persistence-Strategien
+- **Error Monitoring**: Erweiterte Fehlerbehandlung und Logging
+- **Performance Monitoring**: Metriken für Server-Response-Zeiten
+
+### 10.3 Version 3.0 (Zukunft)
+- **TypeScript-Migration**: Bessere Typisierung für alle Module
+- **PWA-Features**: Offline-Nutzung mit Service Worker
+- **Multi-User-Support**: Erweiterte Session-Verwaltung
+- **Real-time Sync**: WebSocket-basierte Echtzeit-Synchronisatione Ausfüllen, Auswerten und Visualisieren von beliebigen Fragebögen. Mit Version 2.1 (September 2025) wurde eine Hybrid-Persistierung eingeführt, die LocalStorage-Performance mit Server-Backup-Sicherheit kombiniert. Die Anwendung unterstützt drei Persistierungs-Modi: reine LocalStorage, Hybrid (LocalStorage + Server), und reine Server-Persistierung.
 
 ## 2. Hauptfunktionen
 
@@ -18,7 +38,17 @@ Die Anwendung ermöglicht das browserbasierte Ausfüllen, Auswerten und Visualis
 - **Antwort-Persistenz & Teilen**: Antworten werden im URL-Hash gespeichert, sodass sie beim Reload oder Teilen des Links erhalten bleiben.
 - **Responsive UI**: Drei Darstellungsmodi (Tabellen-, Karten- und Responsive-Modus), automatische Umschaltung bei 900px Breakpoint, moderne Optik mit TailwindCSS.
 
-### 2.2 Erweiterte Features (Version 2.0)
+### 2.2 Erweiterte Features (Version 2.1 - Hybrid-Persistierung)
+- **Hybrid-Persistierung**: LocalStorage + Server-Backup für optimale Performance und Datensicherheit
+- **Server-Persistierung**: Reine Server-basierte Speicherung für zentrale Datenhaltung
+- **PHP-REST-API**: Production-ready Backend mit MySQL/MariaDB-Support
+- **Try-Reloading**: Intelligente Retry-Mechanismen bei Server-Verbindungsfehlern
+- **Session-Management**: UUID-basierte Session-Tokens für Benutzer-Zuordnung
+- **Request-Deduplication**: Optimierte Server-Kommunikation mit Caching
+- **Strategy Pattern**: PersistenceManagerFactory für flexible Persistierungs-Strategien
+- **Database-Integration**: Vollständiges MySQL/MariaDB-Setup mit automatischen Cleanup-Mechanismen
+
+### 2.3 Modulare Architektur (Version 2.0)
 - **Modulare Architektur**: ES6-Module für bessere Code-Organisation und Wartbarkeit
 - **Chart-Interferenz-Schutz**: Container-Isolation verhindert Rendering-Konflikte zwischen verschiedenen Chart-Typen
 - **Form-Validation**: Intelligente Fehlermarkierung mit Scroll-Navigation zu unvollständigen Fragen
@@ -28,7 +58,18 @@ Die Anwendung ermöglicht das browserbasierte Ausfüllen, Auswerten und Visualis
 
 ## 3. Technische Details
 
-### 3.1 Modulare Architektur (Version 2.0)
+### 3.1 Hybrid-Architektur (Version 2.1)
+- **Frontend**: Modulare ES6-Struktur mit drei Persistierungs-Strategien
+- **Backend**: PHP-REST-API mit MySQL/MariaDB für Server-Persistierung
+- **Persistierung**: Strategy Pattern mit LocalStorage, Hybrid oder Server-Modus
+- **API-Endpoints**: 
+  - `POST /api/questionnaire-data-prod.php` - Save answers
+  - `GET /api/questionnaire-data-prod.php` - Load answers  
+  - `DELETE /api/questionnaire-data-prod.php` - Delete answers
+- **Database**: MySQL/MariaDB mit optimiertem Schema für JSON-Storage
+- **Session-Management**: UUID v4 Tokens für Benutzer-Zuordnung ohne Authentifizierung
+
+### 3.2 Modulare Frontend-Architektur (Version 2.0)
 - **Frontend**: Modulare ES6-Struktur mit klarer Trennung der Verantwortlichkeiten
 - **Hauptkomponenten**:
   - `index.html` (~160 Zeilen): HTML-Struktur und Module-Bootstrap
@@ -39,10 +80,17 @@ Die Anwendung ermöglicht das browserbasierte Ausfüllen, Auswerten und Visualis
   - `utils/`: Hilfsfunktionen (URLHashManager)
   - `css/styles.css`: Alle Styles (ausgelagert aus index.html)
 
-### 3.2 Dateistruktur
+### 3.3 Erweiterte Dateistruktur (Version 2.1)
 ```
 quest/
 ├── index.html                    # Haupteingang (~160 Zeilen)
+├── api/                          # Server-Backend (PHP)
+│   ├── questionnaire-data-prod.php # Production API (MySQL/MariaDB)
+│   ├── questionnaire-data.php    # Development API
+│   ├── mariadb-config.php        # Database configuration
+│   └── test-mariadb.php          # Database connection test
+├── database/
+│   └── schema.sql                # MySQL/MariaDB database schema
 ├── app/
 │   └── questionnaire-app.js      # Hauptanwendungsklasse
 ├── components/                   # UI-Komponenten
@@ -55,7 +103,11 @@ quest/
 │   └── styles.css                # Zentrale Styles
 ├── services/                     # Backend-Services
 │   ├── questionnaire-loader.js   # Datenlade-Service
-│   └── config-parser.js          # JSON-Parsing
+│   ├── config-parser.js          # JSON-Parsing
+│   ├── persistence-manager.js    # LocalStorage (Legacy)
+│   ├── hybrid-persistence-manager.js # Hybrid LocalStorage + Server
+│   ├── server-persistence-manager.js # Pure Server Persistence
+│   └── persistence-manager-factory.js # Strategy Factory
 ├── utils/                        # Hilfsfunktionen
 │   └── url-hash-manager.js       # URL-Hash-Management
 └── quests/                      # Fragebogen-Daten
@@ -63,7 +115,7 @@ quest/
     └── <name>/config.json       # JSON-Konfiguration
 ```
 
-### 3.3 Konfigurationsoptionen in JSON
+### 3.4 Konfigurationsoptionen in JSON (Version 2.1)
 - `title`: Titel des Fragebogens
 - `description`: Beschreibung
 - `answers`: Array von Antwortoptionen (`[{"Label": Wert}]`)
@@ -73,15 +125,26 @@ quest/
   - `"column"`: Immer Tabellen-Modus
   - `"inline"`: Immer Karten-Modus
   - `"responsive"`: Automatische Umschaltung bei 900px Breakpoint
+- `persistence`: (optional) Persistierungs-Konfiguration
+  - `{"enabled": false}`: Keine Speicherung (Standard)
+  - `{"enabled": true, "type": "localstorage"}`: Reine LocalStorage-Speicherung
+  - `{"enabled": true, "type": "hybrid", "server_endpoint": "api/questionnaire-data-prod.php"}`: Hybrid-Modus
+  - `{"enabled": true, "type": "server", "server_endpoint": "api/questionnaire-data-prod.php"}`: Server-Modus
+  - `"try_reloading": true`: "Erneut versuchen"-Button bei Server-Verbindungsfehlern
 
-### 3.4 Datenfluss (Modular)
+### 3.5 Datenfluss (Hybrid-Architektur)
 1. **Bootstrap**: `index.html` lädt `QuestionnaireApp` via ES6-Import
 2. **Initialisierung**: QuestionnaireApp koordiniert alle Services und Komponenten
-3. **Datenladung**: QuestionnaireLoader fetcht `questions.txt` und `config.json`
-4. **UI-Rendering**: QuestionRenderer generiert Form basierend auf Display-Modus
-5. **Form-Handling**: FormHandler verwaltet Validation und Submission
-6. **Chart-Rendering**: ChartRenderer wählt entsprechenden Chart-Typ und Container
-7. **Persistenz**: URLHashManager behandelt URL-Hash für Sharing/Bookmarking
+3. **Persistence-Strategy**: PersistenceManagerFactory wählt basierend auf Konfiguration:
+   - LocalStoragePersistenceManager (Legacy)
+   - HybridPersistenceManager (LocalStorage + Server-Backup)
+   - ServerPersistenceManager (Pure Server)
+4. **Datenladung**: QuestionnaireLoader fetcht `questions.txt` und `config.json`
+5. **Antworten-Wiederherstellung**: Gewählter PersistenceManager lädt gespeicherte Antworten
+6. **UI-Rendering**: QuestionRenderer generiert Form basierend auf Display-Modus
+7. **Form-Handling**: FormHandler verwaltet Validation, Auto-Save und Server-Synchronisation
+8. **Chart-Rendering**: ChartRenderer wählt entsprechenden Chart-Typ und Container
+9. **Persistenz**: URLHashManager + PersistenceManager behandeln Speicherung und Sharing
 
 ## 4. Bedienung
 
@@ -114,7 +177,45 @@ quest/
 - **Wartbarkeit**: Klare Trennung von UI-, Chart- und Datenlogik
 - **Erweiterbar**: Plugin-ähnliche Struktur für neue Chart-Typen und UI-Komponenten
 
-## 6. Erweiterbarkeit
+## 6. Server-Setup (für Hybrid/Server-Persistierung)
+
+### 6.1 Systemanforderungen
+- **Web Server**: Apache/Nginx mit PHP-Support
+- **PHP**: Version 7.4 oder höher
+- **Database**: MySQL 8.0+ oder MariaDB 10.11+
+- **Extensions**: php-pdo, php-mysql, php-json
+
+### 6.2 Installation
+```bash
+# 1. Database Setup
+mysql -u root -p < database/schema.sql
+
+# 2. API-Konfiguration
+# Editieren Sie api/questionnaire-data-prod.php:
+$config = [
+    'host' => 'localhost',
+    'dbname' => 'quest_app', 
+    'username' => 'quest_user',
+    'password' => 'IHR_PASSWORT',
+    'charset' => 'utf8mb4'
+];
+
+# 3. Permissions setzen
+chmod 644 api/questionnaire-data-prod.php
+chown www-data:www-data api/questionnaire-data-prod.php
+
+# 4. Test der Installation
+curl -X GET http://localhost/quest/api/questionnaire-data-prod.php
+# Sollte HTTP 405 zurückgeben (Method Not Allowed für GET ohne Parameter)
+```
+
+### 6.3 Sicherheit
+- **Keine Authentifizierung**: Bewusste Design-Entscheidung für einfache Umfragen
+- **Session-Tokens**: UUID v4 Tokens zur Benutzer-Zuordnung
+- **Automatisches Cleanup**: Alte Daten werden nach 90 Tagen gelöscht
+- **CORS-Konfiguration**: Explizite Allow-Headers für Client-Integration
+
+## 7. Erweiterbarkeit
 
 ### 6.1 Fragebogen-Erweiterung
 - Neue Fragebögen: Einfach neuen Ordner in `quests/` mit `questions.txt` und `config.json` anlegen
