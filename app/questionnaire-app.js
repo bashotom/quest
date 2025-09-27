@@ -5,7 +5,7 @@ import { QuestionRenderer } from '../components/question-renderer.js';
 import { ResultRenderer } from '../components/result-renderer.js';
 import { FormHandler } from '../components/form-handler.js';
 import { RadarLegend } from '../charts/radar/radar-legend.js';
-import { PersistenceManager } from '../services/persistence-manager.js';
+import { PersistenceManagerFactory } from '../services/persistence-manager-factory.js';
 
 /**
  * QuestionnaireApp - Main application class
@@ -113,7 +113,7 @@ export class QuestionnaireApp {
         this.elements.appContent.style.display = 'block';
     }
     
-    showForm() {
+    async showForm() {
         this.elements.questionnaireForm.classList.remove('hidden');
         this.elements.evaluationPage.classList.add('hidden');
         
@@ -128,7 +128,7 @@ export class QuestionnaireApp {
         });
         
         // Show/hide clear saved button based on persistence settings and saved data
-        this.updateClearButtonVisibility();
+        await this.updateClearButtonVisibility();
         
         // Navigation Menu wieder anzeigen
         if (this.elements.questionnaireMenu && this.elements.questionnaireMenu.parentElement) {
@@ -207,7 +207,7 @@ export class QuestionnaireApp {
         }
     }
     
-    renderForm() {
+    async renderForm() {
         this.elements.questionnaireForm.innerHTML = `
             <div class="mb-4 flex justify-center gap-2 flex-wrap">
                 <button type="button" id="btn-column" class="border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Tabellen-Modus</button>
@@ -232,16 +232,17 @@ export class QuestionnaireApp {
             </form>
         `;
 
-        this.renderQuestions();
+        await this.renderQuestions();
         this.setupFormEvents();
     }
     
-    renderQuestions() {
+    async renderQuestions() {
         const container = document.getElementById('questions-container');
         QuestionRenderer.render(this.questions, this.config, container);
         
-        // Try to load saved answers from localStorage first, then from URL hash
-        const savedAnswers = PersistenceManager.loadAnswers(this.currentFolder, this.config);
+        // Try to load saved answers using appropriate persistence manager
+        const PersistenceManager = PersistenceManagerFactory.create(this.config);
+        const savedAnswers = await PersistenceManager.loadAnswers(this.currentFolder, this.config);
         if (savedAnswers && Object.keys(savedAnswers).length > 0) {
             // Set saved answers in the form
             QuestionRenderer.setAnswers(savedAnswers);
@@ -311,8 +312,8 @@ export class QuestionnaireApp {
         this.formHandler.setupRadioChangeListeners();
         
         // Form submission
-        document.getElementById('quiz-form')?.addEventListener('submit', (event) => {
-            this.formHandler.handleSubmit(event, (scores) => {
+        document.getElementById('quiz-form')?.addEventListener('submit', async (event) => {
+            await this.formHandler.handleSubmit(event, (scores) => {
                 this.showEvaluation();
                 
                 // Wait for UI transition to complete
@@ -325,7 +326,7 @@ export class QuestionnaireApp {
         });
 
         // Answer buttons
-        document.getElementById('min-answers-btn')?.addEventListener('click', () => {
+        document.getElementById('min-answers-btn')?.addEventListener('click', async () => {
             QuestionRenderer.setAllAnswers(this.questions, 'min');
             // Apply colors after setting answers
             const displayMode = localStorage.getItem('displayMode') || 'column';
@@ -336,16 +337,20 @@ export class QuestionnaireApp {
                 QuestionRenderer.applyInlineAnswerColors(this.config);
             }
             
-            // Auto-save to localStorage if persistence is enabled
-            if (this.currentFolder && PersistenceManager.isPersistenceEnabled(this.config)) {
-                const answers = {};
-                this.questions.forEach(question => {
-                    answers[question.id] = 0; // min value
-                });
-                PersistenceManager.saveAnswers(this.currentFolder, answers, this.config);
+            // Auto-save to localStorage if persistence is enabled (not Server)
+            if (this.currentFolder && PersistenceManagerFactory.isEnabled(this.config)) {
+                const persistenceType = PersistenceManagerFactory.getType(this.config);
+                if (persistenceType === 'localstorage') {
+                    const answers = {};
+                    this.questions.forEach(question => {
+                        answers[question.id] = 0; // min value
+                    });
+                    const PersistenceManager = PersistenceManagerFactory.create(this.config);
+                    await PersistenceManager.saveAnswers(this.currentFolder, answers, this.config);
+                }
             }
         });
-        document.getElementById('random-answers-btn')?.addEventListener('click', () => {
+        document.getElementById('random-answers-btn')?.addEventListener('click', async () => {
             QuestionRenderer.setAllAnswers(this.questions, 'random');
             // Apply colors after setting answers
             const displayMode = localStorage.getItem('displayMode') || 'column';
@@ -356,23 +361,27 @@ export class QuestionnaireApp {
                 QuestionRenderer.applyInlineAnswerColors(this.config);
             }
             
-            // Auto-save to localStorage if persistence is enabled
-            if (this.currentFolder && PersistenceManager.isPersistenceEnabled(this.config)) {
-                const form = document.getElementById('quiz-form');
-                if (form) {
-                    const formData = new FormData(form);
-                    const answers = {};
-                    this.questions.forEach(question => {
-                        const value = formData.get(`question-${question.id}`);
-                        if (value !== null) {
-                            answers[question.id] = parseInt(value, 10);
-                        }
-                    });
-                    PersistenceManager.saveAnswers(this.currentFolder, answers, this.config);
+            // Auto-save to localStorage if persistence is enabled (not Server)
+            if (this.currentFolder && PersistenceManagerFactory.isEnabled(this.config)) {
+                const persistenceType = PersistenceManagerFactory.getType(this.config);
+                if (persistenceType === 'localstorage') {
+                    const form = document.getElementById('quiz-form');
+                    if (form) {
+                        const formData = new FormData(form);
+                        const answers = {};
+                        this.questions.forEach(question => {
+                            const value = formData.get(`question-${question.id}`);
+                            if (value !== null) {
+                                answers[question.id] = parseInt(value, 10);
+                            }
+                        });
+                        const PersistenceManager = PersistenceManagerFactory.create(this.config);
+                        await PersistenceManager.saveAnswers(this.currentFolder, answers, this.config);
+                    }
                 }
             }
         });
-        document.getElementById('max-answers-btn')?.addEventListener('click', () => {
+        document.getElementById('max-answers-btn')?.addEventListener('click', async () => {
             QuestionRenderer.setAllAnswers(this.questions, 'max');
             // Apply colors after setting answers
             const displayMode = localStorage.getItem('displayMode') || 'column';
@@ -383,20 +392,25 @@ export class QuestionnaireApp {
                 QuestionRenderer.applyInlineAnswerColors(this.config);
             }
             
-            // Auto-save to localStorage if persistence is enabled
-            if (this.currentFolder && PersistenceManager.isPersistenceEnabled(this.config)) {
-                const maxValue = this.config.answers ? this.config.answers.length - 1 : 4;
-                const answers = {};
-                this.questions.forEach(question => {
-                    answers[question.id] = maxValue; // max value
-                });
-                PersistenceManager.saveAnswers(this.currentFolder, answers, this.config);
+            // Auto-save to localStorage if persistence is enabled (not Server)
+            if (this.currentFolder && PersistenceManagerFactory.isEnabled(this.config)) {
+                const persistenceType = PersistenceManagerFactory.getType(this.config);
+                if (persistenceType === 'localstorage') {
+                    const maxValue = this.config.answers ? this.config.answers.length - 1 : 4;
+                    const answers = {};
+                    this.questions.forEach(question => {
+                        answers[question.id] = maxValue; // max value
+                    });
+                    const PersistenceManager = PersistenceManagerFactory.create(this.config);
+                    await PersistenceManager.saveAnswers(this.currentFolder, answers, this.config);
+                }
             }
         });
 
         // Clear saved answers button
-        document.getElementById('clear-saved-btn')?.addEventListener('click', () => {
-            PersistenceManager.clearAnswers(this.currentFolder);
+        document.getElementById('clear-saved-btn')?.addEventListener('click', async () => {
+            const PersistenceManager = PersistenceManagerFactory.create(this.config);
+            await PersistenceManager.clearAnswers(this.currentFolder);
             
             // Clear current form answers
             const radioInputs = document.querySelectorAll('input[type="radio"]');
@@ -408,20 +422,20 @@ export class QuestionnaireApp {
             QuestionRenderer.resetAllColors();
             
             // Update button visibility (should hide now since no saved answers exist)
-            this.updateClearButtonVisibility();
+            await this.updateClearButtonVisibility();
             
             // Show success message
             this.showTemporaryMessage('Gespeicherte Antworten wurden gelöscht.', 'success');
         });
 
         // Back and copy buttons
-        this.elements.backButton?.addEventListener('click', () => {
-            this.showForm();
+        this.elements.backButton?.addEventListener('click', async () => {
+            await this.showForm();
             window.history.replaceState(null, null, window.location.pathname + window.location.search);
         });
 
-        this.elements.backButtonTop?.addEventListener('click', () => {
-            this.showForm();
+        this.elements.backButtonTop?.addEventListener('click', async () => {
+            await this.showForm();
             window.history.replaceState(null, null, window.location.pathname + window.location.search);
         });
 
@@ -456,7 +470,7 @@ export class QuestionnaireApp {
         this.loadQuestionnaire();
     }
 
-    handleHashChange() {
+    async handleHashChange() {
         if (!this.questions || this.questions.length === 0 || !this.config) {
             return;
         }
@@ -466,7 +480,7 @@ export class QuestionnaireApp {
             this.renderEvaluation(scores);
             this.showEvaluation();
         } else {
-            this.showForm();
+            await this.showForm();
             URLHashManager.setAnswersFromHash(this.questions, this.config);
         }
     }
@@ -484,11 +498,11 @@ export class QuestionnaireApp {
             this.elements.questionnaireDescription.textContent = this.config.description || '';
             
             await this.renderMenu();
-            this.renderForm();
+            await this.renderForm();
             this.showContent();
             
             // Handle initial hash if present
-            this.handleHashChange();
+            await this.handleHashChange();
         } catch (error) {
             console.error('Error loading questionnaire:', error);
             this.showError(error.message);
@@ -509,11 +523,12 @@ export class QuestionnaireApp {
         return displayMode;
     }
     
-    updateClearButtonVisibility() {
+    async updateClearButtonVisibility() {
         const clearSavedBtn = document.getElementById('clear-saved-btn');
         if (clearSavedBtn) {
-            if (PersistenceManager.isPersistenceEnabled(this.config)) {
-                const savedAnswers = PersistenceManager.loadAnswers(this.currentFolder, this.config);
+            if (PersistenceManagerFactory.isEnabled(this.config)) {
+                const PersistenceManager = PersistenceManagerFactory.create(this.config);
+                const savedAnswers = await PersistenceManager.loadAnswers(this.currentFolder, this.config);
                 if (savedAnswers && Object.keys(savedAnswers).length > 0) {
                     clearSavedBtn.style.display = '';
                 } else {

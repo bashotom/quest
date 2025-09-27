@@ -1,0 +1,48 @@
+A1|Ich kann auch guten Freunden gegenüber „nein“ sagen.
+A2|Wenn es meinen Freunden oder Angehörigen schlecht geht, kann ich mit-fühlen, muss aber nicht mit-leiden.
+A3|Ich kümmere mich um die Angelegenheiten meiner Freunde nur, wenn sie mich darum bitten.
+A4|Wenn ich meine, dass mir etwas zusteht, fordere ich das ein.
+A5|Wenn ich mit jemanden streite, bleibe ich ruhig und überzeuge ihn mit meinen Argumenten.
+A6|Wenn es jemandem in meiner Familie schlecht geht, belastet mich das nicht mehr als nötig.
+A7|Wenn ein Vorgesetzter mir einen Fehler vorwirft, kann ich ruhig und sachlich darauf antworten.
+A8|Wenn ein Mensch anders ist und ich ihn nicht verstehe, respektiere ich ihn trotzdem.
+B1|Ich weiß immer, was ich will.
+B2|Wenn ich mit jemandem eine Auseinandersetzung habe, fallen mir meist gute Argumente für meinen Standpunkt ein.
+B3|Wenn ich ein Problem habe, dann nehme ich das wichtig und kümmere mich darum.
+B4|Ich fühle, dass es Menschen gibt, denen ich wirklich wichtig bin.
+B5|Eigentlich finde ich mich selbst ganz ok.
+B6|Ich kann mich meistens auf mein Gefühl verlassen.
+B7|Ich kann mich auch alleine gut beschäftigen.
+B8|Ich kann mich rasch entscheiden.
+C1|Ich spüre, wenn mich etwas ärgert und sage es dann auch.
+C2|Wenn ich mich nicht gut fühle, suche ich nach einer Lösung.
+C3|Wenn ich Herausforderungen annehme, weckt das meine Kräfte in mir.
+C4|Unangenehme Dinge erledige ich gleich.
+C5|Ich kann mich auf Themen konzentrieren, die mich nicht so interessieren.
+C6|Ich nehme Enttäuschungen und Niederlagen 'sportlich', sie können mir die Stimmung nicht vermiesen.
+C7|Wenn ich einen Fehler gemacht habe, kann ich das auch zugeben. 
+C8|Ich mag es, neue Leute kennen zu lernen.
+D1|Ich habe keine Lust mehr, anderen zu helfen, weil ich dabei schon so oft ausgenutzt wurde.
+D2|Ich mag es nicht, wenn ich bei Entscheidungen Rücksicht auf andere nehmen muss.
+D3|Ich kann schwer etwas annehmen, ich möchte mich nicht verpflichtet fühlen.
+D4|Ich zeige nicht, wenn es mir schlecht geht, weil sich sonst andere einmischen.
+D5|Ich bin lieber gegen etwas als dafür.
+D6|Ich bin vorsichtig, weil ich schon oft von anderen enttäuscht wurde.
+D7|Wenn ich ein Problem habe, will ich nicht andere damit belästigen.
+D8|Wenns Probleme gibt, liegt es meist an den anderen.
+E1|Mich stört es, wenn jemand in wichtigen Dingen eine andere Meinung hat als ich.
+E2|Es fällt mir leichter, mich für fremde Anliegen einzusetzen, als für eigene.
+E3|Wenn ich kritisiert werde, macht mich das wütend.
+E4|Ich rege mich furchtbar auf, wenn andere meine Ratschläge nicht befolgen.
+E5|Ich fühle mich vielleicht zu sehr für andere verantwortlich.
+E6|Manchmal mische ich mich ungefragt in die Angelegenheiten anderer ein.
+E7|Ich möchte gerne alles im Griff haben.
+E8|Es tut so gut, gebraucht zu werden.
+F1|Ich bekomme schnell ein schlechtes Gewissen.
+F2|Ich bin oft gereizt und schlecht drauf, ohne den Grund zu kennen.
+F3|Ich kann mich manchmal selber nicht ausstehen.
+F4|Wenn mir alles zu viel wird, bekomme ich oft körperliche Beschwerden (Kopfschmerzen, Magen-Darmprobleme, Herzklopfen, Übelkeit).
+F5|Ich bin manchmal lustlos und kann dann gar nichts mehr tun.
+F6|Ich bekomme manchmal einen schrecklichen Hass, gegen mich oder gegen andere.
+F7|Ich kann sehr verletzend sein.
+F8|Ich kann manchmal so ausrasten, dass ich mich dabei selbst vergesse.

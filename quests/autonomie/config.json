@@ -110,8 +110,13 @@
     "display": "column",
     "header_repeating_rows": 5
   },
-  "persistence": {  
+  "persistence": {
     "enabled": true,
-    "type": "localstorage"
+    "type": "server",
+    "server": {
+      "endpoint": "http://hypsi.de/dev/quest/api/questionnaire-data-prod.php",
+      "sync": "auto",
+      "timeout": 5000
+    }
   }
 }

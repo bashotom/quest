@@ -47,5 +47,14 @@
     "element": "radiobox",
     "size": 5,
     "display": "inline"
-  }
+  },
+  "persistence": {
+    "enabled": true,
+    "type": "server",
+    "server": {
+      "endpoint": "http://hypsi.de/dev/quest/api/questionnaire-data-prod.php",
+      "sync": "auto",
+      "timeout": 5000
+    }
+  }  
 }

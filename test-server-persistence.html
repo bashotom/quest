@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Persistence Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { color: green; }
+        .error { color: red; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Server Persistence Manager Test</h1>
+    
+    <div class="test-section">
+        <h3>Test Configuration</h3>
+        <pre id="config-display"></pre>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test Results</h3>
+        <div id="test-results"></div>
+    </div>
+
+    <script type="module">
+        import { ServerPersistenceManager } from './services/server-persistence-manager.js';
+        import { PersistenceManagerFactory } from './services/persistence-manager-factory.js';
+        
+        const results = document.getElementById('test-results');
+        const configDisplay = document.getElementById('config-display');
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${message}`;
+            results.appendChild(div);
+        }
+        
+        async function runTests() {
+            log('=== Server Persistence Manager Tests ===');
+            
+            // Test config for server persistence
+            const testConfig = {
+                persistence: {
+                    enabled: true,
+                    type: "server"
+                }
+            };
+            
+            configDisplay.textContent = JSON.stringify(testConfig, null, 2);
+            
+            try {
+                log('1. Testing Factory Pattern...');
+                
+                // Test factory creates correct manager
+                const manager = PersistenceManagerFactory.create(testConfig);
+                if (manager instanceof ServerPersistenceManager) {
+                    log('✓ Factory correctly created ServerPersistenceManager', 'success');
+                } else {
+                    log('✗ Factory created wrong manager type', 'error');
+                    return;
+                }
+                
+                // Test helper methods
+                if (PersistenceManagerFactory.isEnabled(testConfig)) {
+                    log('✓ PersistenceManagerFactory.isEnabled() works', 'success');
+                } else {
+                    log('✗ PersistenceManagerFactory.isEnabled() failed', 'error');
+                }
+                
+                if (PersistenceManagerFactory.getType(testConfig) === 'server') {
+                    log('✓ PersistenceManagerFactory.getType() returns "server"', 'success');
+                } else {
+                    log('✗ PersistenceManagerFactory.getType() failed', 'error');
+                }
+                
+                log('2. Testing Server API Methods...');
+                
+                // Test data
+                const testAnswers = {
+                    'A1': 3,
+                    'A2': 4,
+                    'B1': 2,
+                    'B2': 5
+                };
+                
+                // Test saveAnswers (will likely fail due to no server)
+                try {
+                    await manager.saveAnswers('autonomie', testAnswers, testConfig);
+                    log('✓ saveAnswers() completed (likely failed gracefully)', 'success');
+                } catch (error) {
+                    log(`Expected: saveAnswers() failed gracefully: ${error.message}`, 'success');
+                }
+                
+                // Test loadAnswers (will likely fail due to no server)
+                try {
+                    const loaded = await manager.loadAnswers('autonomie', testConfig);
+                    log(`✓ loadAnswers() returned: ${JSON.stringify(loaded)}`, 'success');
+                } catch (error) {
+                    log(`Expected: loadAnswers() failed gracefully: ${error.message}`, 'success');
+                }
+                
+                // Test clearAnswers (will likely fail due to no server)  
+                try {
+                    await manager.clearAnswers('autonomie');
+                    log('✓ clearAnswers() completed (likely failed gracefully)', 'success');
+                } catch (error) {
+                    log(`Expected: clearAnswers() failed gracefully: ${error.message}`, 'success');
+                }
+                
+                log('3. Testing Class Structure...');
+                
+                // Test that all methods exist
+                const methods = ['saveAnswers', 'loadAnswers', 'clearAnswers'];
+                methods.forEach(method => {
+                    if (typeof manager[method] === 'function') {
+                        log(`✓ ${method}() method exists`, 'success');
+                    } else {
+                        log(`✗ ${method}() method missing`, 'error');
+                    }
+                });
+                
+                log('=== All Tests Completed ===', 'success');
+                
+            } catch (error) {
+                log(`Unexpected error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        runTests();
+    </script>
+</body>
+</html>

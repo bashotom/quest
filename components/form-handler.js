@@ -1,5 +1,5 @@
 import { URLHashManager } from '../utils/url-hash-manager.js';
-import { PersistenceManager } from '../services/persistence-manager.js';
+import { PersistenceManagerFactory } from '../services/persistence-manager-factory.js';
 
 /**
  * FormHandler - Manages form submission and validation
@@ -11,7 +11,7 @@ export class FormHandler {
         this.currentFolder = currentFolder;
     }
     
-    handleSubmit(event, onSuccess) {
+    async handleSubmit(event, onSuccess) {
         event.preventDefault();
         
         // Pass both questions and config to collectAnswersFromForm
@@ -43,9 +43,16 @@ export class FormHandler {
         const scores = URLHashManager.calculateScores(answersArray, this.questions, this.config);
         URLHashManager.updateHash(answersObject, this.questions, this.config);
         
-        // Save answers to localStorage if persistence is enabled
+        // Save answers using appropriate persistence manager
+        // Server persistence: Only on form submission (not on individual question changes)
+        // LocalStorage persistence: Real-time auto-save
         if (this.currentFolder) {
-            PersistenceManager.saveAnswers(this.currentFolder, answersObject, this.config);
+            const PersistenceManager = PersistenceManagerFactory.create(this.config);
+            try {
+                await PersistenceManager.saveAnswers(this.currentFolder, answersObject, this.config);
+            } catch (error) {
+                console.warn('[FormHandler] Auto-save failed:', error);
+            }
         }
         
         if (onSuccess) {
@@ -146,13 +153,13 @@ export class FormHandler {
     
     setupRadioChangeListeners() {
         // Event-Listener für Radio-Buttons hinzufügen (Entfernung der Fehler-Markierung und Hash-Update)
-        document.addEventListener('change', (event) => {
+        document.addEventListener('change', async (event) => {
             if (event.target.type === 'radio' && event.target.name.startsWith('question-')) {
                 const questionId = event.target.name.replace('question-', '');
                 this.clearQuestionErrorMarking(questionId);
                 
                 // Hash-Update für Bookmarking
-                this.updateHashFromCurrentAnswers();
+                await this.updateHashFromCurrentAnswers();
                 
                 // Auto-save to localStorage if persistence is enabled
                 if (this.currentFolder) {
@@ -166,7 +173,18 @@ export class FormHandler {
                         }
                     });
                     
-                    PersistenceManager.saveAnswers(this.currentFolder, answers, this.config);
+                    // Auto-save using appropriate persistence manager (only LocalStorage, not Server)
+                    if (this.currentFolder && PersistenceManagerFactory.isEnabled(this.config)) {
+                        const persistenceType = PersistenceManagerFactory.getType(this.config);
+                        if (persistenceType === 'localstorage') {
+                            const PersistenceManager = PersistenceManagerFactory.create(this.config);
+                            try {
+                                await PersistenceManager.saveAnswers(this.currentFolder, answers, this.config);
+                            } catch (error) {
+                                console.warn('[FormHandler] Auto-save on change failed:', error);
+                            }
+                        }
+                    }
                     
                     // Update clear button visibility since answers were saved
                     if (window.questionnaireApp && window.questionnaireApp.updateClearButtonVisibility) {
@@ -180,7 +198,7 @@ export class FormHandler {
     /**
      * Aktualisiert den URL-Hash basierend auf den aktuellen Antworten
      */
-    updateHashFromCurrentAnswers() {
+    async updateHashFromCurrentAnswers() {
         const form = document.getElementById('quiz-form');
         if (!form || !this.questions || !this.config) {
             return;
@@ -200,13 +218,16 @@ export class FormHandler {
         // Aktualisiere Hash mit Base64 falls konfiguriert
         URLHashManager.updateHash(answers, this.questions, this.config);
         
-        // Auto-save to localStorage if persistence is enabled
-        if (this.currentFolder) {
-            PersistenceManager.saveAnswers(this.currentFolder, answers, this.config);
-            
-            // Update clear button visibility since answers were saved
-            if (window.questionnaireApp && window.questionnaireApp.updateClearButtonVisibility) {
-                window.questionnaireApp.updateClearButtonVisibility();
+        // Auto-save using appropriate persistence manager (only LocalStorage, not Server)
+        if (this.currentFolder && PersistenceManagerFactory.isEnabled(this.config)) {
+            const persistenceType = PersistenceManagerFactory.getType(this.config);
+            if (persistenceType === 'localstorage') {
+                const PersistenceManager = PersistenceManagerFactory.create(this.config);
+                try {
+                    await PersistenceManager.saveAnswers(this.currentFolder, answers, this.config);
+                } catch (error) {
+                    console.warn('[FormHandler] Auto-save on hash change failed:', error);
+                }
             }
         }
         

@@ -23,10 +23,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 // Database configuration
 $config = [
-    'host' => 'localhost',
-    'dbname' => 'quest_app',
-    'username' => 'quest_user',
-    'password' => 'quest_password',
+    'host' => 'db5018695947.hosting-data.io',
+    'dbname' => 'dbs14802190',
+    'username' => 'dbu161376',
+    'password' => 'IbetT71!Qt!ichi',
     'charset' => 'utf8mb4'
 ];
 
