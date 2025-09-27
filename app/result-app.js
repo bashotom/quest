@@ -22,6 +22,10 @@ export class ResultApp {
         this.initializeElements();
         this.setupEventListeners();
 
+        // Show debug elements after DOM is ready
+        DebugManager.showDebugElements();
+        
+        // Show label toggle buttons if in debug mode
         if (DebugManager.isDebugMode()) {
             this.elements.labelToggleButtons?.classList.remove('hidden');
         }
@@ -244,7 +248,13 @@ export class ResultApp {
     goBackToQuestionnaire() {
         // Navigate back to the questionnaire form with the current folder
         const baseUrl = window.location.origin + window.location.pathname.replace('/result.html', '/');
-        const questionnaireUrl = `${baseUrl}?q=${this.currentFolder}`;
+        let questionnaireUrl = `${baseUrl}?q=${this.currentFolder}`;
+        
+        // Preserve debug mode if active
+        if (DebugManager.isDebugMode()) {
+            questionnaireUrl += '&debug=true';
+        }
+        
         window.location.href = questionnaireUrl;
     }
     

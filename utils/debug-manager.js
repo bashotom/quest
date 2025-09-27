@@ -17,7 +17,6 @@ export class DebugManager {
         const debugParam = urlParams.get('debug') || hashParams.get('debug');
         if (debugParam !== null && (debugParam === 'true' || debugParam === 'on' || debugParam === '1' || debugParam === '')) {
             this.debugMode = true;
-            console.log('Debug mode activated from URL:', debugParam);
         }
     }
     

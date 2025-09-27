@@ -247,10 +247,8 @@ export class QuestionnaireApp {
         // Form submission
         document.getElementById('quiz-form')?.addEventListener('submit', async (event) => {
             await this.formHandler.handleSubmit(event, (scores) => {
-                // Build hash from scores and redirect to result page
-                const hashData = URLHashManager.buildHashFromScores(scores);
-                const resultUrl = `result.html?q=${this.currentFolder}#${hashData}`;
-                window.location.href = resultUrl;
+                // Use showEvaluation to handle redirect with debug parameter
+                this.showEvaluation(scores);
             });
         });
 
@@ -612,8 +610,10 @@ export class QuestionnaireApp {
             if (btn) btn.style.display = 'none';
         });
 
+        // Build hash from scores
+        const hashData = URLHashManager.buildHashFromScores(scores);
+        
         // Construct result URL with hash
-        const hash = window.location.hash;
         let resultUrl = `result.html?q=${this.currentFolder}`;
 
         // Append debug parameter if in debug mode
@@ -622,7 +622,7 @@ export class QuestionnaireApp {
         }
 
         // Add hash at the end
-        resultUrl += hash;
+        resultUrl += `#${hashData}`;
 
         // Redirect to result page
         window.location.href = resultUrl;
