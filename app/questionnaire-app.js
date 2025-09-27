@@ -1,584 +1,93 @@
-import { QuestionnaireLoader } from '../services/questionnaire-loader.js';
-import { URLHashManager } from '../utils/url-hash-manager.js';
-import { QuestionRenderer } from '../components/question-renderer.js';
-import { FormHandler } from '../components/form-handler.js';
-import { PersistenceManagerFactory } from '../services/persistence-manager-factory.js';
+import { AppState } from './app-state.js';
+import { UIManager } from './ui-manager.js';
+import { NavigationHandler } from './navigation-handler.js';
+import { FormEventHandler } from './form-event-handler.js';
+import { QuestionnaireRenderer } from './questionnaire-renderer.js';
 import { DebugManager } from '../utils/debug-manager.js';
 
 /**
- * QuestionnaireApp - Main application class
- * Manages the entire questionnaire application lifecycle
+ * QuestionnaireApp - Main application class (Refactored)
+ * Orchestrates all application modules and maintains backward compatibility
  */
 export class QuestionnaireApp {
     constructor() {
         window.questionnaireApp = this; // Expose instance for debugging
-        this.questions = [];
-        this.config = {};
-        this.currentFolder = '';
-        this.formHandler = null;
-        this.labelState = null; // Default label state is unset
-        this._suppressHashUpdates = false; // Flag to prevent hash updates during restore
+        
+        // Initialize modular components
+        this.appState = new AppState();
+        this.uiManager = new UIManager();
+        this.navigationHandler = new NavigationHandler(this.appState, this.uiManager);
+        this.formEventHandler = new FormEventHandler(this.appState, this.uiManager, this.navigationHandler);
+        this.questionnaireRenderer = new QuestionnaireRenderer(this.appState, this.uiManager, this.formEventHandler);
+        
+        // Set circular references
+        this.navigationHandler.setQuestionnaireRenderer(this.questionnaireRenderer);
         
         // Initialize debug mode
         DebugManager.initialize();
         DebugManager.showDebugElements();
-        
-        this.initializeElements();
-        this.setupEventListeners();
         
         if (DebugManager.isDebugMode()) {
             this.setupDebugFeatures();
         }
     }
     
-    initializeElements() {
-        this.elements = {
-            loading: document.getElementById('loading'),
-            error: document.getElementById('error'),
-            errorMessage: document.getElementById('error-message'),
-            appContent: document.getElementById('app-content'),
-            questionnaireForm: document.getElementById('questionnaire-form'),
-            questionnaireTitle: document.getElementById('questionnaire-title'),
-            questionnaireDescription: document.getElementById('questionnaire-description'),
-            questionnaireMenu: document.getElementById('questionnaire-menu')
-        };
+
+    
+    // Delegate methods to appropriate modules
+    showError(message) { 
+        return this.uiManager.showError(message); 
     }
     
-    setupEventListeners() {
-        // Hash change listener
-        URLHashManager.onHashChange(() => this.handleHashChange());
-        
-        // Global error handlers
-        window.addEventListener('error', (event) => {
-            console.error('Global Error:', event.error);
-        });
-
-        window.addEventListener('unhandledrejection', (event) => {
-            console.error('Unhandled Promise Rejection:', event.reason);
-        });
-
-
-    }
-    
-    // Utility Methods
-    showError(message) {
-        this.elements.loading.style.display = 'none';
-        this.elements.appContent.style.display = 'none';
-        this.elements.error.style.display = 'block';
-        this.elements.errorMessage.textContent = message;
-    }
-    
-    showTemporaryMessage(message, type = 'info') {
-        // Create or get temporary message element
-        let messageEl = document.getElementById('temp-message');
-        if (!messageEl) {
-            messageEl = document.createElement('div');
-            messageEl.id = 'temp-message';
-            messageEl.className = 'fixed bottom-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg text-white font-medium transform translate-x-full transition-transform duration-300';
-            document.body.appendChild(messageEl);
-        }
-        
-        // Set colors based on type
-        const colors = {
-            success: 'bg-green-600',
-            error: 'bg-red-600',
-            info: 'bg-blue-600',
-            warning: 'bg-yellow-600'
-        };
-        
-        messageEl.className = `fixed bottom-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg text-white font-medium transition-transform duration-300 ${colors[type] || colors.info}`;
-        messageEl.textContent = message;
-        
-        // Show message
-        setTimeout(() => {
-            messageEl.style.transform = 'translateX(0)';
-        }, 50);
-        
-        // Hide message after 3 seconds
-        setTimeout(() => {
-            messageEl.style.transform = 'translateX(100%)';
-            setTimeout(() => {
-                if (messageEl.parentNode) {
-                    messageEl.parentNode.removeChild(messageEl);
-                }
-            }, 300);
-        }, 3000);
+    showTemporaryMessage(message, type) { 
+        return this.uiManager.showTemporaryMessage(message, type); 
     }
 
     showContent() {
-        this.elements.loading.style.display = 'none';
-        this.elements.error.style.display = 'none';
-        this.elements.appContent.style.display = 'block';
+        return this.uiManager.showContent();
     }
     
-    async showForm() {
-        this.elements.questionnaireForm.classList.remove('hidden');
-
-        // Buttons wieder anzeigen
-        ['min-answers-btn', 'random-answers-btn', 'max-answers-btn'].forEach(id => {
-            const btn = document.getElementById(id);
-            if (btn) btn.style.display = '';
-        });
-        
-        // Show/hide clear saved button based on persistence settings and saved data
-        await this.updateClearButtonVisibility();
-        
-        // Navigation Menu wieder anzeigen
-        if (this.elements.questionnaireMenu && this.elements.questionnaireMenu.parentElement) {
-            this.elements.questionnaireMenu.parentElement.style.display = '';
-        }
+    async showForm() { 
+        return this.uiManager.showForm(this.appState.config, this.appState.currentFolder); 
+    }
+    
+    showEvaluation(scores) {
+        return this.navigationHandler.showEvaluation(scores);
     }
 
 
     
-    // UI Rendering
-    async renderMenu() {
-        this.elements.questionnaireMenu.innerHTML = '';
-        
-        try {
-            const folders = await QuestionnaireLoader.getQuestionnaireFolders();
-            
-            folders.forEach(folder => {
-                const li = document.createElement('li');
-                const link = document.createElement('a');
-                link.href = `?q=${folder.folder}`;
-                link.textContent = folder.name;
-                
-                // Optional: Tooltip mit Beschreibung
-                if (folder.description) {
-                    link.title = folder.description;
-                }
-                
-                link.className = `px-4 py-2 rounded-lg ${folder.folder === this.currentFolder ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-blue-100'}`;
-                link.addEventListener('click', (e) => this.handleMenuNavigation(e, folder.folder));
-                li.appendChild(link);
-                this.elements.questionnaireMenu.appendChild(li);
-            });
-        } catch (error) {
-            console.error('Fehler beim Rendern des Menüs:', error);
-        }
-    }
-    
-    async renderForm() {
-        this.elements.questionnaireForm.innerHTML = `
-            <div class="mb-4 flex justify-center gap-2 flex-wrap debug-only hidden">
-                <button type="button" id="btn-column" class="border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Tabellen-Modus</button>
-                <button type="button" id="btn-inline" class="border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Karten-Modus</button>
-                <button type="button" id="btn-responsive" class="border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 font-medium py-1 px-3 rounded transition duration-150 text-sm">Responsive-Modus</button>
-            </div>
-            <p id="error-message" class="text-red-600 text-sm mb-4 hidden"></p>
-            <form id="quiz-form">
-                <div class="mb-6 sm:mb-8 flex justify-center">
-                    <button type="submit" class="debug-only hidden bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 text-sm sm:text-base">
-                        Fragebogen auswerten
-                    </button>
-                </div>
-                <div class="questionnaire-table-scroll overflow-x-auto rounded-lg border border-gray-200 -mx-4 sm:mx-0">
-                    <div id="questions-container"></div>
-                </div>
-                <div class="mt-6 sm:mt-8 flex justify-center">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 text-sm sm:text-base">
-                        Fragebogen auswerten
-                    </button>
-                </div>
-            </form>
-        `;
-
-        await this.renderQuestions();
-        this.setupFormEvents();
-        DebugManager.showDebugElements();
-    }
-    
-    async renderQuestions() {
-        const container = document.getElementById('questions-container');
-        QuestionRenderer.render(this.questions, this.config, container);
-        
-        // Try to load saved answers using appropriate persistence manager
-        // Only if try_reloading is explicitly enabled
-        if (this.config.persistence?.try_reloading === true) {
-            const PersistenceManager = PersistenceManagerFactory.create(this.config);
-            const savedAnswers = await PersistenceManager.loadAnswers(this.currentFolder, this.config);
-            
-            if (savedAnswers && Object.keys(savedAnswers).length > 0) {
-                // Check if user confirmation is required
-                if (this.config.persistence?.ask_reloading === true) {
-                    // Show button to load answers manually
-                    this.showLoadAnswersButton(savedAnswers);
-                    // Still load URL hash if available
-                    URLHashManager.setAnswersFromHash(this.questions, this.config);
-                } else {
-                    // Automatic loading (existing behavior)
-                    await this.loadSavedAnswers(savedAnswers);
-                }
-            } else {
-                // Fallback to URL hash if no saved answers
-                URLHashManager.setAnswersFromHash(this.questions, this.config);
-            }
-        } else {
-            // try_reloading is disabled or not set, only use URL hash
-            URLHashManager.setAnswersFromHash(this.questions, this.config);
-        }
-    }
-    
-
-    
-    // Event Handlers
-    setupFormEvents() {
-        // Display mode buttons
-        document.getElementById('btn-column')?.addEventListener('click', () => {
-            localStorage.setItem('displayMode', 'column');
-            this.renderQuestions();
-        });
-
-        document.getElementById('btn-inline')?.addEventListener('click', () => {
-            localStorage.setItem('displayMode', 'inline');
-            this.renderQuestions();
-        });
-
-        document.getElementById('btn-responsive')?.addEventListener('click', () => {
-            localStorage.setItem('displayMode', 'responsive');
-            this.renderQuestions();
-        });
-
-        // Form handler
-        this.formHandler = new FormHandler(this.questions, this.config, this.currentFolder);
-        this.formHandler.setupRadioChangeListeners();
-        
-        // Form submission
-        document.getElementById('quiz-form')?.addEventListener('submit', async (event) => {
-            await this.formHandler.handleSubmit(event, (scores) => {
-                // Use showEvaluation to handle redirect with debug parameter
-                this.showEvaluation(scores);
-            });
-        });
-
-        // Answer buttons
-        document.getElementById('min-answers-btn')?.addEventListener('click', async () => {
-            QuestionRenderer.setAllAnswers(this.questions, 'min');
-            // Apply colors after setting answers
-            const displayMode = localStorage.getItem('displayMode') || 'column';
-            const effectiveMode = this.getEffectiveDisplayMode(displayMode);
-            if (effectiveMode === 'column') {
-                QuestionRenderer.applyAnswerColors(this.config);
-            } else {
-                QuestionRenderer.applyInlineAnswerColors(this.config);
-            }
-            
-            // Auto-save to localStorage if persistence is enabled (not Server)
-            if (this.currentFolder && PersistenceManagerFactory.isEnabled(this.config)) {
-                const persistenceType = PersistenceManagerFactory.getType(this.config);
-                if (persistenceType === 'localstorage') {
-                    const answers = {};
-                    this.questions.forEach(question => {
-                        answers[question.id] = 0; // min value
-                    });
-                    const PersistenceManager = PersistenceManagerFactory.create(this.config);
-                    await PersistenceManager.saveAnswers(this.currentFolder, answers, this.config);
-                }
-            }
-        });
-        document.getElementById('random-answers-btn')?.addEventListener('click', async () => {
-            QuestionRenderer.setAllAnswers(this.questions, 'random');
-            // Apply colors after setting answers
-            const displayMode = localStorage.getItem('displayMode') || 'column';
-            const effectiveMode = this.getEffectiveDisplayMode(displayMode);
-            if (effectiveMode === 'column') {
-                QuestionRenderer.applyAnswerColors(this.config);
-            } else {
-                QuestionRenderer.applyInlineAnswerColors(this.config);
-            }
-            
-            // Auto-save to localStorage if persistence is enabled (not Server)
-            if (this.currentFolder && PersistenceManagerFactory.isEnabled(this.config)) {
-                const persistenceType = PersistenceManagerFactory.getType(this.config);
-                if (persistenceType === 'localstorage') {
-                    const form = document.getElementById('quiz-form');
-                    if (form) {
-                        const formData = new FormData(form);
-                        const answers = {};
-                        this.questions.forEach(question => {
-                            const value = formData.get(`question-${question.id}`);
-                            if (value !== null) {
-                                answers[question.id] = parseInt(value, 10);
-                            }
-                        });
-                        const PersistenceManager = PersistenceManagerFactory.create(this.config);
-                        await PersistenceManager.saveAnswers(this.currentFolder, answers, this.config);
-                    }
-                }
-            }
-        });
-        document.getElementById('max-answers-btn')?.addEventListener('click', async () => {
-            QuestionRenderer.setAllAnswers(this.questions, 'max');
-            // Apply colors after setting answers
-            const displayMode = localStorage.getItem('displayMode') || 'column';
-            const effectiveMode = this.getEffectiveDisplayMode(displayMode);
-            if (effectiveMode === 'column') {
-                QuestionRenderer.applyAnswerColors(this.config);
-            } else {
-                QuestionRenderer.applyInlineAnswerColors(this.config);
-            }
-            
-            // Auto-save to localStorage if persistence is enabled (not Server)
-            if (this.currentFolder && PersistenceManagerFactory.isEnabled(this.config)) {
-                const persistenceType = PersistenceManagerFactory.getType(this.config);
-                if (persistenceType === 'localstorage') {
-                    const maxValue = this.config.answers ? this.config.answers.length - 1 : 4;
-                    const answers = {};
-                    this.questions.forEach(question => {
-                        answers[question.id] = maxValue; // max value
-                    });
-                    const PersistenceManager = PersistenceManagerFactory.create(this.config);
-                    await PersistenceManager.saveAnswers(this.currentFolder, answers, this.config);
-                }
-            }
-        });
-
-        // Clear saved answers button
-        document.getElementById('clear-saved-btn')?.addEventListener('click', async () => {
-            const PersistenceManager = PersistenceManagerFactory.create(this.config);
-            await PersistenceManager.clearAnswers(this.currentFolder);
-            
-            // Clear current form answers
-            const radioInputs = document.querySelectorAll('input[type="radio"]');
-            radioInputs.forEach(input => {
-                input.checked = false;
-            });
-            
-            // Reset all colors (both table and inline mode)
-            QuestionRenderer.resetAllColors();
-            
-            // Update button visibility (should hide now since no saved answers exist)
-            await this.updateClearButtonVisibility();
-            
-            // Show success message
-            this.showTemporaryMessage('Gespeicherte Antworten wurden gelöscht.', 'success');
-        });
-
-
-    }
 
 
     
-    handleMenuNavigation(event, folder) {
-        event.preventDefault();
-        
-        // Clean up any existing load answers button from previous questionnaire
-        this.cleanupLoadAnswersButton();
-        
-        // Create completely clean URL with only the questionnaire parameter
-        const cleanUrl = `${window.location.origin}${window.location.pathname}?q=${folder}`;
-        window.history.pushState(null, null, cleanUrl);
-        
-        this.currentFolder = folder;
-        
-        // Set flag to force showing form after questionnaire load
-        this._forceShowForm = true;
-        // Suppress hash updates during questionnaire switch
-        this._suppressHashUpdates = true;
-        // Make app instance globally accessible
-        window.questionnaire = this;
-        
-        this.loadQuestionnaire();
-    }
-
-    async handleHashChange() {
-        if (!this.questions || this.questions.length === 0 || !this.config) {
-            return;
-        }
-        
-        // On the form page, we only handle setting answers from hash
-        await this.showForm();
-        URLHashManager.setAnswersFromHash(this.questions, this.config);
-    }
-    
-        // Main Application Methods
-    async loadQuestionnaire() {
-        try {
-            this.currentFolder = await QuestionnaireLoader.getActiveQuestionnaire();
-            const data = await QuestionnaireLoader.loadQuestionnaire(this.currentFolder);
-            
-            // Clean up any existing load answers button from previous questionnaire
-            this.cleanupLoadAnswersButton();
-            
-            this.questions = data.questions;
-            this.config = data.config;
-            
-            this.elements.questionnaireTitle.textContent = this.config.title || 'Fragebogen';
-            this.elements.questionnaireDescription.textContent = this.config.description || '';
-            
-            await this.renderMenu();
-            await this.renderForm();
-            this.showContent();
-            
-            // Check if we should force showing the form (e.g., after menu navigation)
-            if (this._forceShowForm) {
-                this._forceShowForm = false; // Clear the flag
-                await this.showForm();
-                
-                // Clear hash and re-enable hash updates after questionnaire switch
-                URLHashManager.clearHash();
-                this._suppressHashUpdates = false;
-            } else {
-                // Handle initial hash if present
-                await this.handleHashChange();
-            }
-        } catch (error) {
-            console.error('Error loading questionnaire:', error);
-            this.showError(error.message);
-        }
-    }
-    
-    // Initialize application
+    // Main interface methods
     async init() {
-        // Set global reference for backward compatibility
         window.questionnaireApp = this;
-        await this.loadQuestionnaire();
+        await this.questionnaireRenderer.loadQuestionnaire();
     }
-    
-    getEffectiveDisplayMode(displayMode) {
-        if (displayMode === 'responsive') {
-            return window.innerWidth > 900 ? 'column' : 'inline';
-        }
-        return displayMode;
-    }
-    
-    async updateClearButtonVisibility() {
-        const clearSavedBtn = document.getElementById('clear-saved-btn');
-        if (clearSavedBtn) {
-            // Only show button if persistence is enabled AND try_reloading is explicitly enabled
-            if (PersistenceManagerFactory.isEnabled(this.config) && this.config.persistence?.try_reloading === true) {
-                const PersistenceManager = PersistenceManagerFactory.create(this.config);
-                const savedAnswers = await PersistenceManager.loadAnswers(this.currentFolder, this.config);
-                if (savedAnswers && Object.keys(savedAnswers).length > 0) {
-                    clearSavedBtn.style.display = '';
-                } else {
-                    clearSavedBtn.style.display = 'none';
-                }
-            } else {
-                clearSavedBtn.style.display = 'none';
-            }
-        }
-    }
-
-    /**
-     * Shows a button to manually load saved answers
-     * @param {Object} savedAnswers - The saved answers data
-     */
-    showLoadAnswersButton(savedAnswers) {
-        // Get or create load answers container
-        let container = document.getElementById('load-answers-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'load-answers-container';
-            container.className = 'mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg';
-            
-            // Insert after questionnaire description
-            const description = document.getElementById('questionnaire-description');
-            if (description && description.parentNode) {
-                description.parentNode.insertBefore(container, description.nextSibling);
-            } else {
-                // Fallback: insert at beginning of questions container
-                const questionsContainer = document.getElementById('questions-container');
-                if (questionsContainer && questionsContainer.parentNode) {
-                    questionsContainer.parentNode.insertBefore(container, questionsContainer);
-                }
-            }
-        }
-
-        // Format timestamp for display
-        let timestampText = '';
-        if (savedAnswers.timestamp) {
-            const date = new Date(savedAnswers.timestamp);
-            timestampText = ` vom ${date.toLocaleDateString('de-DE')} ${date.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}`;
-        }
-
-        container.innerHTML = `
-            <div class="flex items-center justify-between">
-                <div>
-                    <h3 class="text-lg font-medium text-blue-900 mb-1">Gespeicherte Antworten gefunden</h3>
-                    <p class="text-blue-700">Frühere Antworten${timestampText} sind verfügbar.</p>
-                </div>
-                <button id="load-answers-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                    Frühere Antworten laden
-                </button>
-            </div>
-        `;
-
-        // Add click handler
-        const loadButton = document.getElementById('load-answers-btn');
-        if (loadButton) {
-            loadButton.addEventListener('click', async () => {
-                await this.loadSavedAnswers(savedAnswers);
-                container.remove(); // Remove the button after loading
-            });
-        }
-    }
-
-    /**
-     * Loads saved answers into the form (extracted from original renderQuestions logic)
-     * @param {Object} savedAnswers - The saved answers data with potential timestamp
-     */
-    async loadSavedAnswers(savedAnswers) {
-        // Suppress hash updates during answer restoration
-        this._suppressHashUpdates = true;
-        window.questionnaire = this; // Make app instance accessible to URLHashManager
-        
-        // Remove timestamp from answers object before setting answers
-        const { timestamp, ...answersOnly } = savedAnswers;
-        
-        // Set saved answers in the form
-        QuestionRenderer.setAnswers(answersOnly);
-        
-        // Re-enable hash updates
-        this._suppressHashUpdates = false;
-        
-        // Apply colors based on display mode
-        const displayMode = localStorage.getItem('displayMode') || 'column';
-        const effectiveMode = this.getEffectiveDisplayMode(displayMode);
-        if (effectiveMode === 'column') {
-            QuestionRenderer.applyAnswerColors(this.config);
-        } else {
-            QuestionRenderer.applyInlineAnswerColors(this.config);
-        }
-        
-        // Show user feedback about loaded answers
-        this.showTemporaryMessage('Gespeicherte Antworten wurden wiederhergestellt.', 'success');
-    }
-
-    /**
-     * Cleans up the load answers button when switching questionnaires
-     */
-    cleanupLoadAnswersButton() {
-        const container = document.getElementById('load-answers-container');
-        if (container) {
-            container.remove();
-        }
-    }
-    
     setupDebugFeatures() {
         DebugManager.log('QuestionnaireApp Debug Features Initialized', {
-            currentFolder: this.currentFolder,
-            questions: this.questions?.length,
-            config: this.config
+            currentFolder: this.appState.currentFolder,
+            questions: this.appState.questions?.length,
+            config: this.appState.config
         });
 
         // Add debug buttons to main debug panel
         DebugManager.addDebugButton('Show App State', () => {
             console.table({
-                currentFolder: this.currentFolder,
-                questionsCount: this.questions?.length || 0,
-                configType: typeof this.config,
-                labelState: this.labelState
+                currentFolder: this.appState.currentFolder,
+                questionsCount: this.appState.questions?.length || 0,
+                configType: typeof this.appState.config,
+                labelState: this.appState.labelState
             });
         });
 
         DebugManager.addDebugButton('Show Config', () => {
-            console.log('🐛 Full Config:', this.config);
+            console.log('🐛 Full Config:', this.appState.config);
         });
 
         DebugManager.addDebugButton('Show Questions', () => {
-            console.log('🐛 All Questions:', this.questions);
+            console.log('🐛 All Questions:', this.appState.questions);
         });
 
         DebugManager.addDebugButton('Clear LocalStorage', () => {
@@ -596,37 +105,18 @@ export class QuestionnaireApp {
         DebugManager.addDebugInfo('Current URL', window.location.href);
         DebugManager.addDebugInfo('URL Params', Object.fromEntries(new URLSearchParams(window.location.search)));
     }
+
+    // Accessor properties for backward compatibility
+    get questions() { return this.appState.questions; }
+    get config() { return this.appState.config; }
+    get currentFolder() { return this.appState.currentFolder; }
+    get formHandler() { return this.appState.formHandler; }
+    get elements() { return this.uiManager.elements; }
     
-    showEvaluation(scores) {
-        // Hide form and show evaluation section
-        this.elements.questionnaireForm.classList.add('hidden');
-
-        // Hide menu and buttons
-        if (this.elements.questionnaireMenu && this.elements.questionnaireMenu.parentElement) {
-            this.elements.questionnaireMenu.parentElement.style.display = 'none';
-        }
-        ['min-answers-btn', 'random-answers-btn', 'max-answers-btn', 'clear-saved-btn'].forEach(id => {
-            const btn = document.getElementById(id);
-            if (btn) btn.style.display = 'none';
-        });
-
-        // Build hash from scores
-        const hashData = URLHashManager.buildHashFromScores(scores);
-        
-        // Construct result URL with hash
-        let resultUrl = `result.html?q=${this.currentFolder}`;
-
-        // Append debug parameter if in debug mode
-        if (DebugManager.isDebugMode()) {
-            resultUrl += '&debug=true';
-        }
-
-        // Add hash at the end
-        resultUrl += `#${hashData}`;
-
-        // Redirect to result page
-        window.location.href = resultUrl;
-    }
+    set questions(value) { this.appState.questions = value; }
+    set config(value) { this.appState.config = value; }
+    set currentFolder(value) { this.appState.currentFolder = value; }
+    set formHandler(value) { this.appState.formHandler = value; }
 }
 
 // Global function for table mode (backward compatibility)
