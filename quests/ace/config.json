@@ -50,8 +50,8 @@
   },
   "persistence": {
     "enabled": true,
-    "try_reloading": true,
-    "ask_reloading": true,
+    "try_reloading": false,
+    "ask_reloading": false,
     "type": "server",
     "server": {
       "endpoint": "http://hypsi.de/dev/quest/api/questionnaire-data-prod.php",
