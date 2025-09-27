@@ -15,6 +15,7 @@ export class QuestionnaireApp {
         this.currentFolder = '';
         this.formHandler = null;
         this.labelState = null; // Default label state is unset
+        this._suppressHashUpdates = false; // Flag to prevent hash updates during restore
         
         this.initializeElements();
         this.setupEventListeners();
@@ -101,6 +102,10 @@ export class QuestionnaireApp {
     }
     
     async showForm() {
+        console.log('[DEBUG showForm] START');
+        console.log('[DEBUG showForm] URL at start:', window.location.href);
+        console.log('[DEBUG showForm] Hash at start:', window.location.hash);
+        
         this.elements.questionnaireForm.classList.remove('hidden');
 
         // Buttons wieder anzeigen
@@ -109,13 +114,19 @@ export class QuestionnaireApp {
             if (btn) btn.style.display = '';
         });
         
+        console.log('[DEBUG showForm] Before updateClearButtonVisibility, URL:', window.location.href);
         // Show/hide clear saved button based on persistence settings and saved data
         await this.updateClearButtonVisibility();
+        
+        console.log('[DEBUG showForm] After updateClearButtonVisibility, URL:', window.location.href);
         
         // Navigation Menu wieder anzeigen
         if (this.elements.questionnaireMenu && this.elements.questionnaireMenu.parentElement) {
             this.elements.questionnaireMenu.parentElement.style.display = '';
         }
+        
+        console.log('[DEBUG showForm] END, URL:', window.location.href);
+        console.log('[DEBUG showForm] END, Hash:', window.location.hash);
     }
 
 
@@ -178,17 +189,35 @@ export class QuestionnaireApp {
     }
     
     async renderQuestions() {
+        console.log('[DEBUG renderQuestions] START');
+        console.log('[DEBUG renderQuestions] URL at start:', window.location.href);
+        console.log('[DEBUG renderQuestions] Hash at start:', window.location.hash);
+        
         const container = document.getElementById('questions-container');
         QuestionRenderer.render(this.questions, this.config, container);
+        
+        console.log('[DEBUG renderQuestions] After QuestionRenderer.render, URL:', window.location.href);
         
         // Try to load saved answers using appropriate persistence manager
         // Only if try_reloading is explicitly enabled
         if (this.config.persistence?.try_reloading === true) {
+            console.log('[DEBUG renderQuestions] try_reloading=true, loading saved answers');
             const PersistenceManager = PersistenceManagerFactory.create(this.config);
             const savedAnswers = await PersistenceManager.loadAnswers(this.currentFolder, this.config);
+            console.log('[DEBUG renderQuestions] savedAnswers:', savedAnswers);
+            
             if (savedAnswers && Object.keys(savedAnswers).length > 0) {
+                console.log('[DEBUG renderQuestions] Setting saved answers in form');
+                
+                // Suppress hash updates during answer restoration
+                this._suppressHashUpdates = true;
+                window.questionnaire = this; // Make app instance accessible to URLHashManager
+                
                 // Set saved answers in the form
                 QuestionRenderer.setAnswers(savedAnswers);
+                
+                // Re-enable hash updates
+                this._suppressHashUpdates = false;
                 
                 // Apply colors based on display mode
                 const displayMode = localStorage.getItem('displayMode') || 'column';
@@ -199,16 +228,26 @@ export class QuestionnaireApp {
                     QuestionRenderer.applyInlineAnswerColors(this.config);
                 }
                 
+                console.log('[DEBUG renderQuestions] After setting saved answers, URL:', window.location.href);
                 // Show user feedback about loaded answers
                 this.showTemporaryMessage('Gespeicherte Antworten wurden wiederhergestellt.', 'success');
             } else {
+                console.log('[DEBUG renderQuestions] No saved answers, fallback to URL hash');
+                console.log('[DEBUG renderQuestions] Before setAnswersFromHash, URL:', window.location.href);
                 // Fallback to URL hash if no saved answers
                 URLHashManager.setAnswersFromHash(this.questions, this.config);
+                console.log('[DEBUG renderQuestions] After setAnswersFromHash, URL:', window.location.href);
             }
         } else {
+            console.log('[DEBUG renderQuestions] try_reloading disabled/not set, using URL hash only');
+            console.log('[DEBUG renderQuestions] Before setAnswersFromHash, URL:', window.location.href);
             // try_reloading is disabled or not set, only use URL hash
             URLHashManager.setAnswersFromHash(this.questions, this.config);
+            console.log('[DEBUG renderQuestions] After setAnswersFromHash, URL:', window.location.href);
         }
+        
+        console.log('[DEBUG renderQuestions] END, Final URL:', window.location.href);
+        console.log('[DEBUG renderQuestions] END, Final Hash:', window.location.hash);
     }
     
 
@@ -356,16 +395,30 @@ export class QuestionnaireApp {
     handleMenuNavigation(event, folder) {
         event.preventDefault();
         
-        const url = new URL(window.location);
-        url.searchParams.set('q', folder);
-        url.hash = '';
-        window.history.pushState(null, null, url);
+        console.log('[DEBUG handleMenuNavigation] START');
+        console.log('[DEBUG handleMenuNavigation] Target folder:', folder);
+        console.log('[DEBUG handleMenuNavigation] Current URL before:', window.location.href);
+        console.log('[DEBUG handleMenuNavigation] Current hash before:', window.location.hash);
+        
+        // Create completely clean URL with only the questionnaire parameter
+        const cleanUrl = `${window.location.origin}${window.location.pathname}?q=${folder}`;
+        console.log('[DEBUG handleMenuNavigation] Clean URL to set:', cleanUrl);
+        
+        window.history.pushState(null, null, cleanUrl);
+        
+        console.log('[DEBUG handleMenuNavigation] URL after pushState:', window.location.href);
+        console.log('[DEBUG handleMenuNavigation] Hash after pushState:', window.location.hash);
         
         this.currentFolder = folder;
         
         // Set flag to force showing form after questionnaire load
         this._forceShowForm = true;
+        // Suppress hash updates during questionnaire switch
+        this._suppressHashUpdates = true;
+        // Make app instance globally accessible
+        window.questionnaire = this;
         
+        console.log('[DEBUG handleMenuNavigation] About to call loadQuestionnaire()');
         this.loadQuestionnaire();
     }
 
@@ -382,7 +435,13 @@ export class QuestionnaireApp {
         // Main Application Methods
     async loadQuestionnaire() {
         try {
+            console.log('[DEBUG loadQuestionnaire] START');
+            console.log('[DEBUG loadQuestionnaire] URL at start:', window.location.href);
+            console.log('[DEBUG loadQuestionnaire] Hash at start:', window.location.hash);
+            
             this.currentFolder = await QuestionnaireLoader.getActiveQuestionnaire();
+            console.log('[DEBUG loadQuestionnaire] Active questionnaire:', this.currentFolder);
+            
             const data = await QuestionnaireLoader.loadQuestionnaire(this.currentFolder);
             
             this.questions = data.questions;
@@ -391,15 +450,30 @@ export class QuestionnaireApp {
             this.elements.questionnaireTitle.textContent = this.config.title || 'Fragebogen';
             this.elements.questionnaireDescription.textContent = this.config.description || '';
             
+            console.log('[DEBUG loadQuestionnaire] Before renderMenu, URL:', window.location.href);
             await this.renderMenu();
+            
+            console.log('[DEBUG loadQuestionnaire] Before renderForm, URL:', window.location.href);
             await this.renderForm();
+            
+            console.log('[DEBUG loadQuestionnaire] Before showContent, URL:', window.location.href);
             this.showContent();
             
             // Check if we should force showing the form (e.g., after menu navigation)
             if (this._forceShowForm) {
+                console.log('[DEBUG loadQuestionnaire] _forceShowForm=true, calling showForm()');
                 this._forceShowForm = false; // Clear the flag
+                console.log('[DEBUG loadQuestionnaire] Before showForm, URL:', window.location.href);
                 await this.showForm();
+                console.log('[DEBUG loadQuestionnaire] After showForm, URL:', window.location.href);
+                
+                // Clear hash and re-enable hash updates after questionnaire switch
+                console.log('[DEBUG loadQuestionnaire] Clearing hash after questionnaire switch');
+                URLHashManager.clearHash();
+                this._suppressHashUpdates = false;
+                console.log('[DEBUG loadQuestionnaire] Final URL after clearHash:', window.location.href);
             } else {
+                console.log('[DEBUG loadQuestionnaire] _forceShowForm=false, calling handleHashChange()');
                 // Handle initial hash if present
                 await this.handleHashChange();
             }
