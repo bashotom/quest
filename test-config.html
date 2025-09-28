@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Evaluation UI Sequence Test</title>
+</head>
+<body>
+    <h1>Testing Evaluation UI Sequence Configuration</h1>
+    <div id="output"></div>
+    
+    <script type="module">
+        import { ConfigParser } from './services/config-parser.js';
+        
+        // Test configuration
+        const testConfig = {
+            "evaluation_ui": {
+                "sequence": ["tiles", "chart", "table"]
+            },
+            "resulttable": { "enabled": true },
+            "resulttiles": { "enabled": true }
+        };
+        
+        // Parse configuration
+        const parsed = ConfigParser.parse(testConfig);
+        
+        // Display results
+        const output = document.getElementById('output');
+        output.innerHTML = `
+            <h2>Parsed Configuration:</h2>
+            <p><strong>Evaluation UI Sequence:</strong> ${JSON.stringify(parsed.evaluationUi.sequence)}</p>
+            <p><strong>Table Enabled:</strong> ${parsed.resulttable.enabled}</p>
+            <p><strong>Tiles Enabled:</strong> ${parsed.resulttiles.enabled}</p>
+            
+            <h2>Expected vs Actual:</h2>
+            <p><strong>Expected Sequence:</strong> ["tiles", "chart", "table"]</p>
+            <p><strong>Actual Sequence:</strong> ${JSON.stringify(parsed.evaluationUi.sequence)}</p>
+            <p><strong>Match:</strong> ${JSON.stringify(parsed.evaluationUi.sequence) === '["tiles","chart","table"]' ? '✅ YES' : '❌ NO'}</p>
+        `;
+    </script>
+</body>
+</html>

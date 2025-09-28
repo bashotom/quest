@@ -2,6 +2,9 @@ import { QuestionnaireLoader } from '../services/questionnaire-loader.js';
 import { URLHashManager } from '../utils/url-hash-manager.js';
 import { ChartRenderer } from '../charts/chart-renderer.js';
 import { ResultRenderer } from '../components/result-renderer.js';
+import { ResultTileRenderer } from '../components/result-tile-renderer.js';
+import { ResultTableRenderer } from '../components/result-table-renderer.js';
+import { ResultDataProcessor } from '../services/result-data-processor.js';
 import { RadarLegend } from '../charts/radar/radar-legend.js';
 import { DebugManager } from '../utils/debug-manager.js';
 
@@ -33,6 +36,10 @@ export class ResultApp {
             errorMessage: document.getElementById('error-message'),
             appContent: document.getElementById('app-content'),
             evaluationPage: document.getElementById('evaluation-page'),
+            evaluationContent: document.getElementById('evaluation-content'),
+            chartSection: document.getElementById('chart-section'),
+            tableSectionTemplate: document.getElementById('table-section-template'),
+            tilesSectionTemplate: document.getElementById('tiles-section-template'),
             shareLinkInput: document.getElementById('share-link'),
             copyButton: document.getElementById('copy-button'),
             backButton: document.getElementById('back-button'),
@@ -42,7 +49,8 @@ export class ResultApp {
             labelToggleButtons: document.getElementById('label-toggle-buttons'),
             shortLabelsBtn: document.getElementById('short-labels-btn'),
             longLabelsBtn: document.getElementById('long-labels-btn'),
-            resultTableContainer: document.getElementById('result-table-container')
+            resultTableContainer: document.getElementById('result-table-container'),
+            resultTilesContainer: document.getElementById('result-tiles-container')
         };
     }
     
@@ -175,6 +183,7 @@ export class ResultApp {
     
     renderEvaluation(scores) {
         const chartType = this.config.chart?.type || 'radar';
+        const sequence = this.config.evaluationUi?.sequence || ['chart', 'table', 'tiles'];
         
         // Show/hide label toggle buttons based on chart type
         if (this.elements.labelToggleButtons) {
@@ -194,22 +203,106 @@ export class ResultApp {
         // Remove any existing radar legends
         RadarLegend.remove();
         
-        // Clear chart containers
-        const radarContainer = document.getElementById('radar-chart-container');
-        const legendContainer = document.getElementById('radar-legend-container');
-        if (radarContainer) {
-            radarContainer.innerHTML = '<div id="radarChart" class="w-full h-full radar-chart flex justify-center items-center"></div>';
-        }
-        if (legendContainer) {
-            legendContainer.innerHTML = '';
+        // Clear dynamic content area
+        if (this.elements.evaluationContent) {
+            this.elements.evaluationContent.innerHTML = '';
         }
         
-        // Render chart
-        ChartRenderer.render(chartType, scores, this.questions, this.config, { labelState: this.labelState });
+        // Process data once for all renderers
+        const processedData = ResultDataProcessor.process(scores, this.questions, this.config);
         
-        // Render result table
-        if (this.elements.resultTableContainer) {
-            ResultRenderer.render(scores, this.questions, this.config, this.elements.resultTableContainer);
+        // Render elements in the specified sequence
+        sequence.forEach(element => {
+            this.renderSequenceElement(element, scores, processedData, chartType);
+        });
+    }
+    
+    renderSequenceElement(element, scores, processedData, chartType) {
+        if (!this.elements.evaluationContent) return;
+        
+        switch (element) {
+            case 'chart':
+                this.renderChartInSequence(scores, chartType);
+                break;
+            case 'table':
+                this.renderTableInSequence(processedData);
+                break;
+            case 'tiles':
+                this.renderTilesInSequence(processedData);
+                break;
+            default:
+                console.warn(`Unknown evaluation_ui sequence element: ${element}`);
+        }
+    }
+    
+    renderChartInSequence(scores, chartType) {
+        // Move chart section into dynamic content area
+        const chartSection = this.elements.chartSection;
+        if (chartSection) {
+            // Remove from original position and add to dynamic content
+            chartSection.remove();
+            chartSection.classList.remove('hidden'); // Make it visible
+            this.elements.evaluationContent.appendChild(chartSection);
+            
+            // Clear chart containers
+            const radarContainer = document.getElementById('radar-chart-container');
+            const legendContainer = document.getElementById('radar-legend-container');
+            if (radarContainer) {
+                radarContainer.innerHTML = '<div id="radarChart" class="w-full h-full radar-chart flex justify-center items-center"></div>';
+            }
+            if (legendContainer) {
+                legendContainer.innerHTML = '';
+            }
+            
+            // Render chart
+            ChartRenderer.render(chartType, scores, this.questions, this.config, { 
+                labelState: this.labelState, 
+                skipResultTable: true  // Skip result table/tiles rendering in sequence mode
+            });
+        }
+    }
+    
+    renderTableInSequence(processedData) {
+        // Only render if table is enabled
+        if (!this.config.resulttable?.enabled) return;
+        
+        // Clone template and add to dynamic content
+        const template = this.elements.tableSectionTemplate;
+        if (template) {
+            const tableSection = template.cloneNode(true);
+            tableSection.id = 'table-section';
+            tableSection.classList.remove('hidden');
+            this.elements.evaluationContent.appendChild(tableSection);
+            
+            // Get the container within the cloned section
+            const tableContainer = tableSection.querySelector('#result-table-container');
+            if (tableContainer) {
+                // Give it a unique ID to avoid conflicts
+                tableContainer.id = 'result-table-container-active';
+                ResultTableRenderer.render(processedData, this.config, tableContainer);
+            }
+        }
+    }
+    
+    renderTilesInSequence(processedData) {
+        // Only render if tiles are enabled  
+        if (!this.config.resulttiles?.enabled) return;
+        
+        // Clone template and add to dynamic content
+        const template = this.elements.tilesSectionTemplate;
+        if (template) {
+            const tilesSection = template.cloneNode(true);
+            tilesSection.id = 'tiles-section';
+            tilesSection.classList.remove('hidden');
+            this.elements.evaluationContent.appendChild(tilesSection);
+            
+            // Get the container within the cloned section
+            const tilesContainer = tilesSection.querySelector('#result-tiles-container');
+            if (tilesContainer) {
+                // Give it a unique ID to avoid conflicts
+                tilesContainer.id = 'result-tiles-container-active';
+                ResultTileRenderer.render(processedData, this.config, tilesContainer);
+            }
         }
     }
     
@@ -221,7 +314,10 @@ export class ResultApp {
         const scores = this.parseScoresFromHash();
         if (scores) {
             const chartType = this.config.chart?.type || 'radar';
-            ChartRenderer.render(chartType, scores, this.questions, this.config, { labelState: this.labelState });
+            ChartRenderer.render(chartType, scores, this.questions, this.config, { 
+                labelState: this.labelState,
+                skipResultTable: true  // Skip result table/tiles rendering in sequence mode
+            });
         }
     }
     

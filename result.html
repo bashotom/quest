@@ -77,8 +77,8 @@
                     </div>
                 </div>
                 
-                <!-- Chart Container -->
-                <div class="bg-white rounded-lg shadow p-2 mb-8 min-h-[400px]">
+                <!-- Chart Container (initially hidden, positioned by sequence logic) -->
+                <div id="chart-section" class="bg-white rounded-lg shadow p-2 mb-8 min-h-[400px] hidden">
                     <!-- Radar Chart Container -->
                     <div id="radar-chart-container" class="chart-type-container w-full h-full min-h-[350px] hidden">
                         <div id="radarChart" class="w-full h-full radar-chart flex justify-center items-center"></div>
@@ -98,9 +98,19 @@
                 <!-- Mobile Legend for Radar Charts -->
                 <div id="radar-legend-container" class="mb-6"></div>
                 
-                <!-- Result Table -->
-                <div class="bg-white rounded-lg shadow p-6">
+                <!-- Dynamic Content Area for Sequence-based Rendering -->
+                <div id="evaluation-content" class="space-y-8">
+                    <!-- Content will be dynamically inserted here based on evaluation_ui.sequence -->
+                </div>
+                
+                <!-- Result Table Template (moved from static position) -->
+                <div id="table-section-template" class="bg-white rounded-lg shadow p-6 hidden">
                     <div id="result-table-container"></div>
+                </div>
+                
+                <!-- Result Tiles Template -->
+                <div id="tiles-section-template" class="bg-white rounded-lg shadow p-6 hidden">
+                    <div id="result-tiles-container"></div>
                 </div>
                 
                 <!-- Share Section -->

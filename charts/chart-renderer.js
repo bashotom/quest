@@ -9,23 +9,17 @@ import { DebugManager } from '../utils/debug-manager.js';
  * Implements the "Solve interference through isolation" pattern
  */
 export class ChartRenderer {
-    static currentRenderingId = 0;
     static activeTimeouts = new Set();
     
     /**
-     * Main chart rendering method with interference prevention
+     * Main render method for all chart types
+     * @param {string} chartType - Type of chart ('radar', 'gauge', 'bar')
+     * @param {Array} scores - Score data
+     * @param {Array} questions - Question data  
+     * @param {Object} config - Configuration object
+     * @param {Object} options - Rendering options (labelState, skipResultTable)
      */
     static render(chartType, scores, questions, config, options = {}) {
-        const renderingId = ++ChartRenderer.currentRenderingId;
-        
-        DebugManager.log(`Rendering ${chartType} chart`, {
-            renderingId,
-            scores,
-            chartConfig: config?.chart,
-            container: `${chartType}-chart-container`,
-            questionsCount: questions?.length
-        });
-        
         // Cancel all previous timeouts to prevent race conditions
         ChartRenderer.activeTimeouts.forEach(timeoutId => {
             clearTimeout(timeoutId);
@@ -35,8 +29,10 @@ export class ChartRenderer {
         // Hide all containers to prevent interference
         ChartRenderer.hideAllContainers();
         
-        // Render result table if configured
-        ChartRenderer.renderResultTable(scores, questions, config);
+        // Render result table if configured and not skipped
+        if (!options.skipResultTable) {
+            ChartRenderer.renderResultTable(scores, questions, config);
+        }
         
         // Add debug buttons for evaluation if debug mode is active
         if (DebugManager.isDebugMode()) {
@@ -48,13 +44,13 @@ export class ChartRenderer {
         
         switch (chartType) {
             case 'radar':
-                return ChartRenderer.renderRadarChart(scores, renderingId, questions, config, options);
+                return ChartRenderer.renderRadarChart(scores, questions, config, options);
             case 'gauge':
-                return ChartRenderer.renderGaugeChart(scores, renderingId, questions, config);
+                return ChartRenderer.renderGaugeChart(scores, questions, config);
             case 'bar':
-                return ChartRenderer.renderBarChart(scores, renderingId, questions, config);
+                return ChartRenderer.renderBarChart(scores, questions, config);
             default:
-                return ChartRenderer.renderFallbackChart(scores, renderingId, config);
+                console.warn(`ChartRenderer: Unknown chart type "${chartType}"`);
         }
     }
     
@@ -71,7 +67,7 @@ export class ChartRenderer {
     /**
      * Render Radar Chart in dedicated container with complete DOM recreation
      */
-    static renderRadarChart(scores, renderingId, questions, config, renderOptions) {
+    static renderRadarChart(scores, questions, config, renderOptions = {}) {
         const radarContainer = document.getElementById('radar-chart-container');
         if (!radarContainer) return;
         
@@ -93,10 +89,6 @@ export class ChartRenderer {
         const timeoutId = setTimeout(() => {
             // Remove from active timeouts
             ChartRenderer.activeTimeouts.delete(timeoutId);
-            
-            if (renderingId !== ChartRenderer.currentRenderingId) {
-                return;
-            }
             
             // Calculate max scores per category
             const categoryMaxScores = {};
@@ -156,18 +148,13 @@ export class ChartRenderer {
     /**
      * Render Gauge Chart in dedicated container
      */
-    static renderGaugeChart(scores, renderingId, questions, config) {
+    static renderGaugeChart(scores, questions, config) {
         const gaugeContainer = document.getElementById('gauge-chart-container');
         if (!gaugeContainer) return;
         
         gaugeContainer.classList.remove('hidden');
         const chartElement = document.getElementById('gaugeChart');
         if (!chartElement) return;
-        
-        // Check if rendering is still current
-        if (renderingId !== ChartRenderer.currentRenderingId) {
-            return;
-        }
         
         // Use first category for Gauge
         const categories = Array.isArray(config.categories)
@@ -202,7 +189,7 @@ export class ChartRenderer {
     /**
      * Render Bar Chart in dedicated container
      */
-    static renderBarChart(scores, renderingId, questions, config) {
+    static renderBarChart(scores, questions, config) {
         const barContainer = document.getElementById('bar-chart-container');
         if (!barContainer) return;
         
@@ -211,17 +198,13 @@ export class ChartRenderer {
         if (!chartElement) return;
         
         // For now, use fallback - can be extended later
-        ChartRenderer.renderFallbackChart(scores, renderingId, config, chartElement);
+        ChartRenderer.renderFallbackChart(scores, config, chartElement);
     }
     
     /**
      * Render fallback chart when other types fail
      */
-    static renderFallbackChart(scores, renderingId, config, container = null) {
-        if (renderingId !== ChartRenderer.currentRenderingId) {
-            return;
-        }
-        
+    static renderFallbackChart(scores, config, container = null) {
         if (!container) {
             const radarContainer = document.getElementById('radar-chart-container');
             if (radarContainer) {

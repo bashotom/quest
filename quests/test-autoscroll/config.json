@@ -19,6 +19,9 @@
   "question-ui": {
     "autoscroll": true
   },
+  "evaluation_ui": {
+    "sequence": [ "tiles", "table", "chart" ]
+  },
   "chart": {
     "type": "radar",
     "explanation": "Dies ist ein Test für das Autoscroll-Feature."

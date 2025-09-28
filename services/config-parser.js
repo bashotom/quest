@@ -39,7 +39,8 @@ export class ConfigParser {
             input: {},
             resulttable: {},
             persistence: {},
-            questionUi: {} // Add question-ui configuration
+            questionUi: {}, // Add question-ui configuration
+            evaluationUi: {} // Add evaluation-ui configuration
         };
             // trafficlights initialisieren
             result.trafficlights = [];
@@ -108,6 +109,19 @@ export class ConfigParser {
         } else {
             result.questionUi = {
                 autoscroll: false
+            };
+        }
+        
+        // Evaluation-UI Konfiguration verarbeiten
+        if (jsonData['evaluation_ui'] && typeof jsonData['evaluation_ui'] === 'object') {
+            result.evaluationUi = {
+                sequence: Array.isArray(jsonData['evaluation_ui'].sequence) 
+                    ? jsonData['evaluation_ui'].sequence 
+                    : ['chart', 'table', 'tiles']
+            };
+        } else {
+            result.evaluationUi = {
+                sequence: ['chart', 'table', 'tiles']
             };
         }
         

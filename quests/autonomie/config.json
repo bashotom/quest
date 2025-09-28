@@ -40,6 +40,9 @@
   "question-ui": {
     "autoscroll": true
   },
+  "evaluation_ui": {
+    "sequence": [ "chart", "table", "tiles" ]
+  },
   "chart": {
     "type": "radar",
     "topaxis": "B",
@@ -98,8 +101,8 @@
     "enabled": true,
     "show_header": true,
     "header": "Ergebnistabelle",
-    "show_score": true,
-    "show_trafficlight": false,
+    "show_score": false,
+    "show_trafficlight": true,
     "show_percentage": false
   },
   "trafficlights": [
