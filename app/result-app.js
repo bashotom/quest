@@ -189,9 +189,18 @@ export class ResultApp {
         if (this.elements.labelToggleButtons) {
             if (chartType === 'radar') {
                 this.elements.labelToggleButtons.classList.remove('hidden');
+                // Ensure debug-visible is present if debug mode is active
+                if (this.elements.labelToggleButtons.classList.contains('debug-only')) {
+                    const debugActive = document.querySelector('.debug-only.debug-visible') !== null;
+                    if (debugActive) {
+                        this.elements.labelToggleButtons.classList.add('debug-visible');
+                    }
+                }
                 this.updateLabelToggleButtons();
             } else {
                 this.elements.labelToggleButtons.classList.add('hidden');
+                // Remove debug-visible to ensure hiding works even in debug mode
+                this.elements.labelToggleButtons.classList.remove('debug-visible');
             }
         }
         
