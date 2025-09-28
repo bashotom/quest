@@ -31,6 +31,9 @@
   "categories": [
     {"A": "Resilienz-Wert"}
   ],
+  "evaluation_ui": {
+    "sequence": [ "chart", "table", "tiles" ]
+  },
   "chart": {
     "type": "gauge",
     "style": "simple",

@@ -19,6 +19,9 @@
   "question-ui": {
     "autoscroll": true
   },
+  "evaluation_ui": {
+    "sequence": [ "chart", "tiles" ]
+  },
   "chart": {
     "type": "gauge",
     "style": "simple",
@@ -32,10 +35,12 @@
   },
   "resulttiles": {
     "enabled": true,
+    "show_header": false,
     "evaluation_gauge": false,
     "show_percentage": false,
     "show_score": true,
     "show_categoryid": false,
+    "show_trafficlight": true,
     "evaluation": {
       "A": { "ranges": [ 0, 33, 66, 100 ], 
         "texts": [ 
