@@ -1,0 +1,12 @@
+A1|Ist kreativ oder hat Phantasie.
+A2|Neigt zu Tagträumen.
+A3|Hat viele Ideen und spielt gerne.
+A4|Gestikuliert beim Reden.
+A5|Bewegt sich oft und gerne.
+A6|Kann sich an Orte / Bilder besser erinnern als an Namen / Wörter.
+A7|Hat oft einen unordentlichen Schreibtisch.
+A8|Kann mehrere Sachen gleichzeitig/ Multitasking.
+A9|Ist neugierig und liebt das Risiko.
+A10|Kann schulische Leistungen mündlich besser zeigen als schriftlich.
+A11|Ist gut im Fach Geometrie oder beim 3-dimensionalen Denken.
+A12|Hält sich nicht gerne an Regeln und Strukturen.

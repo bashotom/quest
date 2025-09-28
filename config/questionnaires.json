@@ -25,6 +25,14 @@
       "category": "resilience",
       "enabled": true,
       "order": 3
+    },
+    {
+      "name": "Bilddenker",
+      "folder": "bilddenker", 
+      "description": "Fähigkeiten räumich-visuellen Denkens",
+      "category": "",
+      "enabled": true,
+      "order": 4
     }
   ],
   "settings": {

@@ -1,0 +1,77 @@
+{
+  "title": "Bilddenker-Fragebogen",
+  "description": "Nach Stefan Reiner (Institut Neues Lernen))",
+  "answers": [
+    {
+      "label": "Ja", 
+      "value": 1,
+      "color": "#bbf7d0"
+    },
+    {
+      "label": "Nein", 
+      "value": 0,
+      "color": "#fecaca"
+    }
+  ],
+  "categories": [
+    {"A": "Bilddenker-Gesamtwert"}
+  ],
+  "question-ui": {
+    "autoscroll": true
+  },
+  "evaluation_ui": {
+    "sequence": [ "chart", "tiles" ]
+  },
+  "chart": {
+    "type": "gauge",
+    "style": "simple",
+    "ranges": [0, 33, 66, 100],
+    "range_colors": ["orange", "light green", "green"],
+    "explanation": "Die Auswertung zeigt den Anteil der Antworten, die auf Bilddenker hinweisen.",
+    "scale_angles": [210, 270, 330]
+  },
+  "resulttable": {
+    "enabled": false
+  },
+  "resulttiles": {
+    "enabled": true,
+    "show_header": false,
+    "evaluation_gauge": false,
+    "show_percentage": false,
+    "show_score": true,
+    "show_categoryid": false,
+    "show_trafficlight": true,
+    "evaluation": {
+      "A": { "ranges": [ 0, 33, 66, 100 ], 
+        "texts": [ 
+          "Niedriger Bilddenker-Wert. Sie scheinen kein typischer Bilddenker zu sein.", 
+          "Moderater Bilddenker-Wert. Sie zeigen einige Eigenschaften eines Bilddenkers.", 
+          "Hoher Bilddenker-Wert. Sie scheinen ein typischer Bilddenker zu sein." 
+          ] 
+        }
+    }
+  },
+  "trafficlights": [
+    {
+      "categories": "A",
+      "green": 33,
+      "orange": 66
+    }   
+  ],
+  "input": {
+    "element": "radiobox",
+    "size": 5,
+    "display": "inline"
+  },
+  "persistence": {
+    "enabled": true,
+    "try_reloading": false,
+    "ask_reloading": false,
+    "type": "server",
+    "server": {
+      "endpoint": "http://hypsi.de/dev/quest/api/questionnaire-data-prod.php",
+      "sync": "auto",
+      "timeout": 5000
+    }
+  }  
+}
