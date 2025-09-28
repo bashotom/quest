@@ -37,6 +37,9 @@
     {"E": "Übergriffigkeit"},
     {"F": "Destruktive Aggression"}
   ],
+  "question-ui": {
+    "autoscroll": true
+  },
   "chart": {
     "type": "radar",
     "topaxis": "B",
@@ -52,7 +55,7 @@
   "resulttiles": {
     "enabled": true,
     "show_header": true,
-    "header": "Toms Ergebniskacheln",
+    "header": "Ergebnisse pro Kategorie",
     "evaluation_gauge": false,
     "show_categoryid": true,
     "show_percentage": false,
@@ -106,7 +109,7 @@
   "resulttable": {
     "enabled": true,
     "show_header": true,
-    "header": "Toms Ergebnistabelle",
+    "header": "Ergebnistabelle",
     "show_trafficlights": true
   },
   "input": {
