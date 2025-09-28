@@ -26,12 +26,17 @@ export class ResultTableRenderer {
     
     static createTable(config) {
         const showScore = config?.resulttable?.show_score !== false;
+        const showPercentage = config?.resulttable?.show_percentage !== false;
         const showTrafficLight = config?.resulttable?.show_trafficlight === true;
         const table = document.createElement('table');
         table.className = 'min-w-full divide-y divide-gray-200 mt-8';
         
         const scoreHeader = showScore 
             ? '<th class="px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Punktzahl</th>'
+            : '';
+        
+        const percentageHeader = showPercentage
+            ? '<th class="px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prozent</th>'
             : '';
         
         const trafficLightHeader = showTrafficLight
@@ -43,7 +48,7 @@ export class ResultTableRenderer {
                 <tr>
                     <th class="px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategorie</th>
                     ${scoreHeader}
-                    <th class="px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prozent</th>
+                    ${percentageHeader}
                     ${trafficLightHeader}
                 </tr>
             </thead>
@@ -57,10 +62,15 @@ export class ResultTableRenderer {
         const { categoryKey, categoryName, score, percentage, trafficLightColor } = categoryData;
         const displayName = `${categoryKey}: ${categoryName}`;
         const showScore = config?.resulttable?.show_score !== false;
+        const showPercentage = config?.resulttable?.show_percentage !== false;
         const showTrafficLight = config?.resulttable?.show_trafficlight === true;
         
         const scoreCell = showScore 
             ? `<td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${score}</td>`
+            : '';
+        
+        const percentageCell = showPercentage
+            ? `<td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${percentage.toFixed(0)}%</td>`
             : '';
         
         const trafficLightCell = showTrafficLight
@@ -77,7 +87,7 @@ export class ResultTableRenderer {
         row.innerHTML = `
             <td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${displayName}</td>
             ${scoreCell}
-            <td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${percentage.toFixed(0)}%</td>
+            ${percentageCell}
             ${trafficLightCell}
         `;
         return row;
@@ -109,9 +119,11 @@ export class ResultTableRenderer {
         detailsRow.dataset.detailsFor = categoryKey;
 
         const showScore = config?.resulttable?.show_score !== false;
+        const showPercentage = config?.resulttable?.show_percentage !== false;
         const showTrafficLight = config?.resulttable?.show_trafficlight === true;
-        let colSpan = 2; // Base columns: Kategorie, Prozent
+        let colSpan = 1; // Base column: Kategorie
         if (showScore) colSpan++;
+        if (showPercentage) colSpan++;
         if (showTrafficLight) colSpan++;
         
         const detailsCell = document.createElement('td');

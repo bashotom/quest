@@ -98,8 +98,9 @@
     "enabled": true,
     "show_header": true,
     "header": "Ergebnistabelle",
-    "show_score": false,
-    "show_trafficlight": false
+    "show_score": true,
+    "show_trafficlight": false,
+    "show_percentage": false
   },
   "trafficlights": [
     {
