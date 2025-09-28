@@ -3,14 +3,29 @@
   "description": "Nach Stefan Reiner (Institut Neues Lernen))",
   "answers": [
     {
-      "label": "Ja", 
-      "value": 1,
-      "color": "#bbf7d0"
+      "label": "immer", 
+      "value": 4,
+      "color": "#dddddd"
     },
     {
-      "label": "Nein", 
+      "label": "öfters", 
+      "value": 3,
+      "color": "#dddddd"
+    },
+    {
+      "label": "etwas", 
+      "value": 2,
+      "color": "#dddddd"
+    },
+    {
+      "label": "kaum", 
+      "value": 1,
+      "color": "#dddddd"
+    },
+    {
+      "label": "gar nicht", 
       "value": 0,
-      "color": "#fecaca"
+      "color": "#dddddd"
     }
   ],
   "categories": [
