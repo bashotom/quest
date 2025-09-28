@@ -10,11 +10,11 @@ export class ResultTableRenderer {
             container.appendChild(header);
         }
 
-        const table = this.createTable();
+        const table = this.createTable(config);
         const tbody = table.querySelector('tbody');
         
         processedData.categoryData.forEach(categoryData => {
-            const row = this.createTableRow(categoryData);
+            const row = this.createTableRow(categoryData, config);
             tbody.appendChild(row);
         });
         
@@ -24,14 +24,20 @@ export class ResultTableRenderer {
         this.setupCategoryDetailsHandler(tbody, processedData.questions, config);
     }
     
-    static createTable() {
+    static createTable(config) {
+        const showScore = config?.resulttable?.show_score !== false;
         const table = document.createElement('table');
         table.className = 'min-w-full divide-y divide-gray-200 mt-8';
+        
+        const scoreHeader = showScore 
+            ? '<th class="px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Punktzahl</th>'
+            : '';
+        
         table.innerHTML = `
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategorie</th>
-                    <th class="px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Punktzahl</th>
+                    ${scoreHeader}
                     <th class="px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prozent</th>
                     <th class="px-4 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ampel</th>
                 </tr>
@@ -42,16 +48,21 @@ export class ResultTableRenderer {
         return table;
     }
     
-    static createTableRow(categoryData) {
+    static createTableRow(categoryData, config) {
         const { categoryKey, categoryName, score, percentage, trafficLightColor } = categoryData;
         const displayName = `${categoryKey}: ${categoryName}`;
+        const showScore = config?.resulttable?.show_score !== false;
+        
+        const scoreCell = showScore 
+            ? `<td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${score}</td>`
+            : '';
         
         const row = document.createElement('tr');
         row.className = 'cursor-pointer hover:bg-gray-50';
         row.dataset.categoryKey = categoryKey;
         row.innerHTML = `
             <td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${displayName}</td>
-            <td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${score}</td>
+            ${scoreCell}
             <td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">${percentage.toFixed(0)}%</td>
             <td class="px-4 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm sm:text-base text-gray-900">
                 <div class="traffic-light-container">
@@ -87,8 +98,11 @@ export class ResultTableRenderer {
         detailsRow.className = 'category-details bg-gray-50';
         detailsRow.dataset.detailsFor = categoryKey;
 
+        const showScore = config?.resulttable?.show_score !== false;
+        const colSpan = showScore ? 4 : 3; // Adjust based on whether score column is shown
+        
         const detailsCell = document.createElement('td');
-        detailsCell.colSpan = 4; // Updated to match table columns
+        detailsCell.colSpan = colSpan;
         detailsCell.className = 'px-4 py-4 sm:px-6';
 
         let content = '<ul class="space-y-3 list-disc list-inside text-sm text-gray-700">';

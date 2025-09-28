@@ -94,6 +94,13 @@
           "Sie zeigen keine destruktive Aggression, d.h. Sie sind in der Lage, Ihre eigenen Bedürfnisse und Wünsche zu erkennen und zu vertreten, ohne dabei die Bedürfnisse anderer zu ignorieren." ] }
     }
   },
+  "resulttable": {
+    "enabled": true,
+    "show_header": true,
+    "show_score": false,
+    "header": "Ergebnistabelle",
+    "show_trafficlights": true
+  },
   "trafficlights": [
     {
       "categories": "A,B,C",
@@ -106,12 +113,6 @@
       "orange": 66
     }
   ],
-  "resulttable": {
-    "enabled": true,
-    "show_header": true,
-    "header": "Ergebnistabelle",
-    "show_trafficlights": true
-  },
   "input": {
     "element": "radiobox",
     "display": "column",
