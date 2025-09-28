@@ -152,29 +152,14 @@ export class ResultTileRenderer {
         if (config.chart && config.chart.ranges && Array.isArray(config.chart.ranges)) {
             const ranges = config.chart.ranges;
             
-            // For ACE questionnaire, use inverse logic (low percentages = good)
-            const isACE = config.title && config.title.toLowerCase().includes('ace');
-            
-            if (isACE) {
-                // ACE inverse logic: low percentages = green (good), high percentages = red (bad)
-                // ranges: [0, 40, 60, 100]
+            // Standard logic for all questionnaires
+            if (ranges.length >= 3) {
                 if (percentage <= ranges[1]) {
-                    return 'green'; // 0-40%: Low ACE = good
+                    return 'red';
                 } else if (percentage <= ranges[2]) {
-                    return 'yellow'; // 40-60%: Moderate ACE
+                    return 'yellow';
                 } else {
-                    return 'red'; // 60-100%: High ACE = bad
-                }
-            } else {
-                // Standard logic for other questionnaires
-                if (ranges.length >= 3) {
-                    if (percentage <= ranges[1]) {
-                        return 'red';
-                    } else if (percentage <= ranges[2]) {
-                        return 'yellow';
-                    } else {
-                        return 'green';
-                    }
+                    return 'green';
                 }
             }
         }

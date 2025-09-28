@@ -51,6 +51,13 @@
         }
     }
   },
+  "trafficlights": [
+    {
+      "categories": "A",
+      "green": 33,
+      "orange": 66
+    }   
+  ],
   "input": {
     "element": "radiobox",
     "size": 5,
