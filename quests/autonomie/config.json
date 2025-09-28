@@ -97,9 +97,9 @@
   "resulttable": {
     "enabled": true,
     "show_header": true,
-    "show_score": false,
     "header": "Ergebnistabelle",
-    "show_trafficlights": true
+    "show_score": false,
+    "show_trafficlight": false
   },
   "trafficlights": [
     {
