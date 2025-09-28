@@ -2,6 +2,14 @@ import { QuestionRenderer } from './question-renderer.js';
 
 export class ResultTableRenderer {
     static render(processedData, config, container) {
+        // Add header if configured
+        if (config.resulttable?.show_header === true && config.resulttable?.header) {
+            const header = document.createElement('h2');
+            header.className = 'text-xl font-semibold text-gray-900 mb-4 mt-8';
+            header.textContent = config.resulttable.header;
+            container.appendChild(header);
+        }
+
         const table = this.createTable();
         const tbody = table.querySelector('tbody');
         

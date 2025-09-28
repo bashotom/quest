@@ -2,9 +2,17 @@ import { GaugeChart } from '../charts/gauge-chart.js';
 
 export class ResultTileRenderer {
     static render(processedData, config, container) {
+        // Add header if configured
+        if (config.resulttiles?.show_header === true && config.resulttiles?.header) {
+            const header = document.createElement('h2');
+            header.className = 'text-xl font-semibold text-gray-900 mb-2 mt-2';
+            header.textContent = config.resulttiles.header;
+            container.appendChild(header);
+        }
+
         const tilesWrapper = document.createElement('div');
         tilesWrapper.id = 'resulttiles';
-        tilesWrapper.className = 'flex flex-wrap gap-4 mt-8';
+        tilesWrapper.className = 'flex flex-wrap gap-4 mt-2';
 
         const isSingleCategory = processedData.categoryData.length === 1;
 
@@ -37,8 +45,8 @@ export class ResultTileRenderer {
         const tile = document.createElement('div');
         // For single category: use max width, for multiple categories: keep current behavior
         const tileClasses = isSingleCategory 
-            ? 'bg-white rounded-lg shadow p-4 w-full' 
-            : 'bg-white rounded-lg shadow p-4 flex-1 min-w-[220px] max-w-xs';
+            ? 'bg-white rounded-lg shadow p-2 w-full' 
+            : 'bg-white rounded-lg shadow p-2 flex-1 min-w-[220px] max-w-xs';
         tile.className = tileClasses;
         
         // Show percentage, score, and category ID based on configuration

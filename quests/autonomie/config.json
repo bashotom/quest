@@ -51,6 +51,8 @@
   },
   "resulttiles": {
     "enabled": true,
+    "show_header": true,
+    "header": "Toms Ergebniskacheln",
     "evaluation_gauge": false,
     "show_categoryid": true,
     "show_percentage": false,
@@ -102,7 +104,9 @@
     }
   ],
   "resulttable": {
-    "enabled": false,
+    "enabled": true,
+    "show_header": true,
+    "header": "Toms Ergebnistabelle",
     "show_trafficlights": true
   },
   "input": {

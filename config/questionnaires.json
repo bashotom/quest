@@ -25,14 +25,6 @@
       "category": "resilience",
       "enabled": true,
       "order": 3
-    },
-    {
-      "name": "Autoscroll Test",
-      "folder": "test-autoscroll",
-      "description": "Test für das neue Autoscroll-Feature",
-      "category": "test",
-      "enabled": true,
-      "order": 10
     }
   ],
   "settings": {
