@@ -66,20 +66,32 @@ export class TachometerGauge {
     }
 
     /**
-     * Renders the tachometer gauge
+     * Renders the tachometer gauge with optimized positioning to minimize white space
      * @private
      */
     _renderTachometer(value, maxScore, categoryLabel, trafficLightConfig = null) {
         const { width: containerWidth, height: containerHeight } = this._getContainerDimensions();
         const svg = this._createBaseSVG();
         
-        // Calculate gauge size for better container fitting
+        // Calculate gauge size for better container fitting (keep original logic)
         const gaugeSize = Math.max(180, Math.min(containerWidth, containerHeight) * 1.2);
         const radius = (gaugeSize / 2) - 50;
         
-        // Create main group positioned lower in container
+        // Optimized positioning: Calculate the actual space needed for the tachometer
+        // and center it vertically within that space to minimize white areas
+        const labelSpaceTop = radius * 0.2; // Space needed for top tick labels
+        const arcHeight = radius; // Height of the semicircle
+        const valueSpaceBottom = radius * 0.3; // Space needed for percentage text
+        const totalTachometerHeight = labelSpaceTop + arcHeight + valueSpaceBottom;
+        
+        // Position the tachometer to use available space efficiently
+        // Center vertically but account for the semicircle nature (more space needed below center)
+        const availableSpace = containerHeight - totalTachometerHeight;
+        const topMargin = Math.max(20, availableSpace * 0.3); // Minimal top margin
+        const centerY = topMargin + labelSpaceTop + (radius * 0.7); // Optimized center position
+        
         const g = svg.append("g")
-            .attr("transform", `translate(${containerWidth/2}, ${containerHeight * 0.65})`);
+            .attr("transform", `translate(${containerWidth/2}, ${centerY})`);
         
         // Get angle configuration
         const { startAngle, endAngle, valueAngle } = this._calculateAngles(value, maxScore);
