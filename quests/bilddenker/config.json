@@ -39,11 +39,10 @@
   },
   "chart": {
     "type": "gauge",
-    "style": "simple",
-    "ranges": [0, 33, 66, 100],
-    "range_colors": ["orange", "light green", "green"],
-    "explanation": "Die Auswertung zeigt den Anteil der Antworten, die auf Bilddenker hinweisen.",
-    "scale_angles": [210, 270, 330]
+    "style": "tachometer",
+    "ranges": [0, 50, 100],
+    "range_colors": ["#dddddd", "#22c55e"],
+    "explanation": "Die Auswertung zeigt den Anteil der Antworten, die auf Bilddenker hinweisen."
   },
   "resulttable": {
     "enabled": false

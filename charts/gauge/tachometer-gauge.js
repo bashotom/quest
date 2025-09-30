@@ -90,6 +90,7 @@ export class TachometerGauge {
         this._renderValueArc(g, radius, startAngle, valueAngle, value, maxScore);
         this._renderTickMarks(g, radius, maxScore);
         this._renderNeedle(g, radius, valueAngle);
+        this._renderCurrentValue(g, radius, value, maxScore);
     }
 
     /**
@@ -126,6 +127,12 @@ export class TachometerGauge {
      * @private
      */
     _renderGaugeBackground(g, radius, startAngle, endAngle) {
+        // Use first color from chart.range_colors if available, otherwise fallback to gray
+        let backgroundColor = "#e5e7eb"; // Default gray
+        if (this.config.range_colors && Array.isArray(this.config.range_colors) && this.config.range_colors.length > 0) {
+            backgroundColor = this.config.range_colors[0];
+        }
+        
         const backgroundArc = d3.arc()
             .innerRadius(radius * 0.7)
             .outerRadius(radius * 0.9)
@@ -135,7 +142,7 @@ export class TachometerGauge {
         g.append("path")
             .attr("d", backgroundArc)
             .attr("transform", "rotate(90)")
-            .style("fill", "#e5e7eb");
+            .style("fill", backgroundColor);
     }
 
     /**
@@ -199,6 +206,12 @@ export class TachometerGauge {
         const valueRatio = Math.min(value / maxScore, 1);
         
         if (valueRatio > 0) {
+            // Use second color from chart.range_colors if available, otherwise fallback to blue
+            let valueColor = "#3b82f6"; // Default blue
+            if (this.config.range_colors && Array.isArray(this.config.range_colors) && this.config.range_colors.length > 1) {
+                valueColor = this.config.range_colors[1];
+            }
+            
             const valueArc = d3.arc()
                 .innerRadius(radius * 0.7)
                 .outerRadius(radius * 0.9)
@@ -208,19 +221,30 @@ export class TachometerGauge {
             g.append("path")
                 .attr("d", valueArc)
                 .attr("transform", "rotate(90)")
-                .style("fill", "#3b82f6");
+                .style("fill", valueColor);
         }
     }
 
     /**
-     * Renders tick marks and labels
+     * Renders tick marks and labels using chart.ranges from config
      * @private
      */
     _renderTickMarks(g, radius, maxScore) {
-        const scaleAngles = this.config.scale_angles || [200, 270, 340];
-        const scaleValues = [0, Math.round(maxScore / 2), maxScore];
+        // Use chart.ranges from config if available, otherwise fallback to simple 0-100
+        let ranges = [0, 100]; // Default fallback
         
-        scaleAngles.forEach((angleDeg, i) => {
+        if (this.config.ranges && Array.isArray(this.config.ranges)) {
+            ranges = this.config.ranges;
+        }
+        
+        // Calculate angles for each range value
+        const { startAngleDeg, endAngleDeg } = this._calculateAngles(0, maxScore);
+        const totalAngleDeg = endAngleDeg - startAngleDeg;
+        
+        ranges.forEach((rangeValue, i) => {
+            // Calculate angle position for this range value (as percentage)
+            const percentage = rangeValue; // ranges are already in percentage
+            const angleDeg = startAngleDeg + (percentage / 100) * totalAngleDeg;
             const angle = (angleDeg * Math.PI) / 180;
             
             // Tick line
@@ -232,9 +256,9 @@ export class TachometerGauge {
                 .style("stroke", "#374151")
                 .style("stroke-width", "2px");
             
-            // Label
-            const x = Math.cos(angle) * (radius * 0.6);
-            const y = Math.sin(angle) * (radius * 0.6);
+            // Label - positioned above the tick marks
+            const x = Math.cos(angle) * (radius * 1.05); // Further out for above positioning
+            const y = Math.sin(angle) * (radius * 1.05);
             
             g.append("text")
                 .attr("x", x)
@@ -245,7 +269,7 @@ export class TachometerGauge {
                 .style("font-weight", "600")
                 .style("font-family", "Inter, sans-serif")
                 .style("fill", "#1f2937")
-                .text(scaleValues[i]);
+                .text(rangeValue + "%");
         });
     }
 
@@ -273,5 +297,24 @@ export class TachometerGauge {
             .attr("cy", 0)
             .attr("r", 8)
             .style("fill", "#1f2937");
+    }
+
+    /**
+     * Renders the current percentage value below the needle center
+     * @private
+     */
+    _renderCurrentValue(g, radius, value, maxScore) {
+        const percentage = Math.round((value / maxScore) * 100);
+        
+        g.append("text")
+            .attr("x", 0)
+            .attr("y", radius * 0.3) // Position below center
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "central")
+            .style("font-size", "24px")
+            .style("font-weight", "bold")
+            .style("font-family", "Inter, sans-serif")
+            .style("fill", "#1f2937")
+            .text(percentage + "%");
     }
 }
