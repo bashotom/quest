@@ -275,8 +275,8 @@ export class QuestionRenderer {
                             ` : `
                                 <button type="button" 
                                         id="stepper-next-btn" 
-                                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors ${!QuestionRenderer.stepperState.answers[question.id] ? 'opacity-50 cursor-not-allowed' : ''}"
-                                        ${!QuestionRenderer.stepperState.answers[question.id] ? 'disabled' : ''}>
+                                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors ${QuestionRenderer.stepperState.answers[question.id] === undefined ? 'opacity-50 cursor-not-allowed' : ''}"
+                                        ${QuestionRenderer.stepperState.answers[question.id] === undefined ? 'disabled' : ''}>
                                     Weiter →
                                 </button>
                             `}
