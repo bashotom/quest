@@ -38,7 +38,10 @@
     {"F": "Destruktive Aggression"}
   ],
   "question-ui": {
-    "autoscroll": true
+    "autoscroll": true,
+    "stepper": true,
+    "stepper_fade_duration": 250,
+    "stepper_autosend": true
   },
   "evaluation_ui": {
     "sequence": [ "chart", "table", "tiles" ]
