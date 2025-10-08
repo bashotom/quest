@@ -32,12 +32,19 @@ quest/
 ├── app/
 │   └── questionnaire-app.js      # Hauptanwendungsklasse
 ├── components/                   # UI-Komponenten
-│   ├── question-renderer.js      # Fragebogen-Rendering (Tabelle/Karten)
+│   ├── question-renderer.js      # Fragebogen-Rendering-Orchestrator
 │   ├── form-handler.js           # Form-Validation & Auto-Save
 │   ├── questionnaire-form.js     # Legacy Form-Komponente
 │   ├── result-renderer.js        # Ergebnis-Rendering
 │   ├── result-table-renderer.js  # Tabellen-Ergebnis-Darstellung
-│   └── result-tile-renderer.js   # Kachel-Ergebnis-Darstellung
+│   ├── result-tile-renderer.js   # Kachel-Ergebnis-Darstellung
+│   ├── renderers/                # Modulare Rendering-Modi
+│   │   ├── table-mode-renderer.js      # Tabellen-Modus-Renderer
+│   │   ├── inline-mode-renderer.js     # Karten-Modus-Renderer
+│   │   ├── stepper-mode-renderer.js    # Stepper/Wizard-Modus-Renderer
+│   │   └── responsive-mode-handler.js  # Responsive-Modus mit Auto-Switching
+│   └── utils/
+│       └── color-manager.js      # Farb-Management für Antworten
 ├── charts/                       # Chart-Module
 │   ├── chart-renderer.js         # Chart-Management mit Container-Isolation
 │   ├── gauge-chart.js            # D3.js Gauge-Chart-Implementierung
@@ -104,6 +111,8 @@ quest/
 ### 🔄 Refactoring-Highlights
 - **Von 800+ Zeilen auf ~160 Zeilen** in der `index.html` reduziert
 - **Vollständige Modularisierung** mit ES6-Modulen
+- **Modulare Renderer-Architektur** mit spezialisierten Rendering-Modi
+- **Stepper/Wizard-Modus** für moderne, schrittweise Navigation
 - **Chart-Interferenz-Schutz** durch Container-Isolation
 - **Responsive-Modus** mit automatischer Umschaltung bei 900px Breakpoint
 - **Trennung der Verantwortlichkeiten** nach Single-Responsibility-Prinzip
@@ -114,7 +123,11 @@ quest/
 |-------|-------------------|---------|
 | `index.html` | HTML-Struktur, Module-Orchestrierung | ~160 |
 | `app/questionnaire-app.js` | Hauptanwendungslogik, Event-Management | ~380 |
-| `components/question-renderer.js` | UI-Rendering (Tabelle/Karten-Modus) | ~150 |
+| `components/question-renderer.js` | UI-Rendering-Orchestrator | ~150 |
+| `components/renderers/table-mode-renderer.js` | Tabellen-Modus-Rendering | ~110 |
+| `components/renderers/inline-mode-renderer.js` | Karten-Modus-Rendering | ~80 |
+| `components/renderers/stepper-mode-renderer.js` | Stepper/Wizard-Modus-Rendering | ~315 |
+| `components/renderers/responsive-mode-handler.js` | Responsive Auto-Switching | ~160 |
 | `components/form-handler.js` | Form-Validation, Auto-Save | ~140 |
 | `charts/chart-renderer.js` | Chart-Management, Container-Isolation | ~180 |
 | `charts/gauge-chart.js` | D3.js Gauge-Chart mit bewährtem Pattern | ~140 |
@@ -186,11 +199,52 @@ chart.render(value, maxScore, categoryLabel);
 ```
 
 ### QuestionRenderer (`components/question-renderer.js`)
-**UI-Rendering** - Unterstützt Tabellen-, Karten- und Responsive-Modus
+**UI-Rendering-Orchestrator** - Koordiniert verschiedene Rendering-Modi
 ```javascript
 QuestionRenderer.render(questions, config, container);
-// Unterstützte Modi: 'column', 'inline', 'responsive'
-// Responsive-Modus: >900px = Tabelle, ≤900px = Karten
+// Unterstützte Modi: 'column', 'inline', 'responsive', 'stepper'
+// Delegiert an spezialisierte Renderer-Module
+```
+
+### Modulare Renderer (`components/renderers/`)
+
+#### TableModeRenderer (`table-mode-renderer.js`)
+**Tabellen-Modus** - Klassische Tabellendarstellung mit wiederholenden Headern
+```javascript
+TableModeRenderer.render(questions, config, container);
+// ✅ Optimiert für Desktop-Ansichten
+// ✅ Wiederholende Header-Zeilen (header_repeating_rows)
+// ✅ Flexible Spaltenbreiten für 2+ Antworten
+```
+
+#### InlineModeRenderer (`inline-mode-renderer.js`)
+**Karten-Modus** - Moderne Kartendarstellung für mobile Geräte
+```javascript
+InlineModeRenderer.render(questions, config, container);
+// ✅ Optimiert für mobile Ansichten
+// ✅ Eine Frage pro Karte
+// ✅ Große, touch-freundliche Antwort-Buttons
+```
+
+#### StepperModeRenderer (`stepper-mode-renderer.js`)
+**Stepper/Wizard-Modus** - Schrittweise Navigation durch Fragebogen
+```javascript
+StepperModeRenderer.render(questions, config, container);
+// ✅ Eine Frage pro Schritt
+// ✅ Fortschrittsbalken und Zähler
+// ✅ Auto-Advance nach Antwortauswahl
+// ✅ Optionales Auto-Submit nach letzter Frage (stepper_autosend)
+// ✅ Vor/Zurück-Navigation mit State-Persistenz
+```
+
+#### ResponsiveModeHandler (`responsive-mode-handler.js`)
+**Responsive-Handler** - Automatische Modus-Umschaltung
+```javascript
+ResponsiveModeHandler.render(questions, config, container);
+// ✅ Automatische Erkennung: >900px = Tabelle, ≤900px = Karten
+// ✅ Live-Umschaltung bei Fenstergrößenänderung
+// ✅ Antwort-Erhaltung beim Modus-Wechsel
+// ✅ Throttled resize events (150ms)
 ```
 
 ### FormHandler (`components/form-handler.js`)
@@ -360,6 +414,12 @@ Format: `<Kategorie-ID>|<Fragetext>`
     "display": "responsive",
     "header_repeating_rows": 5
   },
+  "question-ui": {
+    "autoscroll": true,
+    "stepper": false,
+    "stepper_fade_duration": 250,
+    "stepper_autosend": false
+  },
   "persistence": {
     "enabled": true,
     "type": "localstorage|hybrid|server",
@@ -373,6 +433,12 @@ Format: `<Kategorie-ID>|<Fragetext>`
 - `"column"`: Immer Tabellen-Modus
 - `"inline"`: Immer Karten-Modus  
 - `"responsive"`: Automatische Umschaltung bei 900px Breakpoint
+
+**Stepper/Wizard-Modus (question-ui):**
+- `"stepper": true`: Aktiviert Stepper-Modus (eine Frage pro Schritt)
+- `"stepper_fade_duration": <ms>`: Fade-Dauer zwischen Schritten (Standard: 250ms)
+- `"stepper_autosend": true`: Automatisches Submit nach letzter Frage (Standard: false)
+- `"autoscroll": true`: Automatisches Scrollen bei Responsive-Modus
 
 **Persistierung-Optionen:**
 - `"persistence": {"enabled": false}`: Keine Speicherung (Standard)
@@ -463,7 +529,7 @@ Die Anwendung (`index.html`) verwendet eine schlanke modulare Architektur:
 
 ## 📈 Entwicklungshistorie
 
-### Version 2.1 - Hybrid-Persistierung & API-Backend (September 2025)
+### Version 2.1 - Hybrid-Persistierung, API-Backend & Stepper-Modus (September/Oktober 2025)
 
 **Neue Features:**
 - ✅ **Hybrid-Persistierung:** LocalStorage + Server-Backup für optimale Performance
@@ -474,6 +540,8 @@ Die Anwendung (`index.html`) verwendet eine schlanke modulare Architektur:
 - ✅ **Session-Management:** UUID-basierte Session-Tokens für Benutzer-Zuordnung
 - ✅ **Request-Deduplication:** Optimierte Server-Kommunikation mit Caching
 - ✅ **Database-Schema:** Vollständiges MySQL/MariaDB-Setup mit Cleanup-Mechanismen
+- ✅ **Modulare Renderer:** Spezialisierte Renderer für Table, Inline, Stepper und Responsive-Modi
+- ✅ **Stepper/Wizard-Modus:** Schrittweise Navigation mit Auto-Submit Feature
 
 ### Version 2.0 - Modulare Architektur (September 2025)
 
@@ -520,13 +588,14 @@ Die Anwendung (`index.html`) verwendet eine schlanke modulare Architektur:
 - Network-Tab für Datenlade-Vorgänge
 - Sources-Tab für JavaScript-Debugging
 
-### Nächste Schritte (Roadmap)
+### Nächste Schritte (Roadmap Version 2.2+)
 
 - [ ] **Bar Chart implementieren** in `charts/bar-chart.js`
-- [ ] **Unit Tests hinzufügen** für alle Module
+- [ ] **Unit Tests hinzufügen** für alle Module (inkl. Renderer)
 - [ ] **TypeScript-Migration** für bessere Typisierung
 - [ ] **Bundle-Splitting** für Performance-Optimierung
 - [ ] **PWA-Features** für Offline-Nutzung
+- [ ] **Stepper-Modus Erweiterungen**: Progress-Speicherung, Sprungnavigation
 
 ---
 

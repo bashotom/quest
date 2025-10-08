@@ -1,19 +1,20 @@
 
 # Produktspezifikation: Dynamischer Fragebogen
 
-**Datum:** September 2025  
-**Version:** 2.1 (Hybrid-Persistierung & API-Backend)
+**Datum:** Oktober 2025  
+**Version:** 2.1 (Hybrid-Persistierung, API-Backend & Stepper-Modus)
 
 ## 1. Zielsetzung
 Die Anwendung ermöglicht das bro## 10. Roadmap
 
-### 10.1 Version 2.1 (Abgeschlossen - September 2025)
+### 10.1 Version 2.1 (Abgeschlossen - September/Oktober 2025)
 - ✅ **Hybrid-Persistierung**: LocalStorage + Server-Backup implementiert
 - ✅ **Server-Persistierung**: Reine Server-basierte Speicherung
 - ✅ **PHP-REST-API**: Production-ready Backend mit MySQL/MariaDB
 - ✅ **Strategy Pattern**: PersistenceManagerFactory für flexible Strategien
 - ✅ **Try-Reloading**: Intelligente Retry-Mechanismen bei Server-Fehlern
 - ✅ **Request-Deduplication**: Optimierte Server-Kommunikation
+- ✅ **Stepper/Wizard-Modus**: Schrittweise Navigation mit Auto-Submit Feature
 
 ### 10.2 Version 2.2 (geplant)
 - **Bar Chart Implementation**: Vollständige `charts/bar-chart.js` Implementierung
@@ -25,7 +26,7 @@ Die Anwendung ermöglicht das bro## 10. Roadmap
 - **TypeScript-Migration**: Bessere Typisierung für alle Module
 - **PWA-Features**: Offline-Nutzung mit Service Worker
 - **Multi-User-Support**: Erweiterte Session-Verwaltung
-- **Real-time Sync**: WebSocket-basierte Echtzeit-Synchronisatione Ausfüllen, Auswerten und Visualisieren von beliebigen Fragebögen. Mit Version 2.1 (September 2025) wurde eine Hybrid-Persistierung eingeführt, die LocalStorage-Performance mit Server-Backup-Sicherheit kombiniert. Die Anwendung unterstützt drei Persistierungs-Modi: reine LocalStorage, Hybrid (LocalStorage + Server), und reine Server-Persistierung.
+- **Real-time Sync**: WebSocket-basierte Echtzeit-Synchronisatione Ausfüllen, Auswerten und Visualisieren von beliebigen Fragebögen. Mit Version 2.1 (September/Oktober 2025) wurde eine Hybrid-Persistierung eingeführt, die LocalStorage-Performance mit Server-Backup-Sicherheit kombiniert. Zusätzlich bietet der neue Stepper/Wizard-Modus eine moderne, schrittweise Navigation durch Fragebögen mit optionalem Auto-Submit nach der letzten Frage. Die Anwendung unterstützt drei Persistierungs-Modi: reine LocalStorage, Hybrid (LocalStorage + Server), und reine Server-Persistierung.
 
 ## 2. Hauptfunktionen
 
@@ -36,7 +37,8 @@ Die Anwendung ermöglicht das bro## 10. Roadmap
 - **Kategorien**: Jede Frage ist per ID-Präfix einer Kategorie zugeordnet, Kategorien werden in der Auswertung aggregiert.
 - **Diagramm-Auswertung**: Die Auswertung erfolgt als Radar-, Balken- oder Gauge-Chart (D3.js/Chart.js), gesteuert durch die JSON-Konfiguration.
 - **Antwort-Persistenz & Teilen**: Antworten werden im URL-Hash gespeichert, sodass sie beim Reload oder Teilen des Links erhalten bleiben.
-- **Responsive UI**: Drei Darstellungsmodi (Tabellen-, Karten- und Responsive-Modus), automatische Umschaltung bei 900px Breakpoint, moderne Optik mit TailwindCSS.
+- **Responsive UI**: Vier Darstellungsmodi (Tabellen-, Karten-, Responsive- und Stepper-Modus), automatische Umschaltung bei 900px Breakpoint, moderne Optik mit TailwindCSS.
+- **Stepper/Wizard-Modus**: Schrittweise Bearbeitung mit einer Frage pro Schritt, optionalem Auto-Submit und visueller Fortschrittsanzeige.
 
 ### 2.2 Erweiterte Features (Version 2.1 - Hybrid-Persistierung)
 - **Hybrid-Persistierung**: LocalStorage + Server-Backup für optimale Performance und Datensicherheit
@@ -125,12 +127,35 @@ quest/
   - `"column"`: Immer Tabellen-Modus
   - `"inline"`: Immer Karten-Modus
   - `"responsive"`: Automatische Umschaltung bei 900px Breakpoint
+- `question-ui`: (optional) Fragebogen-UI-Konfiguration
+  - `"autoscroll": true/false`: Automatisches Scrollen bei Responsive-Modus
+  - `"stepper": true/false`: Stepper/Wizard-Modus aktivieren (eine Frage pro Schritt)
+  - `"stepper_fade_duration": <ms>`: Fade-Dauer zwischen Schritten (Standard: 250ms)
+  - `"stepper_autosend": true/false`: Automatisches Submit nach letzter Frage (Standard: false)
 - `persistence`: (optional) Persistierungs-Konfiguration
   - `{"enabled": false}`: Keine Speicherung (Standard)
   - `{"enabled": true, "type": "localstorage"}`: Reine LocalStorage-Speicherung
   - `{"enabled": true, "type": "hybrid", "server_endpoint": "api/questionnaire-data-prod.php"}`: Hybrid-Modus
   - `{"enabled": true, "type": "server", "server_endpoint": "api/questionnaire-data-prod.php"}`: Server-Modus
   - `"try_reloading": true`: "Erneut versuchen"-Button bei Server-Verbindungsfehlern
+
+#### Beispiel: Stepper-Modus Konfiguration
+```json
+{
+  "title": "ACE-Fragebogen",
+  "question-ui": {
+    "autoscroll": true,
+    "stepper": true,
+    "stepper_fade_duration": 250,
+    "stepper_autosend": true
+  },
+  "input": {
+    "display": "inline",
+    "size": 5
+  }
+}
+```
+Mit dieser Konfiguration wird der Fragebogen im Stepper-Modus angezeigt, wobei nach Beantwortung der letzten Frage automatisch die Auswertung erfolgt.
 
 ### 3.5 Datenfluss (Hybrid-Architektur)
 1. **Bootstrap**: `index.html` lädt `QuestionnaireApp` via ES6-Import
@@ -150,10 +175,12 @@ quest/
 
 ### 4.1 Standard-Workflow
 - Auswahl des Fragebogens über das Menü (automatisch generiert)
-- Wechsel zwischen Tabellen- und Karten-Darstellungsmodus
-- Beantwortung der Fragen durch Radio-Buttons (Tabellen- oder Kartenmodus)
+- Wechsel zwischen Tabellen-, Karten- und Stepper-Darstellungsmodus
+- Beantwortung der Fragen durch Radio-Buttons (Tabellen-, Karten- oder Stepper-Modus)
+- Im Stepper-Modus: Schrittweise Navigation durch die Fragen mit automatischem Fortschritt
 - Optionale Schnell-Ausfüllung mit Min/Max/Zufallswerten für Testing
-- Auswertung per Button, Anzeige des entsprechenden Diagramms und eines Teil-Links
+- Auswertung per Button oder automatisch (bei `stepper_autosend: true`)
+- Anzeige des entsprechenden Diagramms und eines Teil-Links
 - Navigation zurück zum Fragebogen mit Erhalt der Antworten
 
 ### 4.2 Fehlerbehandlung (Version 2.0)
@@ -176,6 +203,16 @@ quest/
 - **Performance-optimiert**: Reduzierte Hauptdatei (~160 Zeilen statt 800+)
 - **Wartbarkeit**: Klare Trennung von UI-, Chart- und Datenlogik
 - **Erweiterbar**: Plugin-ähnliche Struktur für neue Chart-Typen und UI-Komponenten
+
+### 5.3 Stepper/Wizard-Modus (Version 2.1+)
+- **Schrittweise Navigation**: Zeigt eine Frage pro Schritt mit Vor/Zurück-Navigation
+- **Visueller Fortschritt**: Fortschrittsbalken und Zähler zeigen den Bearbeitungsstand
+- **Konfigurierbarer Übergang**: Fade-Dauer zwischen Schritten einstellbar (Standard: 250ms)
+- **Auto-Advance**: Automatischer Wechsel zur nächsten Frage nach Beantwortung
+- **Automatisches Submit**: Optional automatische Auswertung nach letzter Frage (`stepper_autosend: true`)
+- **Smart-Button-Logik**: Auswertungs-Button erscheint erst nach Beantwortung aller Fragen
+- **State-Persistenz**: Antworten bleiben bei Navigation vor/zurück erhalten
+- **Responsive Design**: Optimiert für mobile und Desktop-Ansichten
 
 ## 6. Server-Setup (für Hybrid/Server-Persistierung)
 
