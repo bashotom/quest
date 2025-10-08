@@ -3,6 +3,8 @@ import { QuestionRenderer } from '../components/question-renderer.js';
 import { URLHashManager } from '../utils/url-hash-manager.js';
 import { PersistenceManagerFactory } from '../services/persistence-manager-factory.js';
 import { DebugManager } from '../utils/debug-manager.js';
+import { TableModeRenderer } from '../components/renderers/table-mode-renderer.js';
+import { InlineModeRenderer } from '../components/renderers/inline-mode-renderer.js';
 
 /**
  * QuestionnaireRenderer - Handles questionnaire rendering and loading
@@ -218,9 +220,9 @@ export class QuestionnaireRenderer {
         const effectiveMode = this.appState.getEffectiveDisplayMode(displayMode);
         
         if (effectiveMode === 'column') {
-            QuestionRenderer.applyAnswerColors(this.appState.config);
+            TableModeRenderer.applyAnswerColors(this.appState.config);
         } else {
-            QuestionRenderer.applyInlineAnswerColors(this.appState.config);
+            InlineModeRenderer.applyAnswerColors(this.appState.config);
         }
         
         this.uiManager.showTemporaryMessage('Gespeicherte Antworten wurden wiederhergestellt.', 'success');

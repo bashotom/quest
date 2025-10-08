@@ -24,10 +24,10 @@ export class FormHandler {
         // Check if in stepper mode - collect answers from stepper state
         let answersObject = {};
         if (this.config.questionUi?.stepper === true) {
-            // Import QuestionRenderer to access stepper state
-            const { QuestionRenderer } = await import('./question-renderer.js');
-            if (QuestionRenderer.stepperState && QuestionRenderer.stepperState.answers) {
-                answersObject = QuestionRenderer.stepperState.answers;
+            // Import StepperModeRenderer to access stepper state
+            const { StepperModeRenderer } = await import('./renderers/stepper-mode-renderer.js');
+            if (StepperModeRenderer.stepperState && StepperModeRenderer.stepperState.answers) {
+                answersObject = StepperModeRenderer.stepperState.answers;
             }
         } else {
             // Normal mode - collect from form

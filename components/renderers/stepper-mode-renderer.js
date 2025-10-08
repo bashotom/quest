@@ -219,6 +219,9 @@ export class StepperModeRenderer {
                 StepperModeRenderer.goToNext(questions, config, container);
             });
         }
+        
+        // Submit button - no custom listener needed
+        // The form's default submit handler (FormHandler) will check StepperModeRenderer.stepperState.answers
     }
     
     /**

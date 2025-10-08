@@ -1,6 +1,8 @@
 import { QuestionRenderer } from '../components/question-renderer.js';
 import { FormHandler } from '../components/form-handler.js';
 import { PersistenceManagerFactory } from '../services/persistence-manager-factory.js';
+import { TableModeRenderer } from '../components/renderers/table-mode-renderer.js';
+import { InlineModeRenderer } from '../components/renderers/inline-mode-renderer.js';
 
 /**
  * FormEventHandler - Handles all form-related events
@@ -111,9 +113,9 @@ export class FormEventHandler {
         const effectiveMode = this.appState.getEffectiveDisplayMode(displayMode);
         
         if (effectiveMode === 'column') {
-            QuestionRenderer.applyAnswerColors(this.appState.config);
+            TableModeRenderer.applyAnswerColors(this.appState.config);
         } else {
-            QuestionRenderer.applyInlineAnswerColors(this.appState.config);
+            InlineModeRenderer.applyAnswerColors(this.appState.config);
         }
         
         // Auto-save for localStorage persistence
