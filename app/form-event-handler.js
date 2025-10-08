@@ -118,6 +118,9 @@ export class FormEventHandler {
             InlineModeRenderer.applyAnswerColors(this.appState.config);
         }
         
+        // Update stepper state if in stepper mode
+        this.updateStepperStateFromDOM();
+        
         // Auto-save for localStorage persistence
         if (this.shouldAutoSave()) {
             await this.autoSaveAnswers(type);
@@ -165,5 +168,37 @@ export class FormEventHandler {
 
         const PersistenceManager = PersistenceManagerFactory.create(this.appState.config);
         await PersistenceManager.saveAnswers(this.appState.currentFolder, answers, this.appState.config);
+    }
+
+    /**
+     * Update stepper state from current DOM state
+     * Synchronizes the stepper state with the actual selected radio buttons
+     */
+    updateStepperStateFromDOM() {
+        // Import StepperModeRenderer dynamically to avoid circular dependencies
+        import('../components/renderers/stepper-mode-renderer.js').then(({ StepperModeRenderer }) => {
+            if (StepperModeRenderer.stepperState) {
+                // Collect all currently selected answers from DOM
+                this.appState.questions.forEach(question => {
+                    const selectedRadio = document.querySelector(`input[name="question-${question.id}"]:checked`);
+                    if (selectedRadio) {
+                        StepperModeRenderer.stepperState.answers[question.id] = parseInt(selectedRadio.value);
+                    }
+                });
+                
+                // Update the current question's next button state
+                const currentQuestion = this.appState.questions[StepperModeRenderer.stepperState.currentIndex];
+                const nextBtn = document.getElementById('stepper-next-btn');
+                if (nextBtn && currentQuestion) {
+                    const isAnswered = StepperModeRenderer.stepperState.answers[currentQuestion.id] !== undefined;
+                    nextBtn.disabled = !isAnswered;
+                    if (isAnswered) {
+                        nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    } else {
+                        nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    }
+                }
+            }
+        });
     }
 }
