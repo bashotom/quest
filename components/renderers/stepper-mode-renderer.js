@@ -188,6 +188,7 @@ export class StepperModeRenderer {
                 const fadeDuration = config.questionUi?.stepper_fade_duration || 250;
                 const isLastQuestion = StepperModeRenderer.stepperState.currentIndex === questions.length - 1;
                 const allAnswered = Object.keys(StepperModeRenderer.stepperState.answers).length === questions.length;
+                const autoSendEnabled = config.questionUi?.stepper_autosend === true;
                 
                 if (!isLastQuestion) {
                     setTimeout(() => {
@@ -196,10 +197,21 @@ export class StepperModeRenderer {
                         }
                     }, fadeDuration);
                 } else if (isLastQuestion && allAnswered) {
-                    // On last question with all answered, show submit button after brief delay
-                    setTimeout(() => {
-                        StepperModeRenderer.render(questions, config, container);
-                    }, Math.min(fadeDuration, 300));
+                    // On last question with all answered
+                    if (autoSendEnabled) {
+                        // Auto-submit the form after fade duration
+                        setTimeout(() => {
+                            const form = document.getElementById('quiz-form');
+                            if (form) {
+                                form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+                            }
+                        }, fadeDuration);
+                    } else {
+                        // Show submit button after brief delay
+                        setTimeout(() => {
+                            StepperModeRenderer.render(questions, config, container);
+                        }, Math.min(fadeDuration, 300));
+                    }
                 }
             });
         });

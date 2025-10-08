@@ -108,13 +108,15 @@ export class ConfigParser {
                 stepper: jsonData['question-ui'].stepper === true,
                 stepper_fade_duration: typeof jsonData['question-ui'].stepper_fade_duration === 'number' 
                     ? jsonData['question-ui'].stepper_fade_duration 
-                    : 250
+                    : 250,
+                stepper_autosend: jsonData['question-ui'].stepper_autosend === true
             };
         } else {
             result.questionUi = {
                 autoscroll: false,
                 stepper: false,
-                stepper_fade_duration: 250
+                stepper_fade_duration: 250,
+                stepper_autosend: false
             };
         }
         
