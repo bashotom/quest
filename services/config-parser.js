@@ -105,12 +105,16 @@ export class ConfigParser {
         if (jsonData['question-ui'] && typeof jsonData['question-ui'] === 'object') {
             result.questionUi = {
                 autoscroll: jsonData['question-ui'].autoscroll === true,
-                stepper: jsonData['question-ui'].stepper === true
+                stepper: jsonData['question-ui'].stepper === true,
+                stepper_fade_duration: typeof jsonData['question-ui'].stepper_fade_duration === 'number' 
+                    ? jsonData['question-ui'].stepper_fade_duration 
+                    : 250
             };
         } else {
             result.questionUi = {
                 autoscroll: false,
-                stepper: false
+                stepper: false,
+                stepper_fade_duration: 250
             };
         }
         

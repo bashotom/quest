@@ -18,7 +18,8 @@
   ],
   "question-ui": {
     "autoscroll": true,
-    "stepper": true
+    "stepper": true,
+    "stepper_fade_duration": 250
   },
   "evaluation_ui": {
     "sequence": [ "chart", "tiles" ]

@@ -239,11 +239,13 @@ export class QuestionRenderer {
                                 const answerColor = answer.color || '#e5e7eb';
                                 const answerSize = config.input?.size || 5;
                                 const isChecked = QuestionRenderer.stepperState.answers[question.id] === index;
+                                const selectedStyle = isChecked ? `style="background-color: ${answerColor};"` : '';
                                 return `
                                     <label class="stepper-answer-label block p-${answerSize} border-2 border-gray-300 rounded-lg cursor-pointer transition-all hover:border-blue-400 hover:shadow-md ${isChecked ? 'selected' : ''}" 
                                            data-answer-color="${answerColor}"
                                            data-question-id="${question.id}"
-                                           data-answer-index="${index}">
+                                           data-answer-index="${index}"
+                                           ${selectedStyle}>
                                         <input type="radio" 
                                                name="question-${question.id}" 
                                                value="${index}" 
@@ -273,7 +275,7 @@ export class QuestionRenderer {
                             ` : `
                                 <button type="button" 
                                         id="stepper-next-btn" 
-                                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors ${!QuestionRenderer.stepperState.answers[question.id] ? 'opacity-50 cursor-not-allowed' : ''}"
                                         ${!QuestionRenderer.stepperState.answers[question.id] ? 'disabled' : ''}>
                                     Weiter →
                                 </button>
@@ -632,10 +634,11 @@ export class QuestionRenderer {
                 const nextBtn = document.getElementById('stepper-next-btn');
                 if (nextBtn) {
                     nextBtn.disabled = false;
-                    nextBtn.classList.remove('opacity-50');
+                    nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
                 
-                // Auto-advance after 0.5 seconds if not on last question
+                // Auto-advance using configured fade duration
+                const fadeDuration = config.questionUi?.stepper_fade_duration || 250;
                 const isLastQuestion = QuestionRenderer.stepperState.currentIndex === questions.length - 1;
                 const allAnswered = Object.keys(QuestionRenderer.stepperState.answers).length === questions.length;
                 
@@ -644,12 +647,12 @@ export class QuestionRenderer {
                         if (!QuestionRenderer.stepperState.isTransitioning) {
                             QuestionRenderer.goToNextQuestion(questions, config, container);
                         }
-                    }, 500);
+                    }, fadeDuration);
                 } else if (isLastQuestion && allAnswered) {
                     // On last question with all answered, show submit button after brief delay
                     setTimeout(() => {
                         QuestionRenderer.renderStepperMode(questions, config, container);
-                    }, 300);
+                    }, Math.min(fadeDuration, 300));
                 }
             });
         });
@@ -675,6 +678,8 @@ export class QuestionRenderer {
         if (QuestionRenderer.stepperState.isTransitioning) return;
         if (QuestionRenderer.stepperState.currentIndex >= questions.length - 1) return;
         
+        const fadeDuration = config.questionUi?.stepper_fade_duration || 250;
+        
         QuestionRenderer.stepperState.isTransitioning = true;
         const card = document.getElementById('stepper-question-card');
         
@@ -692,13 +697,15 @@ export class QuestionRenderer {
             setTimeout(() => {
                 newCard.classList.remove('stepper-fade-in');
                 QuestionRenderer.stepperState.isTransitioning = false;
-            }, 500);
-        }, 500);
+            }, fadeDuration);
+        }, fadeDuration);
     }
     
     static goToPrevQuestion(questions, config, container) {
         if (QuestionRenderer.stepperState.isTransitioning) return;
         if (QuestionRenderer.stepperState.currentIndex <= 0) return;
+        
+        const fadeDuration = config.questionUi?.stepper_fade_duration || 250;
         
         QuestionRenderer.stepperState.isTransitioning = true;
         const card = document.getElementById('stepper-question-card');
@@ -717,8 +724,8 @@ export class QuestionRenderer {
             setTimeout(() => {
                 newCard.classList.remove('stepper-fade-in');
                 QuestionRenderer.stepperState.isTransitioning = false;
-            }, 500);
-        }, 500);
+            }, fadeDuration);
+        }, fadeDuration);
     }
     
     static resetStepperState() {
