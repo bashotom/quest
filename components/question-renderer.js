@@ -113,7 +113,85 @@ export class QuestionRenderer {
         ColorManager.resetAllColors();
     }
     
-    static setAllAnswers(questions, mode) {
+    static setAllAnswers(questions, mode, config = null) {
+        // Check if stepper mode is active
+        if (StepperModeRenderer.stepperState && config) {
+            // In stepper mode, update the state directly for all questions
+            const answersLength = config.answers?.length || 5;
+            
+            questions.forEach((question) => {
+                let answerIndex;
+                
+                switch (mode) {
+                    case 'min': 
+                        answerIndex = 0; 
+                        break;
+                    case 'max': 
+                        answerIndex = answersLength - 1; 
+                        break;
+                    case 'random': 
+                        answerIndex = Math.floor(Math.random() * answersLength); 
+                        break;
+                }
+                
+                StepperModeRenderer.stepperState.answers[question.id] = answerIndex;
+            });
+            
+            // Update progress indicator
+            const totalQuestions = questions.length;
+            const answeredCount = Object.keys(StepperModeRenderer.stepperState.answers).length;
+            const progressPercent = ((StepperModeRenderer.stepperState.currentIndex + 1) / totalQuestions) * 100;
+            
+            // Update progress bar and text
+            const progressText = document.querySelector('.mb-6 .flex.justify-between span:last-child');
+            if (progressText) {
+                progressText.textContent = `${answeredCount} / ${totalQuestions} beantwortet (${Math.round((answeredCount/totalQuestions)*100)}%)`;
+            }
+            
+            // Re-render current question to show the selected answer
+            const currentQuestion = questions[StepperModeRenderer.stepperState.currentIndex];
+            const answerIndex = StepperModeRenderer.stepperState.answers[currentQuestion.id];
+            const radioToCheck = document.querySelector(`input[name="question-${currentQuestion.id}"][value="${answerIndex}"]`);
+            if (radioToCheck) {
+                radioToCheck.checked = true;
+                // Trigger the label styling
+                const label = radioToCheck.closest('.stepper-answer-label');
+                if (label) {
+                    const answerColor = label.dataset.answerColor;
+                    document.querySelectorAll('.stepper-answer-label').forEach(l => {
+                        l.classList.remove('selected');
+                        l.style.backgroundColor = '';
+                    });
+                    label.classList.add('selected');
+                    label.style.backgroundColor = answerColor;
+                }
+            }
+            
+            // Enable next button
+            const nextBtn = document.getElementById('stepper-next-btn');
+            if (nextBtn) {
+                nextBtn.disabled = false;
+                nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            
+            // Update submit button visibility - check if we should show submit button
+            const allAnswered = answeredCount === totalQuestions;
+            const isLastQuestion = StepperModeRenderer.stepperState.currentIndex === totalQuestions - 1;
+            
+            if (allAnswered && isLastQuestion) {
+                // Replace next button with submit button on last question when all answered
+                const container = document.querySelector('.stepper-container')?.parentElement;
+                if (container) {
+                    StepperModeRenderer.render(questions, config, container);
+                }
+            }
+            
+            StepperModeRenderer.updateSubmitButtonsVisibility(allAnswered);
+            
+            return; // Exit early for stepper mode
+        }
+        
+        // Regular mode: set answers via DOM manipulation
         // First reset all colors (both table and inline mode)
         ColorManager.resetAllColors();
         

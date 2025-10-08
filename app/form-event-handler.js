@@ -107,7 +107,7 @@ export class FormEventHandler {
      * @param {string} type - Answer type: 'min', 'random', or 'max'
      */
     async setAnswers(type) {
-        QuestionRenderer.setAllAnswers(this.appState.questions, type);
+        QuestionRenderer.setAllAnswers(this.appState.questions, type, this.appState.config);
         
         const displayMode = localStorage.getItem('displayMode') || 'column';
         const effectiveMode = this.appState.getEffectiveDisplayMode(displayMode);
@@ -117,9 +117,6 @@ export class FormEventHandler {
         } else {
             InlineModeRenderer.applyAnswerColors(this.appState.config);
         }
-        
-        // Update stepper state if in stepper mode
-        this.updateStepperStateFromDOM();
         
         // Auto-save for localStorage persistence
         if (this.shouldAutoSave()) {
