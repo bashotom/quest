@@ -4,6 +4,12 @@
  */
 export class QuestionRenderer {
     static render(questions, config, container) {
+        // Check if stepper mode is enabled
+        if (config.questionUi?.stepper === true) {
+            QuestionRenderer.renderStepperMode(questions, config, container);
+            return;
+        }
+        
         const displayMode = localStorage.getItem('displayMode') || 'responsive';
         const currentAnswers = QuestionRenderer.collectCurrentAnswers(questions);
 
@@ -141,36 +147,150 @@ export class QuestionRenderer {
     }
     
     static renderInlineMode(questions, config, container) {
-        let html = '<div class="space-y-4 sm:space-y-6">';
-
-        questions.forEach((question, index) => {
+        let html = '<div class="space-y-4">';
+        
+        questions.forEach((question) => {
             html += `
-                <div class="border border-gray-200 rounded-lg p-4 sm:p-6 bg-white">
-                    <div class="font-medium mb-3 sm:mb-4 text-sm sm:text-base text-gray-900">${index + 1}. ${question.text}</div>
-                    <div class="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4">
+                <div class="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
+                    <h3 class="text-lg font-medium text-gray-900 mb-3">${question.text || question.question}</h3>
+                    <div class="space-y-2">
+                        ${config.answers?.map((answer, index) => {
+                            const label = answer.label || Object.keys(answer)[0];
+                            const answerColor = answer.color || '#e5e7eb';
+                            const answerSize = config.input?.size || 5;
+                            return `
+                                <label class="answer-label block p-${answerSize} border-2 border-gray-200 rounded-lg cursor-pointer transition-colors hover:bg-gray-50" data-answer-color="${answerColor}">
+                                    <input type="radio" name="question-${question.id}" value="${index}" class="mr-2">
+                                    ${label}
+                                </label>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
             `;
-
-            config.answers?.forEach((answer, index) => {
-                const label = answer.label || Object.keys(answer)[0];
-                html += `
-                    <label class="answer-label flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-50 transition-colors duration-150" 
-                           data-answer-color="${answer.color || ''}"
-                           data-answer-index="${index}">
-                        <input type="radio" name="question-${question.id}" value="${index}" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                        <span class="text-sm sm:text-base">${label}</span>
-                    </label>
-                `;
-            });
-
-            html += '</div></div>';
         });
-
+        
         html += '</div>';
+        
         container.innerHTML = html;
         
-        // Add hover event listeners and change listeners for inline mode
+        // Setup event listeners for hover and change effects
         QuestionRenderer.setupInlineHoverEffects();
         QuestionRenderer.setupInlineChangeListeners(config);
+    }
+    
+    static renderStepperMode(questions, config, container) {
+        // Initialize stepper state if not exists
+        if (!QuestionRenderer.stepperState) {
+            QuestionRenderer.stepperState = {
+                currentIndex: 0,
+                answers: {},
+                isTransitioning: false
+            };
+            
+            // Try to restore saved answers
+            const savedAnswers = QuestionRenderer.collectCurrentAnswers(questions);
+            if (Object.keys(savedAnswers).length > 0) {
+                QuestionRenderer.stepperState.answers = savedAnswers;
+                // Find first unanswered question
+                for (let i = 0; i < questions.length; i++) {
+                    if (!savedAnswers[questions[i].id]) {
+                        QuestionRenderer.stepperState.currentIndex = i;
+                        break;
+                    }
+                }
+                // If all answered, show last question
+                if (QuestionRenderer.stepperState.currentIndex === 0 && Object.keys(savedAnswers).length === questions.length) {
+                    QuestionRenderer.stepperState.currentIndex = questions.length - 1;
+                }
+            }
+        }
+        
+        const currentIndex = QuestionRenderer.stepperState.currentIndex;
+        const question = questions[currentIndex];
+        const totalQuestions = questions.length;
+        const answeredCount = Object.keys(QuestionRenderer.stepperState.answers).length;
+        const isLastQuestion = currentIndex === totalQuestions - 1;
+        const allAnswered = answeredCount === totalQuestions;
+        
+        // Progress indicator
+        const progressPercent = ((currentIndex + 1) / totalQuestions) * 100;
+        
+        let html = `
+            <div class="stepper-container">
+                <!-- Progress Bar -->
+                <div class="mb-6">
+                    <div class="flex justify-between text-sm text-gray-600 mb-2">
+                        <span>Frage ${currentIndex + 1} von ${totalQuestions}</span>
+                        <span>${answeredCount} / ${totalQuestions} beantwortet (${Math.round((answeredCount/totalQuestions)*100)}%)</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style="width: ${progressPercent}%"></div>
+                    </div>
+                </div>
+                
+                <!-- Question Card -->
+                <div id="stepper-question-card" class="stepper-question-card">
+                    <div class="border-2 border-blue-200 rounded-lg p-6 bg-white shadow-lg">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-6">${question.text || question.question}</h3>
+                        <div class="space-y-3">
+                            ${config.answers?.map((answer, index) => {
+                                const label = answer.label || Object.keys(answer)[0];
+                                const answerColor = answer.color || '#e5e7eb';
+                                const answerSize = config.input?.size || 5;
+                                const isChecked = QuestionRenderer.stepperState.answers[question.id] === index;
+                                return `
+                                    <label class="stepper-answer-label block p-${answerSize} border-2 border-gray-300 rounded-lg cursor-pointer transition-all hover:border-blue-400 hover:shadow-md ${isChecked ? 'selected' : ''}" 
+                                           data-answer-color="${answerColor}"
+                                           data-question-id="${question.id}"
+                                           data-answer-index="${index}">
+                                        <input type="radio" 
+                                               name="question-${question.id}" 
+                                               value="${index}" 
+                                               class="mr-3"
+                                               ${isChecked ? 'checked' : ''}>
+                                        <span class="text-lg">${label}</span>
+                                    </label>
+                                `;
+                            }).join('')}
+                        </div>
+                        
+                        <!-- Navigation Buttons -->
+                        <div class="flex justify-between items-center mt-8">
+                            <button type="button" 
+                                    id="stepper-prev-btn" 
+                                    class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${currentIndex === 0 ? 'invisible' : ''}"
+                                    ${currentIndex === 0 ? 'disabled' : ''}>
+                                ← Zurück
+                            </button>
+                            
+                            ${isLastQuestion && allAnswered ? `
+                                <button type="submit" 
+                                        id="stepper-submit-btn"
+                                        class="px-8 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-lg">
+                                    ✓ Fragebogen auswerten
+                                </button>
+                            ` : `
+                                <button type="button" 
+                                        id="stepper-next-btn" 
+                                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                        ${!QuestionRenderer.stepperState.answers[question.id] ? 'disabled' : ''}>
+                                    Weiter →
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        container.innerHTML = html;
+        
+        // Setup event listeners
+        QuestionRenderer.setupStepperListeners(questions, config, container);
+        
+        // Update submit buttons visibility in form
+        QuestionRenderer.updateSubmitButtonsVisibility(allAnswered);
     }
     
     static renderResponsiveMode(questions, config, container) {
@@ -481,5 +601,138 @@ export class QuestionRenderer {
         checkedRadios.forEach(radio => {
             QuestionRenderer.applyInlineAnswerColor(radio, config);
         });
+    }
+    
+    static setupStepperListeners(questions, config, container) {
+        // Answer selection listeners
+        const answerLabels = container.querySelectorAll('.stepper-answer-label');
+        answerLabels.forEach(label => {
+            label.addEventListener('click', (e) => {
+                if (QuestionRenderer.stepperState.isTransitioning) {
+                    e.preventDefault();
+                    return;
+                }
+                
+                const questionId = label.dataset.questionId;
+                const answerIndex = parseInt(label.dataset.answerIndex);
+                const answerColor = label.dataset.answerColor;
+                
+                // Save answer
+                QuestionRenderer.stepperState.answers[questionId] = answerIndex;
+                
+                // Apply color to selected label
+                answerLabels.forEach(l => {
+                    l.classList.remove('selected');
+                    l.style.backgroundColor = '';
+                });
+                label.classList.add('selected');
+                label.style.backgroundColor = answerColor;
+                
+                // Enable next button
+                const nextBtn = document.getElementById('stepper-next-btn');
+                if (nextBtn) {
+                    nextBtn.disabled = false;
+                    nextBtn.classList.remove('opacity-50');
+                }
+                
+                // Auto-advance after 0.5 seconds if not on last question
+                const isLastQuestion = QuestionRenderer.stepperState.currentIndex === questions.length - 1;
+                const allAnswered = Object.keys(QuestionRenderer.stepperState.answers).length === questions.length;
+                
+                if (!isLastQuestion) {
+                    setTimeout(() => {
+                        if (!QuestionRenderer.stepperState.isTransitioning) {
+                            QuestionRenderer.goToNextQuestion(questions, config, container);
+                        }
+                    }, 500);
+                } else if (isLastQuestion && allAnswered) {
+                    // On last question with all answered, show submit button after brief delay
+                    setTimeout(() => {
+                        QuestionRenderer.renderStepperMode(questions, config, container);
+                    }, 300);
+                }
+            });
+        });
+        
+        // Previous button
+        const prevBtn = document.getElementById('stepper-prev-btn');
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                QuestionRenderer.goToPrevQuestion(questions, config, container);
+            });
+        }
+        
+        // Next button
+        const nextBtn = document.getElementById('stepper-next-btn');
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                QuestionRenderer.goToNextQuestion(questions, config, container);
+            });
+        }
+    }
+    
+    static goToNextQuestion(questions, config, container) {
+        if (QuestionRenderer.stepperState.isTransitioning) return;
+        if (QuestionRenderer.stepperState.currentIndex >= questions.length - 1) return;
+        
+        QuestionRenderer.stepperState.isTransitioning = true;
+        const card = document.getElementById('stepper-question-card');
+        
+        // Fade out
+        card.classList.add('stepper-fade-out');
+        
+        setTimeout(() => {
+            QuestionRenderer.stepperState.currentIndex++;
+            QuestionRenderer.renderStepperMode(questions, config, container);
+            
+            // Fade in
+            const newCard = document.getElementById('stepper-question-card');
+            newCard.classList.add('stepper-fade-in');
+            
+            setTimeout(() => {
+                newCard.classList.remove('stepper-fade-in');
+                QuestionRenderer.stepperState.isTransitioning = false;
+            }, 500);
+        }, 500);
+    }
+    
+    static goToPrevQuestion(questions, config, container) {
+        if (QuestionRenderer.stepperState.isTransitioning) return;
+        if (QuestionRenderer.stepperState.currentIndex <= 0) return;
+        
+        QuestionRenderer.stepperState.isTransitioning = true;
+        const card = document.getElementById('stepper-question-card');
+        
+        // Fade out
+        card.classList.add('stepper-fade-out');
+        
+        setTimeout(() => {
+            QuestionRenderer.stepperState.currentIndex--;
+            QuestionRenderer.renderStepperMode(questions, config, container);
+            
+            // Fade in
+            const newCard = document.getElementById('stepper-question-card');
+            newCard.classList.add('stepper-fade-in');
+            
+            setTimeout(() => {
+                newCard.classList.remove('stepper-fade-in');
+                QuestionRenderer.stepperState.isTransitioning = false;
+            }, 500);
+        }, 500);
+    }
+    
+    static resetStepperState() {
+        QuestionRenderer.stepperState = null;
+    }
+    
+    static updateSubmitButtonsVisibility(allAnswered) {
+        // Hide the default submit buttons when in stepper mode
+        const form = document.getElementById('quiz-form');
+        if (form) {
+            const submitButtons = form.querySelectorAll('button[type="submit"]:not(#stepper-submit-btn)');
+            submitButtons.forEach(btn => {
+                btn.style.display = 'none';
+            });
+        }
     }
 }

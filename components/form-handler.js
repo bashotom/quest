@@ -21,27 +21,36 @@ export class FormHandler {
             configType: typeof this.config
         });
         
-        // Pass both questions and config to collectAnswersFromForm
-        const answersArray = URLHashManager.collectAnswersFromForm(this.questions, this.config);
-        
-        DebugManager.log('Answers collected', { 
-            answersArray,
-            isArray: Array.isArray(answersArray) 
-        });
-        
-        // Safety check
-        if (!Array.isArray(answersArray)) {
-            console.error('answersArray is not an array:', answersArray);
-            return false;
-        }
-        
-        // Convert array to object for validation and hash update
-        const answersObject = {};
-        answersArray.forEach(answer => {
-            if (answer && answer.questionId && answer.value !== undefined) {
-                answersObject[answer.questionId] = answer.value;
+        // Check if in stepper mode - collect answers from stepper state
+        let answersObject = {};
+        if (this.config.questionUi?.stepper === true) {
+            // Import QuestionRenderer to access stepper state
+            const { QuestionRenderer } = await import('./question-renderer.js');
+            if (QuestionRenderer.stepperState && QuestionRenderer.stepperState.answers) {
+                answersObject = QuestionRenderer.stepperState.answers;
             }
-        });
+        } else {
+            // Normal mode - collect from form
+            const answersArray = URLHashManager.collectAnswersFromForm(this.questions, this.config);
+            
+            DebugManager.log('Answers collected', { 
+                answersArray,
+                isArray: Array.isArray(answersArray) 
+            });
+            
+            // Safety check
+            if (!Array.isArray(answersArray)) {
+                console.error('answersArray is not an array:', answersArray);
+                return false;
+            }
+            
+            // Convert array to object for validation and hash update
+            answersArray.forEach(answer => {
+                if (answer && answer.questionId && answer.value !== undefined) {
+                    answersObject[answer.questionId] = answer.value;
+                }
+            });
+        }
         
         const incomplete = this.questions.filter(q => !(q.id in answersObject));
         
@@ -51,6 +60,12 @@ export class FormHandler {
         }
         
         this.clearValidationErrors();
+        
+        // Convert answersObject to array format for score calculation
+        const answersArray = Object.entries(answersObject).map(([questionId, value]) => ({
+            questionId,
+            value
+        }));
         
         const scores = URLHashManager.calculateScores(answersArray, this.questions, this.config);
         URLHashManager.updateHash(answersObject, this.questions, this.config);

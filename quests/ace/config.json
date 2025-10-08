@@ -17,7 +17,8 @@
     {"A": "ACE-Gesamtwert"}
   ],
   "question-ui": {
-    "autoscroll": true
+    "autoscroll": true,
+    "stepper": true
   },
   "evaluation_ui": {
     "sequence": [ "chart", "tiles" ]

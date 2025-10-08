@@ -184,6 +184,51 @@ body {
     fill: #22c55e;
 }
 
+/* Stepper Mode Styles */
+.stepper-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.stepper-question-card {
+    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.stepper-fade-out {
+    opacity: 0;
+}
+
+.stepper-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stepper-answer-label {
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.stepper-answer-label:hover {
+    transform: translateX(5px);
+}
+
+.stepper-answer-label.selected {
+    border-color: #3b82f6 !important;
+    font-weight: 500;
+}
+
 /* Debug Mode Styles */
 .debug-only {
     display: none !important;

@@ -104,11 +104,13 @@ export class ConfigParser {
         // Question-UI Konfiguration verarbeiten
         if (jsonData['question-ui'] && typeof jsonData['question-ui'] === 'object') {
             result.questionUi = {
-                autoscroll: jsonData['question-ui'].autoscroll === true
+                autoscroll: jsonData['question-ui'].autoscroll === true,
+                stepper: jsonData['question-ui'].stepper === true
             };
         } else {
             result.questionUi = {
-                autoscroll: false
+                autoscroll: false,
+                stepper: false
             };
         }
         
