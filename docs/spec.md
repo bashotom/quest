@@ -2,7 +2,7 @@
 # Produktspezifikation: Dynamischer Fragebogen
 
 **Datum:** Oktober 2025  
-**Version:** 2.1 (Hybrid-Persistierung, API-Backend & Stepper-Modus)
+**Version:** 2.1 (Hybrid-Persistierung, API-Backend, Stepper-Modus & Externe HTML-Dateien)
 
 ## 1. Zielsetzung
 Die Anwendung ermöglicht das bro## 10. Roadmap
@@ -15,6 +15,7 @@ Die Anwendung ermöglicht das bro## 10. Roadmap
 - ✅ **Try-Reloading**: Intelligente Retry-Mechanismen bei Server-Fehlern
 - ✅ **Request-Deduplication**: Optimierte Server-Kommunikation
 - ✅ **Stepper/Wizard-Modus**: Schrittweise Navigation mit Auto-Submit Feature
+- ✅ **Externe HTML-Dateien**: Evaluationstexte aus separaten HTML-Dateien laden
 
 ### 10.2 Version 2.2 (geplant)
 - **Bar Chart Implementation**: Vollständige `charts/bar-chart.js` Implementierung
@@ -214,6 +215,56 @@ Mit dieser Konfiguration wird der Fragebogen im Stepper-Modus angezeigt, wobei n
 - **State-Persistenz**: Antworten bleiben bei Navigation vor/zurück erhalten
 - **Responsive Design**: Optimiert für mobile und Desktop-Ansichten
 
+### 5.4 Externe HTML-Dateien für Evaluationstexte (Oktober 2025)
+- **Dynamisches Laden**: Evaluationstexte können aus externen HTML-Dateien geladen werden
+- **Flexible Content-Verwaltung**: Lange oder komplexe Texte auslagern für bessere Übersichtlichkeit
+- **HTML-Formatierung**: Volle HTML-Unterstützung mit Überschriften, Listen, Absätzen, etc.
+- **File-Referenz-Syntax**: `"file:filename.html"` in der Konfiguration
+- **Automatische Pfadauflösung**: Dateien werden aus dem gleichen Ordner wie die `config.json` geladen
+- **Fallback-Handling**: Fehlerhafte Ladevorgänge zeigen nutzerfreundliche Fehlermeldungen
+- **Asynchrones Laden**: Non-blocking Implementation für optimale Performance
+
+#### 5.4.1 Verwendungsbeispiel
+```json
+{
+  "resulttiles": {
+    "enabled": true,
+    "evaluation": {
+      "A": {
+        "ranges": [0, 33, 66, 100],
+        "texts": [
+          "Kurzer direkter Text für niedrige Werte...",
+          "Mittlerer Bereich mit inline Text...",
+          "file:high.html"
+        ]
+      }
+    }
+  }
+}
+```
+
+#### 5.4.2 HTML-Datei-Format
+Die referenzierte HTML-Datei (z.B. `high.html`) kann beliebiges HTML enthalten:
+```html
+<p>Ein hoher ACE-Wert deutet darauf hin, dass eine Person belastende Kindheitserfahrungen gemacht hat.</p>
+
+<h2>Was bedeutet ein hoher Wert?</h2>
+<ul>
+  <li><strong>Psychische Erkrankungen:</strong> Erhöhtes Risiko für Depressionen...</li>
+  <li><strong>Körperliche Erkrankungen:</strong> Höhere Wahrscheinlichkeit für...</li>
+</ul>
+
+<h2>Therapieansätze</h2>
+<p>Der Fokus liegt auf Resilienz-Stärkung und gesunden Bewältigungsmechanismen.</p>
+```
+
+#### 5.4.3 Technische Details
+- **Pfadauflösung**: `quests/{questionnaire-folder}/{filename}`
+- **Fetch-API**: Asynchrones Laden mit error handling
+- **Performance**: Dateien werden nur bei Bedarf geladen (lazy loading)
+- **Caching**: Browser-Cache wird automatisch genutzt
+- **Fehlerbehandlung**: Nutzerfreundliche Fallback-Meldungen bei Ladefehlern
+
 ## 6. Server-Setup (für Hybrid/Server-Persistierung)
 
 ### 6.1 Systemanforderungen
@@ -318,4 +369,4 @@ curl -X GET http://localhost/quest/api/questionnaire-data-prod.php
 
 ---
 
-**Letzte Aktualisierung**: 18.09.2025 (Version 2.0 - Modulare Architektur)
+**Letzte Aktualisierung**: 09.10.2025 (Version 2.1 - Externe HTML-Dateien für Evaluationstexte)

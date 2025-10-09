@@ -181,7 +181,7 @@ export class ResultApp {
         }
     }
     
-    renderEvaluation(scores) {
+    async renderEvaluation(scores) {
         const chartType = this.config.chart?.type || 'radar';
         const sequence = this.config.evaluationUi?.sequence || ['chart', 'table', 'tiles'];
         
@@ -218,15 +218,15 @@ export class ResultApp {
         }
         
         // Process data once for all renderers
-        const processedData = ResultDataProcessor.process(scores, this.questions, this.config);
+        const processedData = ResultDataProcessor.process(scores, this.questions, this.config, this.currentFolder);
         
-        // Render elements in the specified sequence
-        sequence.forEach(element => {
-            this.renderSequenceElement(element, scores, processedData, chartType);
-        });
+        // Render elements in the specified sequence (async)
+        for (const element of sequence) {
+            await this.renderSequenceElement(element, scores, processedData, chartType);
+        }
     }
     
-    renderSequenceElement(element, scores, processedData, chartType) {
+    async renderSequenceElement(element, scores, processedData, chartType) {
         if (!this.elements.evaluationContent) return;
         
         switch (element) {
@@ -237,7 +237,7 @@ export class ResultApp {
                 this.renderTableInSequence(processedData);
                 break;
             case 'tiles':
-                this.renderTilesInSequence(processedData);
+                await this.renderTilesInSequence(processedData);
                 break;
             default:
                 console.warn(`Unknown evaluation_ui sequence element: ${element}`);
@@ -293,7 +293,7 @@ export class ResultApp {
         }
     }
     
-    renderTilesInSequence(processedData) {
+    async renderTilesInSequence(processedData) {
         // Only render if tiles are enabled  
         if (!this.config.resulttiles?.enabled) return;
         
@@ -310,7 +310,7 @@ export class ResultApp {
             if (tilesContainer) {
                 // Give it a unique ID to avoid conflicts
                 tilesContainer.id = 'result-tiles-container-active';
-                ResultTileRenderer.render(processedData, this.config, tilesContainer);
+                await ResultTileRenderer.render(processedData, this.config, tilesContainer);
             }
         }
     }
@@ -380,7 +380,7 @@ export class ResultApp {
     async handleHashChange() {
         try {
             const scores = this.parseScoresFromHash();
-            this.renderEvaluation(scores);
+            await this.renderEvaluation(scores);
         } catch (error) {
             console.error('Error handling hash change:', error);
             this.showError(error.message);
@@ -401,8 +401,8 @@ export class ResultApp {
             
             // Wait for DOM to be fully rendered before rendering charts
             requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    this.renderEvaluation(scores);
+                requestAnimationFrame(async () => {
+                    await this.renderEvaluation(scores);
                 });
             });
             

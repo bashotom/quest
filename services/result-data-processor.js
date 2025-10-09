@@ -1,5 +1,5 @@
 export class ResultDataProcessor {
-    static process(scores, questions, config) {
+    static process(scores, questions, config, folder = '') {
         const categories = Array.isArray(config.categories)
             ? config.categories.reduce((acc, cat) => ({ ...acc, ...cat }), {})
             : config.categories;
@@ -12,7 +12,8 @@ export class ResultDataProcessor {
             categoryMaxScores,
             categoryData,
             questions,
-            config
+            config,
+            folder
         };
     }
     

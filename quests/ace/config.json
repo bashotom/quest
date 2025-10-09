@@ -48,8 +48,8 @@
       "A": { "ranges": [ 0, 33, 66, 100 ], 
         "texts": [ 
           "Geringen ACE Erfahrungen. Sie scheinen eine relativ stabile und unterstützende Kindheit erlebt zu haben, was sich positiv auf Ihre psychische und physische Gesundheit auswirken kann.", 
-          "Moderate ACE Erfahrungen. Sie haben einige belastende Erfahrungen in Ihrer Kindheit gemacht, die möglicherweise Auswirkungen auf Ihre Gesundheit und Ihr Wohlbefinden haben können. Es könnte hilfreich sein, sich mit diesen Erfahrungen auseinanderzusetzen und gegebenenfalls Unterstützung zu suchen.", 
-          "Hohe ACE Erfahrungen. Sie haben eine Vielzahl belastender Erfahrungen in Ihrer Kindheit gemacht, die erhebliche Auswirkungen auf Ihre psychische und physische Gesundheit haben können. Es ist wichtig, dass Sie sich mit diesen Erfahrungen auseinandersetzen und professionelle Unterstützung in Anspruch nehmen, um Ihre Gesundheit und Ihr Wohlbefinden zu fördern." 
+          "Moderate ACE Erfahrungen. Sie haben einige belastende Erfahrungen in Ihrer Kindheit gemacht, die möglicherweise Auswirkungen auf Ihre Gesundheit und Ihr Wohlbefinden haben können. Es könnte hilfreich sein, sich mit diesen Erfahrungen auseinanderzusetzen und gegebenenfalls Unterstützung zu suchen.",
+          "file:high.html" 
           ] 
         }
     }

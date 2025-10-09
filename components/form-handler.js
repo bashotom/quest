@@ -27,7 +27,15 @@ export class FormHandler {
             // Import StepperModeRenderer to access stepper state
             const { StepperModeRenderer } = await import('./renderers/stepper-mode-renderer.js');
             if (StepperModeRenderer.stepperState && StepperModeRenderer.stepperState.answers) {
-                answersObject = StepperModeRenderer.stepperState.answers;
+                // StepperModeRenderer stores answer INDICES, need to convert to actual VALUES
+                const answerIndices = StepperModeRenderer.stepperState.answers;
+                
+                // Convert indices to actual values
+                Object.entries(answerIndices).forEach(([questionId, answerIndex]) => {
+                    if (this.config.answers[answerIndex]) {
+                        answersObject[questionId] = this.config.answers[answerIndex].value;
+                    }
+                });
             }
         } else {
             // Normal mode - collect from form

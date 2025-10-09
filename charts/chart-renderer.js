@@ -17,9 +17,9 @@ export class ChartRenderer {
      * @param {Array} scores - Score data
      * @param {Array} questions - Question data  
      * @param {Object} config - Configuration object
-     * @param {Object} options - Rendering options (labelState, skipResultTable)
+     * @param {Object} options - Rendering options (labelState, skipResultTable, folder)
      */
-    static render(chartType, scores, questions, config, options = {}) {
+    static async render(chartType, scores, questions, config, options = {}) {
         // Cancel all previous timeouts to prevent race conditions
         ChartRenderer.activeTimeouts.forEach(timeoutId => {
             clearTimeout(timeoutId);
@@ -31,7 +31,7 @@ export class ChartRenderer {
         
         // Render result table if configured and not skipped
         if (!options.skipResultTable) {
-            ChartRenderer.renderResultTable(scores, questions, config);
+            await ChartRenderer.renderResultTable(scores, questions, config, options.folder || '');
         }
         
         // Add debug buttons for evaluation if debug mode is active
@@ -227,13 +227,13 @@ export class ChartRenderer {
     /**
      * Render result table and/or result tiles if configured
      */
-    static renderResultTable(scores, questions, config) {
+    static async renderResultTable(scores, questions, config, folder = '') {
         const tableContainer = document.getElementById('result-table-container');
         if (!tableContainer) return;
 
         // Render if either result table OR result tiles are enabled
         if (config.resulttable?.enabled === true || config.resulttiles?.enabled === true) {
-            ResultRenderer.render(scores, questions, config, tableContainer);
+            await ResultRenderer.render(scores, questions, config, tableContainer, folder);
             tableContainer.classList.remove('hidden');
         } else {
             tableContainer.innerHTML = '';

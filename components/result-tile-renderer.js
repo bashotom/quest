@@ -1,7 +1,33 @@
 import { GaugeChart } from '../charts/gauge-chart.js';
 
 export class ResultTileRenderer {
-    static render(processedData, config, container) {
+    /**
+     * Load HTML content from a file in the questionnaire folder
+     * @param {string} folder - The questionnaire folder name
+     * @param {string} filename - The filename to load (e.g., 'high.html')
+     * @returns {Promise<string>} The HTML content or error message
+     */
+    static async loadHtmlFile(folder, filename) {
+        if (!folder || !filename) {
+            console.error('ResultTileRenderer.loadHtmlFile: folder and filename required');
+            return 'Fehler: Datei konnte nicht geladen werden.';
+        }
+
+        try {
+            const response = await fetch(`quests/${folder}/${filename}`);
+            if (!response.ok) {
+                console.error(`Failed to load file: quests/${folder}/${filename}`);
+                return `Fehler: Datei "${filename}" konnte nicht geladen werden.`;
+            }
+            const content = await response.text();
+            return content;
+        } catch (error) {
+            console.error(`Error loading HTML file: quests/${folder}/${filename}`, error);
+            return `Fehler beim Laden der Datei "${filename}".`;
+        }
+    }
+
+    static async render(processedData, config, container) {
         // Add header if configured
         if (config.resulttiles?.show_header === true && config.resulttiles?.header) {
             const header = document.createElement('h2');
@@ -15,26 +41,28 @@ export class ResultTileRenderer {
         tilesWrapper.className = 'flex flex-wrap gap-4 mt-2';
 
         const isSingleCategory = processedData.categoryData.length === 1;
+        const folder = processedData.folder || '';
 
-        processedData.categoryData.forEach(categoryData => {
-            const tile = this.createTile(categoryData, config, isSingleCategory);
+        // Process tiles sequentially to handle async operations
+        for (const categoryData of processedData.categoryData) {
+            const tile = await this.createTile(categoryData, config, isSingleCategory, folder);
             tilesWrapper.appendChild(tile);
             
             // Render gauge if enabled
             if (config.resulttiles.evaluation_gauge === true) {
                 this.renderGaugeChart(categoryData, config);
             }
-        });
+        }
         
         container.appendChild(tilesWrapper);
     }
     
-    static createTile(categoryData, config, isSingleCategory = false) {
+    static async createTile(categoryData, config, isSingleCategory = false, folder = '') {
         const { categoryKey, categoryName, percentage, trafficLightColor, score } = categoryData;
                 
         // Apply category-specific evaluation text if configured
         let content = "";
-        content = this.applyEvaluationText(content, categoryKey, percentage, config);
+        content = await this.applyEvaluationText(content, categoryKey, percentage, config, folder);
         
         const shouldShowGauge = config.resulttiles.evaluation_gauge === true;
         const shouldShowTrafficLight = config.resulttiles.show_trafficlight === true;
@@ -167,10 +195,10 @@ export class ResultTileRenderer {
         return 'green'; // Default fallback
     }
     
-    static applyEvaluationText(content, categoryKey, percentage, config) {
+    static async applyEvaluationText(content, categoryKey, percentage, config, folder = '') {
         if (config.resulttiles.evaluation && config.resulttiles.evaluation[categoryKey]) {
             const categoryEvaluation = config.resulttiles.evaluation[categoryKey];
-            const rangeText = this.getRangeText(percentage, categoryEvaluation.ranges, categoryEvaluation.texts);
+            const rangeText = await this.getRangeText(percentage, categoryEvaluation.ranges, categoryEvaluation.texts, folder);
             if (rangeText) {
                 return rangeText;
             }
@@ -203,10 +231,12 @@ export class ResultTileRenderer {
         });
     }
     
-    static getRangeText(percentage, ranges, rangeTexts) {
+    static async getRangeText(percentage, ranges, rangeTexts, folder = '') {
         if (!ranges || !rangeTexts || ranges.length === 0 || rangeTexts.length === 0) {
             return null;
         }
+
+        let selectedText = null;
 
         // Support both 4-value ranges [0,30,60,100] and 3-value ranges [100,60,30]
         if ((ranges.length === 4 || ranges.length === 3) && rangeTexts.length === 3) {
@@ -218,45 +248,53 @@ export class ResultTileRenderer {
                         const upperBound = ranges[i];
                         const lowerBound = ranges[i + 1];
                         if (percentage <= upperBound && percentage > lowerBound) {
-                            return rangeTexts[i] || null;
+                            selectedText = rangeTexts[i] || null;
+                            break;
                         }
                     }
-                    if (percentage <= ranges[ranges.length - 1]) {
-                        return rangeTexts[rangeTexts.length - 1];
+                    if (selectedText === null && percentage <= ranges[ranges.length - 1]) {
+                        selectedText = rangeTexts[rangeTexts.length - 1];
                     }
                 } else {
                     for (let i = 0; i < ranges.length - 1; i++) {
                         const lowerBound = ranges[i];
                         const upperBound = ranges[i + 1];
                         if (percentage >= lowerBound && percentage < upperBound) {
-                            return rangeTexts[i] || null;
+                            selectedText = rangeTexts[i] || null;
+                            break;
                         }
                     }
-                    if (percentage >= ranges[ranges.length - 1]) {
-                        return rangeTexts[rangeTexts.length - 1];
+                    if (selectedText === null && percentage >= ranges[ranges.length - 1]) {
+                        selectedText = rangeTexts[rangeTexts.length - 1];
                     }
                 }
             } else if (ranges.length === 3) {
                 if (isDescending) {
                     if (percentage > ranges[1]) {
-                        return rangeTexts[0];
+                        selectedText = rangeTexts[0];
                     } else if (percentage > ranges[2]) {
-                        return rangeTexts[1];
+                        selectedText = rangeTexts[1];
                     } else {
-                        return rangeTexts[2];
+                        selectedText = rangeTexts[2];
                     }
                 } else {
                     if (percentage < ranges[1]) {
-                        return rangeTexts[0];
+                        selectedText = rangeTexts[0];
                     } else if (percentage < ranges[2]) {
-                        return rangeTexts[1];
+                        selectedText = rangeTexts[1];
                     } else {
-                        return rangeTexts[2];
+                        selectedText = rangeTexts[2];
                     }
                 }
             }
         }
+
+        // Check if selectedText is a file reference (starts with "file:")
+        if (selectedText && typeof selectedText === 'string' && selectedText.startsWith('file:')) {
+            const filename = selectedText.substring(5); // Remove "file:" prefix
+            selectedText = await this.loadHtmlFile(folder, filename);
+        }
         
-        return null;
+        return selectedText;
     }
 }
