@@ -28,10 +28,9 @@
   "chart": {
     "type": "gauge",
     "style": "simple",
-    "ranges": [0, 33, 66, 100],
+    "ranges": [0, 20, 40, 100],
     "range_colors": ["green", "orange", "red"],
-    "explanation": "Der ACE-Gesamtwert gibt die Anzahl der verschiedenen Arten von belastenden Kindheitserfahrungen an, die eine Person gemacht hat.",
-    "scale_angles": [210, 270, 330]
+    "explanation": "Der ACE-Gesamtwert gibt die Anzahl der verschiedenen Arten von belastenden Kindheitserfahrungen an, die eine Person gemacht hat."
   },
   "resulttable": {
     "enabled": false
@@ -45,7 +44,7 @@
     "show_categoryid": false,
     "show_trafficlight": true,
     "evaluation": {
-      "A": { "ranges": [ 0, 33, 66, 100 ], 
+      "A": { "ranges": [ 0, 20, 40, 100 ], 
         "texts": [ 
           "Geringen ACE Erfahrungen. Sie scheinen eine relativ stabile und unterstützende Kindheit erlebt zu haben, was sich positiv auf Ihre psychische und physische Gesundheit auswirken kann.", 
           "Moderate ACE Erfahrungen. Sie haben einige belastende Erfahrungen in Ihrer Kindheit gemacht, die möglicherweise Auswirkungen auf Ihre Gesundheit und Ihr Wohlbefinden haben können. Es könnte hilfreich sein, sich mit diesen Erfahrungen auseinanderzusetzen und gegebenenfalls Unterstützung zu suchen.",
