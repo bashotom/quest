@@ -142,13 +142,35 @@ export class FormEventHandler {
         const answers = {};
         
         if (type === 'min') {
+            // Find answer index with minimum value
+            let minIndex = 0;
+            if (this.appState.config.answers) {
+                let minValue = Infinity;
+                this.appState.config.answers.forEach((answer, idx) => {
+                    if (answer.value < minValue) {
+                        minValue = answer.value;
+                        minIndex = idx;
+                    }
+                });
+            }
             this.appState.questions.forEach(question => {
-                answers[question.id] = 0;
+                answers[question.id] = minIndex;
             });
         } else if (type === 'max') {
-            const maxValue = this.appState.config.answers ? this.appState.config.answers.length - 1 : 4;
+            // Find answer index with maximum value
+            let maxIndex = this.appState.config.answers ? this.appState.config.answers.length - 1 : 4;
+            if (this.appState.config.answers) {
+                let maxValue = -Infinity;
+                maxIndex = 0;
+                this.appState.config.answers.forEach((answer, idx) => {
+                    if (answer.value > maxValue) {
+                        maxValue = answer.value;
+                        maxIndex = idx;
+                    }
+                });
+            }
             this.appState.questions.forEach(question => {
-                answers[question.id] = maxValue;
+                answers[question.id] = maxIndex;
             });
         } else if (type === 'random') {
             const form = document.getElementById('quiz-form');

@@ -124,10 +124,34 @@ export class QuestionRenderer {
                 
                 switch (mode) {
                     case 'min': 
-                        answerIndex = 0; 
+                        // Find answer with minimum value
+                        if (config.answers) {
+                            let minValue = Infinity;
+                            answerIndex = 0;
+                            config.answers.forEach((answer, idx) => {
+                                if (answer.value < minValue) {
+                                    minValue = answer.value;
+                                    answerIndex = idx;
+                                }
+                            });
+                        } else {
+                            answerIndex = 0;
+                        }
                         break;
                     case 'max': 
-                        answerIndex = answersLength - 1; 
+                        // Find answer with maximum value
+                        if (config.answers) {
+                            let maxValue = -Infinity;
+                            answerIndex = 0;
+                            config.answers.forEach((answer, idx) => {
+                                if (answer.value > maxValue) {
+                                    maxValue = answer.value;
+                                    answerIndex = idx;
+                                }
+                            });
+                        } else {
+                            answerIndex = answersLength - 1;
+                        }
                         break;
                     case 'random': 
                         answerIndex = Math.floor(Math.random() * answersLength); 
@@ -205,9 +229,41 @@ export class QuestionRenderer {
 
             let targetRadio;
             switch (mode) {
-                case 'min': targetRadio = radios[0]; break;
-                case 'max': targetRadio = radios[radios.length - 1]; break;
-                case 'random': targetRadio = radios[Math.floor(Math.random() * radios.length)]; break;
+                case 'min': 
+                    // Find answer with minimum value
+                    if (config?.answers) {
+                        let minValue = Infinity;
+                        let minIndex = 0;
+                        config.answers.forEach((answer, idx) => {
+                            if (answer.value < minValue) {
+                                minValue = answer.value;
+                                minIndex = idx;
+                            }
+                        });
+                        targetRadio = radios[minIndex];
+                    } else {
+                        targetRadio = radios[0];
+                    }
+                    break;
+                case 'max': 
+                    // Find answer with maximum value
+                    if (config?.answers) {
+                        let maxValue = -Infinity;
+                        let maxIndex = 0;
+                        config.answers.forEach((answer, idx) => {
+                            if (answer.value > maxValue) {
+                                maxValue = answer.value;
+                                maxIndex = idx;
+                            }
+                        });
+                        targetRadio = radios[maxIndex];
+                    } else {
+                        targetRadio = radios[radios.length - 1];
+                    }
+                    break;
+                case 'random': 
+                    targetRadio = radios[Math.floor(Math.random() * radios.length)]; 
+                    break;
             }
 
             if (targetRadio) {
