@@ -130,6 +130,11 @@ export class QuestionnaireRenderer {
             
             this.formEventHandler.navigationHandler.cleanupLoadAnswersButton();
             
+            // Reset stepper state when switching questionnaires
+            // This prevents stepper state from interfering when switching from stepper mode to normal mode
+            const { StepperModeRenderer } = await import('../components/renderers/stepper-mode-renderer.js');
+            StepperModeRenderer.resetState();
+            
             this.appState.questions = data.questions;
             this.appState.config = data.config;
             

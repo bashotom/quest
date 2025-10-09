@@ -114,8 +114,9 @@ export class QuestionRenderer {
     }
     
     static setAllAnswers(questions, mode, config = null) {
-        // Check if stepper mode is active
-        if (StepperModeRenderer.stepperState && config) {
+        // Check if stepper mode is active AND enabled for this questionnaire
+        const isStepperModeEnabled = config?.questionUi?.stepper === true;
+        if (StepperModeRenderer.stepperState && config && isStepperModeEnabled) {
             // In stepper mode, update the state directly for all questions
             const answersLength = config.answers?.length || 5;
             
