@@ -94,6 +94,9 @@ export class SimpleGauge {
         const sectionsCount = Math.max(1, configRanges.length - 1);
         const sectionsColors = configColors.slice(0, sectionsCount);
 
+        // Get thickness from config, with fallback to 30
+        const barWidth = typeof this.config.thickness === 'number' ? this.config.thickness : 30;
+
         // Create SimpleGaugeRenderer instance
         const simpleGaugeRenderer = new SimpleGaugeRenderer({
             el: g,
@@ -107,7 +110,7 @@ export class SimpleGauge {
             animationDelay: 100,
             percent: percent,
             interval: [0, maxScore],
-            barWidth: 30,
+            barWidth: barWidth,
             chartInset: 15,
             needleRadius: 10
         });
@@ -121,16 +124,47 @@ export class SimpleGauge {
      * @private
      */
     _addSimpleGaugeLabels(svg, containerWidth, containerHeight, value, maxScore, categoryLabel) {
-        // Value display
-        svg.append("text")
-            .attr("x", containerWidth / 2)
-            .attr("y", containerHeight * 0.85)
-            .attr("text-anchor", "middle")
-            .style("font-size", "18px")
-            .style("font-weight", "600")
-            .style("font-family", "Inter, sans-serif")
-            .style("fill", "#1f2937")
-            .text(`${value} / ${maxScore}`);
+        // Value display - use score_text from config if available
+        let scoreText = `${value} / ${maxScore}`; // Default format
+        let hasHtmlTags = false;
+        
+        if (this.config.score_text && typeof this.config.score_text === 'string') {
+            // Replace placeholders {score} and {maxscore} with actual values
+            scoreText = this.config.score_text
+                .replace(/\{score\}/g, value)
+                .replace(/\{maxscore\}/g, maxScore);
+            
+            // Check if scoreText contains HTML tags
+            hasHtmlTags = /<[^>]+>/.test(scoreText);
+        }
+        
+        if (hasHtmlTags) {
+            // Use foreignObject for HTML content
+            const foreignObject = svg.append("foreignObject")
+                .attr("x", containerWidth / 2 - 200) // Center with 400px width
+                .attr("y", containerHeight * 0.85 - 15) // Adjust for vertical centering
+                .attr("width", 400)
+                .attr("height", 50);
+            
+            foreignObject.append("xhtml:div")
+                .style("text-align", "center")
+                .style("font-size", "18px")
+                .style("font-weight", "600")
+                .style("font-family", "Inter, sans-serif")
+                .style("color", "#1f2937")
+                .html(scoreText);
+        } else {
+            // Use text element for plain text
+            svg.append("text")
+                .attr("x", containerWidth / 2)
+                .attr("y", containerHeight * 0.85)
+                .attr("text-anchor", "middle")
+                .style("font-size", "18px")
+                .style("font-weight", "600")
+                .style("font-family", "Inter, sans-serif")
+                .style("fill", "#1f2937")
+                .text(scoreText);
+        }
 
         // Category label above gauge
         if (categoryLabel) {

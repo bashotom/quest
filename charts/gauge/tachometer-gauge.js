@@ -135,6 +135,24 @@ export class TachometerGauge {
     }
 
     /**
+     * Calculate inner and outer radius based on thickness configuration
+     * @private
+     */
+    _calculateRadii(radius) {
+        // Get thickness from config (as percentage of radius)
+        // Default: 20% thickness (0.7 to 0.9)
+        const thicknessPercent = typeof this.config.thickness === 'number' 
+            ? this.config.thickness / 100 
+            : 0.20;
+        
+        // Calculate radii to maintain centering
+        const outerRadius = radius * 0.9;
+        const innerRadius = outerRadius - (radius * thicknessPercent);
+        
+        return { innerRadius, outerRadius };
+    }
+
+    /**
      * Renders the background arc for tachometer gauge
      * @private
      */
@@ -145,9 +163,11 @@ export class TachometerGauge {
             backgroundColor = this.config.range_colors[0];
         }
         
+        const { innerRadius, outerRadius } = this._calculateRadii(radius);
+        
         const backgroundArc = d3.arc()
-            .innerRadius(radius * 0.7)
-            .outerRadius(radius * 0.9)
+            .innerRadius(innerRadius)
+            .outerRadius(outerRadius)
             .startAngle(startAngle)
             .endAngle(endAngle);
 
@@ -166,6 +186,7 @@ export class TachometerGauge {
 
         const percentage = Math.round((value / maxScore) * 100);
         const segments = this._getTrafficLightSegments(trafficLightConfig);
+        const { innerRadius, outerRadius } = this._calculateRadii(radius);
         
         segments.forEach(segment => {
             if (segment.end > segment.start) {
@@ -173,8 +194,8 @@ export class TachometerGauge {
                 const endAngleRad = startAngle + ((segment.end / 100) * (endAngle - startAngle));
                 
                 const segmentArc = d3.arc()
-                    .innerRadius(radius * 0.7)
-                    .outerRadius(radius * 0.9)
+                    .innerRadius(innerRadius)
+                    .outerRadius(outerRadius)
                     .startAngle(startAngleRad)
                     .endAngle(endAngleRad);
                 
@@ -224,9 +245,11 @@ export class TachometerGauge {
                 valueColor = this.config.range_colors[1];
             }
             
+            const { innerRadius, outerRadius } = this._calculateRadii(radius);
+            
             const valueArc = d3.arc()
-                .innerRadius(radius * 0.7)
-                .outerRadius(radius * 0.9)
+                .innerRadius(innerRadius)
+                .outerRadius(outerRadius)
                 .startAngle(startAngle)
                 .endAngle(valueAngle);
             
@@ -312,21 +335,56 @@ export class TachometerGauge {
     }
 
     /**
-     * Renders the current percentage value below the needle center
+     * Renders the current value below the needle center
+     * Uses score_text from config if available, otherwise shows percentage
      * @private
      */
     _renderCurrentValue(g, radius, value, maxScore) {
-        const percentage = Math.round((value / maxScore) * 100);
+        let displayText;
+        let hasHtmlTags = false;
         
-        g.append("text")
-            .attr("x", 0)
-            .attr("y", radius * 0.3) // Position below center
-            .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "central")
-            .style("font-size", "24px")
-            .style("font-weight", "bold")
-            .style("font-family", "Inter, sans-serif")
-            .style("fill", "#1f2937")
-            .text(percentage + "%");
+        // Use score_text from config if available
+        if (this.config.score_text && typeof this.config.score_text === 'string') {
+            // Replace placeholders {score} and {maxscore} with actual values
+            displayText = this.config.score_text
+                .replace(/\{score\}/g, value)
+                .replace(/\{maxscore\}/g, maxScore);
+            
+            // Check if displayText contains HTML tags
+            hasHtmlTags = /<[^>]+>/.test(displayText);
+        } else {
+            // Default to percentage display
+            const percentage = Math.round((value / maxScore) * 100);
+            displayText = percentage + "%";
+        }
+        
+        if (hasHtmlTags) {
+            // Use foreignObject for HTML content
+            const foreignObject = g.append("foreignObject")
+                .attr("x", -200) // Center with 400px width
+                .attr("y", radius * 0.3 - 20) // Position below center, adjust for height
+                .attr("width", 400)
+                .attr("height", 50);
+            
+            foreignObject.append("xhtml:div")
+                .style("text-align", "center")
+                .style("font-size", "24px")
+                .style("font-weight", "bold")
+                .style("font-family", "Inter, sans-serif")
+                .style("color", "#1f2937")
+                .html(displayText);
+        } else {
+            // Use text element for plain text
+            g.append("text")
+                .attr("x", 0)
+                .attr("y", radius * 0.3) // Position below center
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "central")
+                .style("font-size", "24px")
+                .style("font-weight", "bold")
+                .style("font-family", "Inter, sans-serif")
+                .style("fill", "#1f2937")
+                .text(displayText);
+        }
     }
 }
