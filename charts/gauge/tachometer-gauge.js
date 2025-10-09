@@ -135,19 +135,19 @@ export class TachometerGauge {
     }
 
     /**
-     * Calculate inner and outer radius based on thickness configuration
+     * Calculates innerRadius and outerRadius based on config.thickness
      * @private
      */
-    _calculateRadii(radius) {
-        // Get thickness from config (as percentage of radius)
-        // Default: 20% thickness (0.7 to 0.9)
-        const thicknessPercent = typeof this.config.thickness === 'number' 
-            ? this.config.thickness / 100 
-            : 0.20;
+    _calculateArcRadii(radius) {
+        // Get thickness from config (default: 30% of radius)
+        const thicknessPercent = this.config.thickness || 30;
+        const thickness = (thicknessPercent / 100);
         
-        // Calculate radii to maintain centering
-        const outerRadius = radius * 0.9;
-        const innerRadius = outerRadius - (radius * thicknessPercent);
+        // Calculate inner and outer radius
+        // Center the arc around radius * 0.8 (the old average of 0.7 and 0.9)
+        const center = 0.8;
+        const innerRadius = radius * (center - thickness / 2);
+        const outerRadius = radius * (center + thickness / 2);
         
         return { innerRadius, outerRadius };
     }
@@ -163,7 +163,8 @@ export class TachometerGauge {
             backgroundColor = this.config.range_colors[0];
         }
         
-        const { innerRadius, outerRadius } = this._calculateRadii(radius);
+        // Calculate arc radii based on thickness config
+        const { innerRadius, outerRadius } = this._calculateArcRadii(radius);
         
         const backgroundArc = d3.arc()
             .innerRadius(innerRadius)
@@ -186,7 +187,9 @@ export class TachometerGauge {
 
         const percentage = Math.round((value / maxScore) * 100);
         const segments = this._getTrafficLightSegments(trafficLightConfig);
-        const { innerRadius, outerRadius } = this._calculateRadii(radius);
+        
+        // Calculate arc radii based on thickness config
+        const { innerRadius, outerRadius } = this._calculateArcRadii(radius);
         
         segments.forEach(segment => {
             if (segment.end > segment.start) {
@@ -245,7 +248,8 @@ export class TachometerGauge {
                 valueColor = this.config.range_colors[1];
             }
             
-            const { innerRadius, outerRadius } = this._calculateRadii(radius);
+            // Calculate arc radii based on thickness config
+            const { innerRadius, outerRadius } = this._calculateArcRadii(radius);
             
             const valueArc = d3.arc()
                 .innerRadius(innerRadius)
@@ -335,56 +339,45 @@ export class TachometerGauge {
     }
 
     /**
-     * Renders the current value below the needle center
-     * Uses score_text from config if available, otherwise shows percentage
+     * Renders the current percentage value below the needle center
      * @private
      */
     _renderCurrentValue(g, radius, value, maxScore) {
-        let displayText;
-        let hasHtmlTags = false;
+        // Get score text from config or use default percentage format
+        const scoreText = this._formatScoreText(value, maxScore);
         
-        // Use score_text from config if available
+        g.append("text")
+            .attr("x", 0)
+            .attr("y", radius * 0.3) // Position below center
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "central")
+            .style("font-size", "24px")
+            .style("font-weight", "bold")
+            .style("font-family", "Inter, sans-serif")
+            .style("fill", "#1f2937")
+            .text(scoreText);
+    }
+
+    /**
+     * Formats the score text using config.score_text template or default percentage format
+     * @private
+     */
+    _formatScoreText(value, maxScore) {
         if (this.config.score_text && typeof this.config.score_text === 'string') {
-            // Replace placeholders {score} and {maxscore} with actual values
-            displayText = this.config.score_text
+            // Replace placeholders {score} and {maxscore}
+            let text = this.config.score_text
                 .replace(/\{score\}/g, value)
                 .replace(/\{maxscore\}/g, maxScore);
             
-            // Check if displayText contains HTML tags
-            hasHtmlTags = /<[^>]+>/.test(displayText);
-        } else {
-            // Default to percentage display
-            const percentage = Math.round((value / maxScore) * 100);
-            displayText = percentage + "%";
-        }
-        
-        if (hasHtmlTags) {
-            // Use foreignObject for HTML content
-            const foreignObject = g.append("foreignObject")
-                .attr("x", -200) // Center with 400px width
-                .attr("y", radius * 0.3 - 20) // Position below center, adjust for height
-                .attr("width", 400)
-                .attr("height", 50);
+            // Remove HTML tags for SVG text (SVG doesn't support HTML)
+            text = text.replace(/<br\s*\/?>/gi, ' '); // Replace <br> with space
+            text = text.replace(/<[^>]+>/g, ''); // Remove all other HTML tags
+            text = text.trim();
             
-            foreignObject.append("xhtml:div")
-                .style("text-align", "center")
-                .style("font-size", "24px")
-                .style("font-weight", "bold")
-                .style("font-family", "Inter, sans-serif")
-                .style("color", "#1f2937")
-                .html(displayText);
-        } else {
-            // Use text element for plain text
-            g.append("text")
-                .attr("x", 0)
-                .attr("y", radius * 0.3) // Position below center
-                .attr("text-anchor", "middle")
-                .attr("dominant-baseline", "central")
-                .style("font-size", "24px")
-                .style("font-weight", "bold")
-                .style("font-family", "Inter, sans-serif")
-                .style("fill", "#1f2937")
-                .text(displayText);
+            return text;
         }
+        // Default format: percentage
+        const percentage = Math.round((value / maxScore) * 100);
+        return percentage + "%";
     }
 }

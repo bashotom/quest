@@ -42,7 +42,8 @@
     "style": "tachometer",
     "ranges": [0, 50, 100],
     "range_colors": ["#dddddd", "#22c55e"],
-    "explanation": "Die Auswertung zeigt den Anteil der Antworten, die auf Bilddenker hinweisen."
+    "explanation": "Die Auswertung zeigt den Anteil der Antworten, die auf Bilddenker hinweisen.",
+    "thickness": 50
   },
   "resulttable": {
     "enabled": false

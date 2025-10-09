@@ -30,9 +30,9 @@
     "style": "simple",
     "ranges": [0, 20, 40, 100],
     "range_colors": ["green", "orange", "red"],
-    "thickness": 40,
+    "thickness": 50,
     "explanation": "Der ACE-Gesamtwert gibt die Anzahl der verschiedenen Arten von belastenden Kindheitserfahrungen an, die eine Person gemacht hat.",
-    "score_text": "Ihr ACE-Gesamtwert: <br><span class='score'>{score}</span> von {maxscore} Punkten ist [niedrig|moderat|hoch]",
+    "score_text": "Ihr ACE-Gesamtwert: <br><span class='score'>{score}</span> von {maxscore} Punkten ist [niedrig|moderat|hoch]"
   },
   "resulttable": {
     "enabled": false

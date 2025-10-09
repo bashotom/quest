@@ -94,8 +94,8 @@ export class SimpleGauge {
         const sectionsCount = Math.max(1, configRanges.length - 1);
         const sectionsColors = configColors.slice(0, sectionsCount);
 
-        // Get thickness from config, with fallback to 30
-        const barWidth = typeof this.config.thickness === 'number' ? this.config.thickness : 30;
+        // Get thickness from config (default: 30% of radius)
+        const thickness = this.config.thickness || 30;
 
         // Create SimpleGaugeRenderer instance
         const simpleGaugeRenderer = new SimpleGaugeRenderer({
@@ -110,7 +110,7 @@ export class SimpleGauge {
             animationDelay: 100,
             percent: percent,
             interval: [0, maxScore],
-            barWidth: barWidth,
+            barWidth: thickness,
             chartInset: 15,
             needleRadius: 10
         });
@@ -124,47 +124,19 @@ export class SimpleGauge {
      * @private
      */
     _addSimpleGaugeLabels(svg, containerWidth, containerHeight, value, maxScore, categoryLabel) {
-        // Value display - use score_text from config if available
-        let scoreText = `${value} / ${maxScore}`; // Default format
-        let hasHtmlTags = false;
+        // Get score text from config or use default format
+        const scoreText = this._formatScoreText(value, maxScore);
         
-        if (this.config.score_text && typeof this.config.score_text === 'string') {
-            // Replace placeholders {score} and {maxscore} with actual values
-            scoreText = this.config.score_text
-                .replace(/\{score\}/g, value)
-                .replace(/\{maxscore\}/g, maxScore);
-            
-            // Check if scoreText contains HTML tags
-            hasHtmlTags = /<[^>]+>/.test(scoreText);
-        }
-        
-        if (hasHtmlTags) {
-            // Use foreignObject for HTML content
-            const foreignObject = svg.append("foreignObject")
-                .attr("x", containerWidth / 2 - 200) // Center with 400px width
-                .attr("y", containerHeight * 0.85 - 15) // Adjust for vertical centering
-                .attr("width", 400)
-                .attr("height", 50);
-            
-            foreignObject.append("xhtml:div")
-                .style("text-align", "center")
-                .style("font-size", "18px")
-                .style("font-weight", "600")
-                .style("font-family", "Inter, sans-serif")
-                .style("color", "#1f2937")
-                .html(scoreText);
-        } else {
-            // Use text element for plain text
-            svg.append("text")
-                .attr("x", containerWidth / 2)
-                .attr("y", containerHeight * 0.85)
-                .attr("text-anchor", "middle")
-                .style("font-size", "18px")
-                .style("font-weight", "600")
-                .style("font-family", "Inter, sans-serif")
-                .style("fill", "#1f2937")
-                .text(scoreText);
-        }
+        // Value display
+        svg.append("text")
+            .attr("x", containerWidth / 2)
+            .attr("y", containerHeight * 0.85)
+            .attr("text-anchor", "middle")
+            .style("font-size", "18px")
+            .style("font-weight", "600")
+            .style("font-family", "Inter, sans-serif")
+            .style("fill", "#1f2937")
+            .text(scoreText);
 
         // Category label above gauge
         if (categoryLabel) {
@@ -178,6 +150,28 @@ export class SimpleGauge {
                 .style("fill", "#374151")
                 .text(categoryLabel);
         }
+    }
+
+    /**
+     * Formats the score text using config.score_text template or default format
+     * @private
+     */
+    _formatScoreText(value, maxScore) {
+        if (this.config.score_text && typeof this.config.score_text === 'string') {
+            // Replace placeholders {score} and {maxscore}
+            let text = this.config.score_text
+                .replace(/\{score\}/g, value)
+                .replace(/\{maxscore\}/g, maxScore);
+            
+            // Remove HTML tags for SVG text (SVG doesn't support HTML)
+            text = text.replace(/<br\s*\/?>/gi, ' '); // Replace <br> with space
+            text = text.replace(/<[^>]+>/g, ''); // Remove all other HTML tags
+            text = text.trim();
+            
+            return text;
+        }
+        // Default format
+        return `${value} / ${maxScore}`;
     }
 }
 
