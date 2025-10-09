@@ -190,6 +190,11 @@ export class FormHandler {
         // Event-Listener für Radio-Buttons hinzufügen (Entfernung der Fehler-Markierung und Hash-Update)
         document.addEventListener('change', async (event) => {
             if (event.target.type === 'radio' && event.target.name.startsWith('question-')) {
+                // Skip if we're in batch-setting mode
+                if (window._batchSettingAnswers) {
+                    return;
+                }
+                
                 const questionId = event.target.name.replace('question-', '');
                 this.clearQuestionErrorMarking(questionId);
                 

@@ -195,6 +195,9 @@ export class QuestionRenderer {
         // First reset all colors (both table and inline mode)
         ColorManager.resetAllColors();
         
+        // Set flag to prevent change event handlers from interfering
+        window._batchSettingAnswers = true;
+        
         // Then set the new answers
         questions.forEach(question => {
             const radios = document.querySelectorAll(`input[name="question-${question.id}"]`);
@@ -207,8 +210,13 @@ export class QuestionRenderer {
                 case 'random': targetRadio = radios[Math.floor(Math.random() * radios.length)]; break;
             }
 
-            if (targetRadio) targetRadio.checked = true;
+            if (targetRadio) {
+                targetRadio.checked = true;
+            }
         });
+        
+        // Clear flag after batch setting
+        window._batchSettingAnswers = false;
     }
     
     // Legacy compatibility methods - delegate to StepperModeRenderer
