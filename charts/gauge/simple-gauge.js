@@ -116,14 +116,16 @@ export class SimpleGauge {
         });
 
         // Add value display below gauge
-        this._addSimpleGaugeLabels(svg, containerWidth, containerHeight, value, maxScore, categoryLabel, gaugeWidth, gaugeHeight);
+        // Calculate needle length (same as in SimpleGaugeRenderer._createNeedle: length = height * 0.5)
+        const needleLength = gaugeHeight * 0.5;
+        this._addSimpleGaugeLabels(svg, containerWidth, containerHeight, value, maxScore, categoryLabel, gaugeWidth, gaugeHeight, g, percent, needleLength);
     }
 
     /**
      * Adds labels for simple gauge
      * @private
      */
-    _addSimpleGaugeLabels(svg, containerWidth, containerHeight, value, maxScore, categoryLabel, gaugeWidth, gaugeHeight) {
+    _addSimpleGaugeLabels(svg, containerWidth, containerHeight, value, maxScore, categoryLabel, gaugeWidth, gaugeHeight, gaugeGroup, percent, needleLength) {
         // Get score text from config or use default format
         const scoreText = this._formatScoreText(value, maxScore);
         
@@ -155,6 +157,10 @@ export class SimpleGauge {
             this._renderMinMaxLabel(svg, gaugeCenterX + Math.cos(endAngleRad) * labelDistance, labelY, maxScore);
         }
         
+        // Add value label at needle tip (outside the semicircle)
+        const outerRadius = this._calculateOuterRadius(radius);
+        this._renderNeedleValueLabel(gaugeGroup, percent, needleLength, value, maxScore, outerRadius);
+        
         // Value display
         svg.append("text")
             .attr("x", containerWidth / 2)
@@ -168,11 +174,14 @@ export class SimpleGauge {
 
         // Category label above gauge
         if (categoryLabel) {
+            // Use config font size if set, otherwise default to 16px
+            const fontSize = this.config.category_label_fontsize || "16px";
+            
             svg.append("text")
                 .attr("x", containerWidth / 2)
                 .attr("y", containerHeight * 0.15)
                 .attr("text-anchor", "middle")
-                .style("font-size", "16px")
+                .style("font-size", fontSize)
                 .style("font-weight", "500")
                 .style("font-family", "Inter, sans-serif")
                 .style("fill", "#374151")
@@ -218,6 +227,49 @@ export class SimpleGauge {
             .style("font-family", "Inter, sans-serif")
             .style("fill", "#6b7280")
             .text(text);
+    }
+
+    /**
+     * Renders value label at needle tip (outside the semicircle)
+     * @private
+     */
+    _renderNeedleValueLabel(gaugeGroup, percent, needleLength, value, maxScore, outerRadius) {
+        // Calculate needle tip position using the same logic as Needle._getPath()
+        // _percToRad(perc) = (perc * 360 * Math.PI) / 180 = perc * 2 * Math.PI
+        // thetaRad = _percToRad(percent / 2) = (percent / 2) * 2 * Math.PI = percent * Math.PI
+        const thetaRad = percent * Math.PI;
+        
+        // Needle tip coordinates (relative to gauge center at 0,0)
+        // Same calculation as in Needle._getPath()
+        const needleTipX = -needleLength * Math.cos(thetaRad);
+        const needleTipY = -needleLength * Math.sin(thetaRad);
+        
+        // Position label close to the arc, just outside the outer radius
+        // Use a small offset to position it near the arc edge, similar to min/max labels
+        const labelDistance = outerRadius + 15; // Small offset to position just outside the arc
+        
+        // Calculate label position along the same angle as the needle tip
+        const angle = Math.atan2(needleTipY, needleTipX);
+        const labelX = Math.cos(angle) * labelDistance;
+        const labelY = Math.sin(angle) * labelDistance;
+        
+        // Use only the actual score value (number), not formatted text
+        const valueText = value.toString();
+        
+        // Use config font size if set, otherwise default to 20px
+        const fontSize = this.config.score_label_fontsize || "20px";
+        
+        // Render label
+        gaugeGroup.append("text")
+            .attr("x", labelX)
+            .attr("y", labelY)
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "central")
+            .style("font-size", fontSize)
+            .style("font-weight", "600")
+            .style("font-family", "Inter, sans-serif")
+            .style("fill", "#1f2937")
+            .text(valueText);
     }
 
     /**

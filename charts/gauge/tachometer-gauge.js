@@ -102,7 +102,7 @@ export class TachometerGauge {
         this._renderValueArc(g, radius, startAngle, valueAngle, value, maxScore);
         this._renderTickMarks(g, radius, maxScore);
         this._renderMinMaxLabels(g, radius, startAngle, endAngle, maxScore);
-        this._renderNeedle(g, radius, valueAngle);
+        this._renderNeedle(g, radius, valueAngle, value, maxScore);
         this._renderCurrentValue(g, radius, value, maxScore);
     }
 
@@ -377,7 +377,7 @@ export class TachometerGauge {
      * Renders the needle pointer
      * @private
      */
-    _renderNeedle(g, radius, valueAngle) {
+    _renderNeedle(g, radius, valueAngle, value, maxScore) {
         const needleX = Math.cos(valueAngle) * (radius * 0.8);
         const needleY = Math.sin(valueAngle) * (radius * 0.8);
         
@@ -397,6 +397,43 @@ export class TachometerGauge {
             .attr("cy", 0)
             .attr("r", 8)
             .style("fill", "#1f2937");
+        
+        // Add value label at needle tip (outside the semicircle)
+        this._renderNeedleValueLabel(g, needleX, needleY, radius, value, maxScore);
+    }
+
+    /**
+     * Renders value label at needle tip (outside the semicircle)
+     * @private
+     */
+    _renderNeedleValueLabel(g, needleX, needleY, radius, value, maxScore) {
+        // Position label close to the arc, just outside the outer radius
+        // Use a small offset to position it near the arc edge, similar to min/max labels
+        const { outerRadius } = this._calculateArcRadii(radius);
+        const labelDistance = outerRadius + 15; // Small offset to position just outside the arc
+        
+        // Calculate label position along the same angle as the needle
+        const angle = Math.atan2(needleY, needleX);
+        const labelX = Math.cos(angle) * labelDistance;
+        const labelY = Math.sin(angle) * labelDistance;
+        
+        // Use only the actual score value (number), not formatted text
+        const valueText = value.toString();
+        
+        // Use config font size if set, otherwise default to 20px
+        const fontSize = this.config.score_label_fontsize || "20px";
+        
+        // Render label
+        g.append("text")
+            .attr("x", labelX)
+            .attr("y", labelY)
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "central")
+            .style("font-size", fontSize)
+            .style("font-weight", "600")
+            .style("font-family", "Inter, sans-serif")
+            .style("fill", "#1f2937")
+            .text(valueText);
     }
 
     /**
