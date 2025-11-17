@@ -369,6 +369,9 @@ export class TachometerGauge {
                 .replace(/\{score\}/g, value)
                 .replace(/\{maxscore\}/g, maxScore);
             
+            // Process range-based expressions like [niedrig|moderat|hoch]
+            text = this._processRangeExpressions(text, value, maxScore);
+            
             // Remove HTML tags for SVG text (SVG doesn't support HTML)
             text = text.replace(/<br\s*\/?>/gi, ' '); // Replace <br> with space
             text = text.replace(/<[^>]+>/g, ''); // Remove all other HTML tags
@@ -379,5 +382,55 @@ export class TachometerGauge {
         // Default format: percentage
         const percentage = Math.round((value / maxScore) * 100);
         return percentage + "%";
+    }
+
+    /**
+     * Processes range-based expressions in score_text like [wert1|wert2|wert3]
+     * Maps the score to the appropriate range and replaces the expression with the corresponding value
+     * @private
+     */
+    _processRangeExpressions(text, value, maxScore) {
+        // Check if ranges are configured
+        if (!this.config.ranges || !Array.isArray(this.config.ranges) || this.config.ranges.length < 3) {
+            return text;
+        }
+
+        // Calculate percentage
+        const percentage = (value / maxScore) * 100;
+
+        // Determine range index based on percentage
+        // Ranges format: [0, 20, 40, 100] means:
+        // - Range 0: 0 to < 20 (index 0) → "niedrig"
+        // - Range 1: 20 to < 40 (index 1) → "moderat"
+        // - Range 2: 40 to 100 (index 2) → "hoch"
+        let rangeIndex = 0;
+        for (let i = 0; i < this.config.ranges.length - 1; i++) {
+            const lowerBound = this.config.ranges[i];
+            const upperBound = this.config.ranges[i + 1];
+            
+            // Check if percentage falls within this range
+            if (i === this.config.ranges.length - 2) {
+                // Last range: include upper bound
+                if (percentage >= lowerBound && percentage <= upperBound) {
+                    rangeIndex = i;
+                    break;
+                }
+            } else {
+                // Other ranges: exclude upper bound
+                if (percentage >= lowerBound && percentage < upperBound) {
+                    rangeIndex = i;
+                    break;
+                }
+            }
+        }
+
+        // Replace all occurrences of [wert1|wert2|wert3] with the appropriate value
+        return text.replace(/\[([^\]]+)\]/g, (match, content) => {
+            const values = content.split('|').map(v => v.trim());
+            if (values.length > 0 && rangeIndex < values.length) {
+                return values[rangeIndex];
+            }
+            return match; // Return original if no match found
+        });
     }
 }
