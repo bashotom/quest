@@ -32,6 +32,7 @@
     "show_minmax_labels": true,
     "minmax_labels_fontsize": "20px",
     "show_score_label": true,
+    "score_label_position": "needle",
     "score_label_fontsize": "25px",
     "category_label_fontsize": "28px",
     "range_colors": ["green", "orange", "red"],

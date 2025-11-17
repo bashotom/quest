@@ -97,6 +97,9 @@ export class SimpleGauge {
         // Get thickness from config (default: 30% of radius)
         const thickness = this.config.thickness || 30;
 
+        // Make needle center larger if score_label_position is "needle"
+        const needleRadius = (this.config.score_label_position === "needle") ? 20 : 10;
+
         // Create SimpleGaugeRenderer instance
         const simpleGaugeRenderer = new SimpleGaugeRenderer({
             el: g,
@@ -112,7 +115,7 @@ export class SimpleGauge {
             interval: [0, maxScore],
             barWidth: thickness,
             chartInset: 15,
-            needleRadius: 10
+            needleRadius: needleRadius
         });
 
         // Add value display below gauge
@@ -157,9 +160,11 @@ export class SimpleGauge {
             this._renderMinMaxLabel(svg, gaugeCenterX + Math.cos(endAngleRad) * labelDistance, labelY, maxScore);
         }
         
-        // Add value label at needle tip (outside the semicircle)
-        const outerRadius = this._calculateOuterRadius(radius);
-        this._renderNeedleValueLabel(gaugeGroup, percent, needleLength, value, maxScore, outerRadius);
+        // Add value label at needle tip (outside the semicircle) only if enabled
+        if (this.config.show_score_label === true) {
+            const outerRadius = this._calculateOuterRadius(radius);
+            this._renderNeedleValueLabel(gaugeGroup, percent, needleLength, value, maxScore, outerRadius);
+        }
         
         // Value display
         svg.append("text")
@@ -230,46 +235,61 @@ export class SimpleGauge {
     }
 
     /**
-     * Renders value label at needle tip (outside the semicircle)
+     * Renders value label at needle tip (outside the semicircle) or in center if score_label_position is "needle"
      * @private
      */
     _renderNeedleValueLabel(gaugeGroup, percent, needleLength, value, maxScore, outerRadius) {
-        // Calculate needle tip position using the same logic as Needle._getPath()
-        // _percToRad(perc) = (perc * 360 * Math.PI) / 180 = perc * 2 * Math.PI
-        // thetaRad = _percToRad(percent / 2) = (percent / 2) * 2 * Math.PI = percent * Math.PI
-        const thetaRad = percent * Math.PI;
-        
-        // Needle tip coordinates (relative to gauge center at 0,0)
-        // Same calculation as in Needle._getPath()
-        const needleTipX = -needleLength * Math.cos(thetaRad);
-        const needleTipY = -needleLength * Math.sin(thetaRad);
-        
-        // Position label close to the arc, just outside the outer radius
-        // Use a small offset to position it near the arc edge, similar to min/max labels
-        const labelDistance = outerRadius + 15; // Small offset to position just outside the arc
-        
-        // Calculate label position along the same angle as the needle tip
-        const angle = Math.atan2(needleTipY, needleTipX);
-        const labelX = Math.cos(angle) * labelDistance;
-        const labelY = Math.sin(angle) * labelDistance;
-        
         // Use only the actual score value (number), not formatted text
         const valueText = value.toString();
         
         // Use config font size if set, otherwise default to 20px
         const fontSize = this.config.score_label_fontsize || "20px";
         
-        // Render label
-        gaugeGroup.append("text")
-            .attr("x", labelX)
-            .attr("y", labelY)
-            .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "central")
-            .style("font-size", fontSize)
-            .style("font-weight", "600")
-            .style("font-family", "Inter, sans-serif")
-            .style("fill", "#1f2937")
-            .text(valueText);
+        // Check if score_label_position is "needle" - if so, show in center (0, 0)
+        if (this.config.score_label_position === "needle") {
+            // Render label in the center of the circle (where the needle is thickest)
+            gaugeGroup.append("text")
+                .attr("x", 0)
+                .attr("y", 0)
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "central")
+                .style("font-size", fontSize)
+                .style("font-weight", "600")
+                .style("font-family", "Inter, sans-serif")
+                .style("fill", "white")
+                .text(valueText);
+        } else {
+            // Calculate needle tip position using the same logic as Needle._getPath()
+            // _percToRad(perc) = (perc * 360 * Math.PI) / 180 = perc * 2 * Math.PI
+            // thetaRad = _percToRad(percent / 2) = (percent / 2) * 2 * Math.PI = percent * Math.PI
+            const thetaRad = percent * Math.PI;
+            
+            // Needle tip coordinates (relative to gauge center at 0,0)
+            // Same calculation as in Needle._getPath()
+            const needleTipX = -needleLength * Math.cos(thetaRad);
+            const needleTipY = -needleLength * Math.sin(thetaRad);
+            
+            // Position label close to the arc, just outside the outer radius
+            // Use a small offset to position it near the arc edge, similar to min/max labels
+            const labelDistance = outerRadius + 15; // Small offset to position just outside the arc
+            
+            // Calculate label position along the same angle as the needle tip
+            const angle = Math.atan2(needleTipY, needleTipX);
+            const labelX = Math.cos(angle) * labelDistance;
+            const labelY = Math.sin(angle) * labelDistance;
+            
+            // Render label
+            gaugeGroup.append("text")
+                .attr("x", labelX)
+                .attr("y", labelY)
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "central")
+                .style("font-size", fontSize)
+                .style("font-weight", "600")
+                .style("font-family", "Inter, sans-serif")
+                .style("fill", "#1f2937")
+                .text(valueText);
+        }
     }
 
     /**

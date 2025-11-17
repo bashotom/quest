@@ -391,49 +391,67 @@ export class TachometerGauge {
             .style("stroke-width", "3px")
             .style("stroke-linecap", "round");
         
-        // Center point
+        // Center point - make it larger if score_label_position is "needle"
+        const centerRadius = (this.config.score_label_position === "needle") ? 20 : 8;
         g.append("circle")
             .attr("cx", 0)
             .attr("cy", 0)
-            .attr("r", 8)
+            .attr("r", centerRadius)
             .style("fill", "#1f2937");
         
-        // Add value label at needle tip (outside the semicircle)
-        this._renderNeedleValueLabel(g, needleX, needleY, radius, value, maxScore);
+        // Add value label at needle tip (outside the semicircle) only if enabled
+        if (this.config.show_score_label === true) {
+            this._renderNeedleValueLabel(g, needleX, needleY, radius, value, maxScore);
+        }
     }
 
     /**
-     * Renders value label at needle tip (outside the semicircle)
+     * Renders value label at needle tip (outside the semicircle) or in center if score_label_position is "needle"
      * @private
      */
     _renderNeedleValueLabel(g, needleX, needleY, radius, value, maxScore) {
-        // Position label close to the arc, just outside the outer radius
-        // Use a small offset to position it near the arc edge, similar to min/max labels
-        const { outerRadius } = this._calculateArcRadii(radius);
-        const labelDistance = outerRadius + 15; // Small offset to position just outside the arc
-        
-        // Calculate label position along the same angle as the needle
-        const angle = Math.atan2(needleY, needleX);
-        const labelX = Math.cos(angle) * labelDistance;
-        const labelY = Math.sin(angle) * labelDistance;
-        
         // Use only the actual score value (number), not formatted text
         const valueText = value.toString();
         
         // Use config font size if set, otherwise default to 20px
         const fontSize = this.config.score_label_fontsize || "20px";
         
-        // Render label
-        g.append("text")
-            .attr("x", labelX)
-            .attr("y", labelY)
-            .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "central")
-            .style("font-size", fontSize)
-            .style("font-weight", "600")
-            .style("font-family", "Inter, sans-serif")
-            .style("fill", "#1f2937")
-            .text(valueText);
+        // Check if score_label_position is "needle" - if so, show in center (0, 0)
+        if (this.config.score_label_position === "needle") {
+            // Render label in the center of the circle (where the needle is thickest)
+            g.append("text")
+                .attr("x", 0)
+                .attr("y", 0)
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "central")
+                .style("font-size", fontSize)
+                .style("font-weight", "600")
+                .style("font-family", "Inter, sans-serif")
+                .style("fill", "white")
+                .text(valueText);
+        } else {
+            // Position label close to the arc, just outside the outer radius
+            // Use a small offset to position it near the arc edge, similar to min/max labels
+            const { outerRadius } = this._calculateArcRadii(radius);
+            const labelDistance = outerRadius + 15; // Small offset to position just outside the arc
+            
+            // Calculate label position along the same angle as the needle
+            const angle = Math.atan2(needleY, needleX);
+            const labelX = Math.cos(angle) * labelDistance;
+            const labelY = Math.sin(angle) * labelDistance;
+            
+            // Render label
+            g.append("text")
+                .attr("x", labelX)
+                .attr("y", labelY)
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "central")
+                .style("font-size", fontSize)
+                .style("font-weight", "600")
+                .style("font-family", "Inter, sans-serif")
+                .style("fill", "#1f2937")
+                .text(valueText);
+        }
     }
 
     /**
