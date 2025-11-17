@@ -101,6 +101,7 @@ export class TachometerGauge {
         this._renderTrafficLightSegments(g, radius, startAngle, endAngle, value, maxScore, trafficLightConfig);
         this._renderValueArc(g, radius, startAngle, valueAngle, value, maxScore);
         this._renderTickMarks(g, radius, maxScore);
+        this._renderMinMaxLabels(g, radius, startAngle, endAngle, maxScore);
         this._renderNeedle(g, radius, valueAngle);
         this._renderCurrentValue(g, radius, value, maxScore);
     }
@@ -310,6 +311,66 @@ export class TachometerGauge {
                 .style("fill", "#1f2937")
                 .text(rangeValue + "%");
         });
+    }
+
+    /**
+     * Renders min/max labels at the height of the semicircle center (where the needle-center is)
+     * @private
+     */
+    _renderMinMaxLabels(g, radius, startAngle, endAngle, maxScore) {
+        // The arcs are rotated by 90°, so we need to adjust the angles accordingly
+        // startAngle and endAngle are in the original coordinate system
+        // After 90° rotation: left end is at startAngle + 90°, right end is at endAngle + 90°
+        const rotationOffset = Math.PI / 2; // 90° in radians
+        
+        // Calculate angles after rotation
+        const leftAngle = startAngle + rotationOffset;
+        const rightAngle = endAngle + rotationOffset;
+        
+        // Render min/max labels only if enabled in config
+        if (this.config.show_minmax_labels === true) {
+            // Position labels at the height of the semicircle center (where the needle-center is)
+            // In the transformed coordinate system, the center is at Y=0
+            const labelY = 0; // Same Y as the gauge center
+            
+            // Calculate outer radius and label positions
+            const { outerRadius } = this._calculateArcRadii(radius);
+            const labelDistance = this._calculateLabelDistance(outerRadius);
+            
+            // Render min/max labels
+            this._renderMinMaxLabel(g, Math.cos(leftAngle) * labelDistance, labelY, "0");
+            this._renderMinMaxLabel(g, Math.cos(rightAngle) * labelDistance, labelY, maxScore);
+        }
+    }
+
+    /**
+     * Calculates the distance from center for label positioning
+     * @private
+     */
+    _calculateLabelDistance(outerRadius) {
+        // Position labels outside the arc to avoid overlap
+        // The offset needs to be large enough to account for the arc thickness and text rendering
+        return outerRadius + 80;
+    }
+
+    /**
+     * Renders a single min/max label with consistent styling
+     * @private
+     */
+    _renderMinMaxLabel(container, x, y, text) {
+        // Use config font size if set, otherwise default to 14px
+        const fontSize = this.config.minmax_labels_fontsize || "14px";
+        
+        container.append("text")
+            .attr("x", x)
+            .attr("y", y)
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "central")
+            .style("font-size", fontSize)
+            .style("font-weight", "600")
+            .style("font-family", "Inter, sans-serif")
+            .style("fill", "#6b7280")
+            .text(text);
     }
 
     /**

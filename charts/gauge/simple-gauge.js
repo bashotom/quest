@@ -116,16 +116,44 @@ export class SimpleGauge {
         });
 
         // Add value display below gauge
-        this._addSimpleGaugeLabels(svg, containerWidth, containerHeight, value, maxScore, categoryLabel);
+        this._addSimpleGaugeLabels(svg, containerWidth, containerHeight, value, maxScore, categoryLabel, gaugeWidth, gaugeHeight);
     }
 
     /**
      * Adds labels for simple gauge
      * @private
      */
-    _addSimpleGaugeLabels(svg, containerWidth, containerHeight, value, maxScore, categoryLabel) {
+    _addSimpleGaugeLabels(svg, containerWidth, containerHeight, value, maxScore, categoryLabel, gaugeWidth, gaugeHeight) {
         // Get score text from config or use default format
         const scoreText = this._formatScoreText(value, maxScore);
+        
+        // Calculate gauge center position
+        const gaugeCenterX = containerWidth / 2;
+        const gaugeCenterY = containerHeight * 0.65;
+        const radius = Math.min(gaugeWidth, gaugeHeight * 2) / 2;
+        
+        // SimpleGauge starts at 270° (bottom) and goes through a semicircle
+        // Left end is at ~225° (45° from bottom-left), right end is at ~315° (45° from bottom-right)
+        const startAngleDeg = 225; // Left end
+        const endAngleDeg = 315;   // Right end
+        
+        // Convert to radians
+        const startAngleRad = (startAngleDeg * Math.PI) / 180;
+        const endAngleRad = (endAngleDeg * Math.PI) / 180;
+        
+        // Render min/max labels only if enabled in config
+        if (this.config.show_minmax_labels === true) {
+            // Position labels at the height of the semicircle center (where the needle-center is)
+            const labelY = gaugeCenterY; // Same Y as the gauge center
+            
+            // Calculate outer radius and label positions
+            const outerRadius = this._calculateOuterRadius(radius);
+            const labelDistance = this._calculateLabelDistance(outerRadius);
+            
+            // Render min/max labels
+            this._renderMinMaxLabel(svg, gaugeCenterX + Math.cos(startAngleRad) * labelDistance, labelY, "0");
+            this._renderMinMaxLabel(svg, gaugeCenterX + Math.cos(endAngleRad) * labelDistance, labelY, maxScore);
+        }
         
         // Value display
         svg.append("text")
@@ -150,6 +178,46 @@ export class SimpleGauge {
                 .style("fill", "#374151")
                 .text(categoryLabel);
         }
+    }
+
+    /**
+     * Calculates the outer radius of the arc considering thickness and chartInset
+     * @private
+     */
+    _calculateOuterRadius(radius) {
+        // The radius used in SimpleGaugeRenderer._initialize() is: Math.min(width, height * 2) / 2
+        // The outer radius in _createArcs() is: radius - chartInset (where chartInset = 15)
+        const chartInset = 15; // Same as in SimpleGaugeRenderer
+        return radius - chartInset;
+    }
+
+    /**
+     * Calculates the distance from center for label positioning
+     * @private
+     */
+    _calculateLabelDistance(outerRadius) {
+        // Position labels outside the arc to avoid overlap
+        // The offset needs to be large enough to account for the arc thickness and text rendering
+        return outerRadius + 80;
+    }
+
+    /**
+     * Renders a single min/max label with consistent styling
+     * @private
+     */
+    _renderMinMaxLabel(container, x, y, text) {
+        // Use config font size if set, otherwise default to 14px
+        const fontSize = this.config.minmax_labels_fontsize || "14px";
+        
+        container.append("text")
+            .attr("x", x)
+            .attr("y", y)
+            .attr("text-anchor", "middle")
+            .style("font-size", fontSize)
+            .style("font-weight", "600")
+            .style("font-family", "Inter, sans-serif")
+            .style("fill", "#6b7280")
+            .text(text);
     }
 
     /**
