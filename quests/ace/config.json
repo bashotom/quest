@@ -64,8 +64,8 @@
   "trafficlights": [
     {
       "categories": "A",
-      "green": 33,
-      "orange": 66
+      "green": 20,
+      "orange": 40
     }   
   ],
   "input": {
